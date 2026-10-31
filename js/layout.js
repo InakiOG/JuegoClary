@@ -51,22 +51,55 @@ window.Game = window.Game || {};
     'Enter', 'Semicolon', 'Quote', 'Backslash', 'Slash', 'ShiftRight', 'ControlRight', 'ContextMenu',
     'MetaRight']);
   assign('R', 4, ['AltRight']);
+  // Fila de funciones
+  assign('L', 0, ['Escape', 'F1']);
+  assign('L', 1, ['F2']);
+  assign('L', 2, ['F3']);
+  assign('L', 3, ['F4', 'F5']);
+  assign('R', 3, ['F6', 'F7']);
+  assign('R', 2, ['F8']);
+  assign('R', 1, ['F9']);
+  assign('R', 0, ['F10', 'F11', 'F12']);
+  // Bloque de navegación y flechas (mano derecha: índice, corazón, anular por columna)
+  assign('R', 3, ['Insert', 'Delete', 'ArrowLeft']);
+  assign('R', 2, ['Home', 'End', 'ArrowUp', 'ArrowDown']);
+  assign('R', 1, ['PageUp', 'PageDown', 'ArrowRight']);
 
   // Construye la lista de teclas con posición (x, y) y tamaño (w, h) en unidades.
+  // La fila 0 es la de funciones (más baja); el bloque principal empieza en y = 1.
   const keys = [];
-  ROWS.forEach((row, y) => {
+  ROWS.forEach((row, r) => {
     let x = 0;
+    const y = r + 1;
     row.forEach(([code, label, w = 1]) => {
       const key = { code, label, x, y, w, h: 1 };
+      if (code === 'Enter') key.part = r === 1 ? 'top' : 'bottom';
       keys.push(key);
       x += w;
     });
   });
 
+  // Fila de funciones: Esc + F1–F12 en grupos de cuatro.
+  const FROW_H = 0.75;
+  keys.push({ code: 'Escape', label: 'Esc', x: 0, y: 0, w: 1, h: FROW_H });
+  for (let i = 1; i <= 12; i++) {
+    const group = Math.floor((i - 1) / 4);
+    keys.push({ code: `F${i}`, label: `F${i}`, x: 2 + (i - 1) + group * 0.5, y: 0, w: 1, h: FROW_H });
+  }
+
+  // Bloque de navegación y flechas en T invertida, a la derecha del bloque principal.
+  const NX = 15.4;
+  [
+    ['Insert', 'Ins', 0, 1], ['Home', 'Inicio', 1, 1], ['PageUp', 'RePág', 2, 1],
+    ['Delete', 'Supr', 0, 2], ['End', 'Fin', 1, 2], ['PageDown', 'AvPág', 2, 2],
+    ['ArrowUp', '▲', 1, 4],
+    ['ArrowLeft', '◀', 0, 5], ['ArrowDown', '▼', 1, 5], ['ArrowRight', '▶', 2, 5],
+  ].forEach(([code, label, dx, y]) => keys.push({ code, label, x: NX + dx, y, w: 1, h: 1 }));
+
   Game.layout = {
     keys,
     fingers: FINGERS,
-    width: 15,
-    height: ROWS.length,
+    width: NX + 3,
+    height: ROWS.length + 1,
   };
 })();

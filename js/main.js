@@ -2,6 +2,7 @@
 (function () {
   const plane = document.getElementById('plane');
   const desk = document.getElementById('desk');
+  const monitor = document.getElementById('monitor');
   const screen = document.getElementById('screen');
   const cursor = document.getElementById('cursor');
   const mouseEl = document.getElementById('mouse');
@@ -29,11 +30,15 @@
     plane.style.fontSize = `${u}px`;
     const planeW = window.innerWidth / u;
 
-    const kx = planeW / 2 - kb.width / 2 - 3.2;
-    const ky = 1.3;
+    // Parte superior del escritorio tapada por el monitor (en unidades): el teclado empieza debajo.
+    const hidden = Math.max(0,
+      monitor.getBoundingClientRect().bottom - desk.getBoundingClientRect().top) / u;
+    const GAP = 4.6; // del borde derecho del teclado al centro del ratón
+    const kx = (planeW - (kb.width + GAP + 3)) / 2;
+    const ky = hidden * 1.08 + 0.35;
     kb.place(kx, ky);
 
-    mouseHome = { x: kx + kb.width + 4.2, y: ky + 2.6 };
+    mouseHome = { x: kx + kb.width + GAP, y: ky + 3.4 };
     Object.assign(pad.style, {
       left: `${mouseHome.x - 3}em`, top: `${mouseHome.y - 3.2}em`, width: '6em', height: '7em',
     });
@@ -64,19 +69,27 @@
     right.aimFinger(3, mouseIndexPoint(), 0);
   }
 
-  window.addEventListener('mousemove', (e) => {
+  // Última posición real del puntero (null hasta el primer movimiento: cursor centrado).
+  let client = null;
+
+  function applyPointer() {
     const r = screen.getBoundingClientRect();
-    const nx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-    const ny = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-    if (rightOnKeyboard && Math.hypot(e.movementX || 0, e.movementY || 0) > 2) {
-      clearTimeout(rightReturnTimer);
-      rightToMouse();
-    }
+    const nx = client ? Math.min(1, Math.max(0, (client.x - r.left) / r.width)) : 0.5;
+    const ny = client ? Math.min(1, Math.max(0, (client.y - r.top) / r.height)) : 0.5;
     pointer = { nx, ny };
     // El cursor virtual se queda en el borde de la pantalla, como en un ordenador real.
     cursor.style.transform = `translate(${(nx * r.width).toFixed(1)}px, ${(ny * r.height).toFixed(1)}px)`;
     updateMouse();
     if (!rightOnKeyboard) rightToMouse();
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    client = { x: e.clientX, y: e.clientY };
+    if (rightOnKeyboard && Math.hypot(e.movementX || 0, e.movementY || 0) > 2) {
+      clearTimeout(rightReturnTimer);
+      rightToMouse();
+    }
+    applyPointer();
   });
 
   const BTN_FINGER = { 0: 3, 1: 3, 2: 2 }; // izquierdo → índice, rueda → índice, derecho → corazón
@@ -168,14 +181,14 @@
 
   kb.build();
   layout();
+  applyPointer(); // cursor centrado hasta que se mueva el ratón real
   homeLeft();
-  rightToMouse();
   left.snap();
   right.snap();
   window.addEventListener('resize', () => {
     layout();
+    applyPointer(); // recoloca el cursor virtual con el nuevo tamaño de pantalla
     homeLeft();
-    if (!rightOnKeyboard) rightToMouse();
     left.snap();
     right.snap();
   });

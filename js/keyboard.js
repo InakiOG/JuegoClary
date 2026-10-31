@@ -18,8 +18,8 @@
       key.dataset.code = k.code;
       let h = k.h;
       let y = k.y;
-      if (k.code === 'Enter' && k.y === 1) h += GAP * 2; // une las dos piezas del Enter ISO
-      if (k.code === 'Enter' && k.y === 2) { y -= GAP * 2; h += GAP * 2; }
+      if (k.part === 'top') h += GAP * 2; // une las dos piezas del Enter ISO
+      if (k.part === 'bottom') { y -= GAP * 2; h += GAP * 2; }
       Object.assign(key.style, {
         left: `${PAD + k.x + GAP / 2}em`,
         top: `${PAD + y + GAP / 2}em`,
