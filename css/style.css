@@ -1,0 +1,214 @@
+/* JuegoClary — escena base: monitor, escritorio, teclado, ratón y manos */
+
+:root {
+  --bezel: #1b1d22;
+  --bezel-edge: #2a2d34;
+  --key-top: #e9e6df;
+  --key-side: #b9b4aa;
+  --key-text: #4a4740;
+  --key-active: #7fd8ff;
+  --plate: #2b2e35;
+  --skin: #e2b48f;
+  --skin-dark: #a87a58;
+  --sleeve: #33415c;
+  --sleeve-dark: #1f2838;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0c10;
+  cursor: none;            /* el cursor real se sustituye por el virtual */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#room {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 35%, #2a2f3a 0%, #15171d 60%, #0b0c10 100%);
+}
+
+/* ---------- Monitor ---------- */
+#monitor {
+  position: absolute;
+  z-index: 2;
+  left: 2.5vw;
+  right: 2.5vw;
+  top: 1.5vh;
+  height: 71vh;
+  box-sizing: border-box;
+  padding: 1.4vmin 1.4vmin 3.4vmin;
+  border-radius: 1.6vmin;
+  background: linear-gradient(180deg, var(--bezel-edge) 0%, var(--bezel) 6%, var(--bezel) 92%, #141519 100%);
+  box-shadow:
+    0 0 0 1px #000,
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 2.5vh 4vh rgba(0,0,0,0.6);
+}
+
+#screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 0.4vmin;
+  background: radial-gradient(ellipse at 50% 45%, #121c2c 0%, #0a0f18 55%, #05070b 100%);
+  box-shadow:
+    inset 0 0 0 1px #000,
+    inset 0 0 6vmin rgba(0,0,0,0.85);
+}
+
+/* reflejo sutil del cristal */
+#screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(125deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0) 35%);
+}
+
+#led {
+  position: absolute;
+  right: 3vmin;
+  bottom: 1.3vmin;
+  width: 0.7vmin;
+  height: 0.7vmin;
+  border-radius: 50%;
+  background: #4dff9a;
+  box-shadow: 0 0 0.8vmin #4dff9a;
+}
+
+#cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.4vmin;
+  height: 3.6vmin;
+  pointer-events: none;
+  will-change: transform;
+}
+#cursor svg { width: 100%; height: 100%; display: block; }
+#cursor.hidden { display: none; }
+
+/* ---------- Escritorio ---------- */
+#desk {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 31vh;
+  perspective: 1200px;
+  perspective-origin: 50% 0%;
+  background: linear-gradient(180deg, #3a2c22 0%, #4a382a 30%, #2e231b 100%);
+  box-shadow: inset 0 1.5vh 2vh rgba(0,0,0,0.55);
+}
+
+#plane {
+  position: absolute;
+  inset: 0;
+  transform: rotateX(16deg);
+  transform-origin: 50% 100%;
+}
+
+#mousepad {
+  position: absolute;
+  border-radius: 0.6em;
+  background: radial-gradient(ellipse at 50% 40%, #23262d, #17191e);
+  box-shadow: 0 0.15em 0.5em rgba(0,0,0,0.5);
+}
+
+/* ---------- Teclado ---------- */
+#keyboard {
+  position: absolute;
+  border-radius: 0.35em;
+  background: linear-gradient(180deg, #353841, var(--plate));
+  box-shadow:
+    0 0.3em 0.8em rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.key {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 0.1em;
+  background: linear-gradient(180deg, #f4f2ec 0%, var(--key-top) 70%, #d9d5cc 100%);
+  box-shadow:
+    0 0.06em 0 var(--key-side),
+    0 0.09em 0.08em rgba(0,0,0,0.45);
+  color: var(--key-text);
+  font-family: system-ui, "Segoe UI", sans-serif;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.08em 0.1em;
+  display: flex;
+  align-items: flex-start;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: transform 50ms ease-out, background 80ms, box-shadow 80ms;
+}
+.key .lbl { font-size: 0.3em; }
+.key.wide .lbl { font-size: 0.24em; font-weight: 500; }
+.key.down {
+  transform: translateY(0.05em);
+  background: linear-gradient(180deg, #d4f3ff 0%, var(--key-active) 100%);
+  box-shadow:
+    0 0.01em 0 var(--key-side),
+    0 0 0.35em rgba(127,216,255,0.9);
+}
+
+/* ---------- Ratón ---------- */
+#mouse {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 45% 45% 48% 48% / 38% 38% 60% 60%;
+  background: linear-gradient(180deg, #e8e6e1, #c7c3bb);
+  box-shadow: 0 0.2em 0.35em rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+#mouse .mbtn {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 40%;
+  box-sizing: border-box;
+  border-bottom: 1px solid #a9a49b;
+  transition: background 60ms;
+}
+#mouse .mbtn[data-btn="0"] { left: 0;  border-right: 1px solid #a9a49b; }
+#mouse .mbtn[data-btn="2"] { right: 0; }
+#mouse .wheel {
+  z-index: 1;
+  position: absolute;
+  left: 50%;
+  top: 9%;
+  width: 11%;
+  height: 22%;
+  transform: translateX(-50%);
+  border-radius: 0.2em;
+  background: #55524d;
+}
+#mouse .down { background: var(--key-active) !important; box-shadow: 0 0 0.4em rgba(127,216,255,0.9); }
+
+/* ---------- Manos ---------- */
+.hand {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0.25em 0.45em 0.35em rgba(0,0,0,0.45));
+}
+.hand svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.hand .finger {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transition: transform 70ms ease-out;
+}
+.hand .finger.press { transform: scaleY(0.86); }
+.hand .finger.press .fill { stroke: #d6a37d; }
