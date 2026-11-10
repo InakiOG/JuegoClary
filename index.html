@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JuegoClary</title>
+  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/os.css?v=4">
+</head>
+<body>
+  <div id="room">
+    <!-- Escritorio (plano inclinado con teclado, ratón y manos) -->
+    <div id="desk">
+      <div id="plane">
+        <div id="mousepad"></div>
+        <div id="keyboard"></div>
+        <div id="mouse">
+          <div class="mbtn" data-btn="0"></div>
+          <div class="mbtn" data-btn="2"></div>
+          <div class="wheel" data-btn="1"></div>
+        </div>
+        <div id="hand-left" class="hand"></div>
+        <div id="hand-right" class="hand"></div>
+      </div>
+    </div>
+
+    <!-- Monitor -->
+    <div id="monitor">
+      <div id="screen">
+        <div id="os"></div>
+        <div id="cursor"></div>
+      </div>
+      <div id="led"></div>
+    </div>
+  </div>
+
+  <script src="js/layout.js?v=4"></script>
+  <script src="js/sound.js?v=4"></script>
+  <script src="js/files.js?v=4"></script>
+  <script src="js/os.js?v=4"></script>
+  <script src="js/keyboard.js?v=4"></script>
+  <script src="js/hands.js?v=4"></script>
+  <script src="js/main.js?v=4"></script>
+</body>
+</html>

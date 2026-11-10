@@ -1,0 +1,389 @@
+/* Sistema operativo dentro de la pantalla del juego. 1em = font-size de #os (escala con la pantalla). */
+
+:root {
+  --os-accent: #4a8fe0;
+  --os-accent-soft: rgba(74, 143, 224, 0.28);
+  --os-win-bg: #f6f7f9;
+  --os-win-border: #9aa3b1;
+  --os-title: #e9edf3;
+  --os-title-active: #dfe7f3;
+  --os-text: #1f2430;
+  --os-muted: #6b7380;
+  --os-taskbar: rgba(18, 22, 34, 0.86);
+  --os-font: "Segoe UI", system-ui, sans-serif;
+}
+
+/* el cursor real nunca aparece: el del juego lo sustituye */
+#room, #room * { cursor: none !important; }
+
+#os {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-family: var(--os-font);
+  color: var(--os-text);
+  font-size: 16px;
+}
+
+#wallpaper, #wallpaper svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#desktop, #windows {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 2.6em;
+}
+#windows { pointer-events: none; }
+#windows > .win { pointer-events: auto; }
+
+/* ---------- Iconos ---------- */
+.icon {
+  position: absolute;
+  width: 5em;
+  box-sizing: border-box;
+  padding: 0.3em 0.2em 0.35em;
+  border: 1px solid transparent;
+  border-radius: 0.25em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+}
+.icon-img {
+  width: 2.8em;
+  height: 2.8em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-img svg { width: 100%; height: 100%; display: block; }
+.icon-img .thumb {
+  width: 86%;
+  height: 70%;
+  background: #fff;
+  padding: 0.12em;
+  box-shadow: 0 0.06em 0.2em rgba(0, 0, 0, 0.45);
+}
+.icon-img .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.icon-label {
+  font-size: 0.72em;
+  line-height: 1.2;
+  text-align: center;
+  word-break: break-word;
+  max-width: 100%;
+}
+#desktop .icon-label {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.6);
+}
+.icon:hover { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.22); }
+.icon.selected { background: rgba(120, 170, 240, 0.35); border-color: rgba(160, 200, 255, 0.7); }
+.ex-view .icon:hover { background: rgba(74, 143, 224, 0.1); border-color: rgba(74, 143, 224, 0.25); }
+.ex-view .icon.selected { background: var(--os-accent-soft); border-color: rgba(74, 143, 224, 0.6); }
+.icon.dragging { opacity: 0.4; }
+.icon.ghost { position: absolute; z-index: 9000; pointer-events: none; opacity: 0.85; }
+.icon.drop-hover, .side-item.drop-hover { background: rgba(120, 200, 140, 0.35) !important; border-color: rgba(120, 200, 140, 0.9) !important; }
+
+/* ---------- Ventanas ---------- */
+.win {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--os-win-bg);
+  border: 1px solid var(--os-win-border);
+  border-radius: 0.4em;
+  overflow: hidden;
+  box-shadow: 0 0.6em 1.6em rgba(0, 0, 0, 0.35);
+}
+.win.active { box-shadow: 0 0.8em 2.2em rgba(0, 0, 0, 0.5); border-color: #6e8db5; }
+.win.maximized { border-radius: 0; border: none; }
+.titlebar {
+  flex: none;
+  height: 1.9em;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding-left: 0.5em;
+  background: var(--os-title);
+  border-bottom: 1px solid #d3d8e0;
+}
+.win.active .titlebar { background: var(--os-title-active); }
+.ticon { width: 1.1em; height: 1.1em; flex: none; }
+.ticon svg { width: 100%; height: 100%; display: block; }
+.ttext {
+  flex: 1;
+  font-size: 0.75em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--os-muted);
+}
+.win.active .ttext { color: var(--os-text); }
+.tbtns { display: flex; height: 100%; }
+.tb {
+  width: 2.6em;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+}
+.tb svg { width: 0.7em; height: 0.7em; }
+.tb:hover { background: rgba(0, 0, 0, 0.08); }
+.tb-close:hover { background: #d9413a; color: #fff; }
+.wbody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.resize { position: absolute; right: 0; bottom: 0; width: 0.9em; height: 0.9em; }
+.win.maximized .resize { display: none; }
+
+.statusbar {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2em 0.7em;
+  font-size: 0.65em;
+  color: var(--os-muted);
+  border-top: 1px solid #e0e3e8;
+  background: #eef0f3;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  padding: 0 0.3em;
+  box-sizing: border-box;
+  border-radius: 0.25em;
+  color: #333;
+  font-size: 0.8em;
+}
+.btn svg { width: 0.75em; height: 0.75em; }
+.btn:hover { background: rgba(0, 0, 0, 0.07); }
+.btn:active { background: rgba(0, 0, 0, 0.13); }
+.btn.text { padding: 0 0.7em; border: 1px solid #c8ced8; background: #fff; }
+.btn.text:hover { background: #f0f3f7; }
+.btn.danger { color: #b3261e; }
+
+/* ---------- Notas ---------- */
+.notes { background: #fff; }
+.menubar {
+  flex: none;
+  display: flex;
+  gap: 1em;
+  padding: 0.2em 0.7em;
+  font-size: 0.7em;
+  border-bottom: 1px solid #e3e6eb;
+  color: #333;
+}
+.notes textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 0.6em 0.8em;
+  font: 0.8em/1.5 Consolas, "Cascadia Mono", monospace;
+  color: #1b1b1b;
+  background: #fff;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ---------- Visor de fotos ---------- */
+.viewer { background: #1d1f24; }
+.viewer .stage {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.viewer .stage img {
+  max-width: 96%;
+  max-height: 96%;
+  transition: transform 120ms ease-out;
+  box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.5);
+}
+.viewer-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.3em;
+  background: #2a2d34;
+}
+.viewer-bar .btn { color: #e6e8ec; font-size: 0.85em; }
+.viewer-bar .btn:hover { background: rgba(255, 255, 255, 0.12); }
+.zoom-val { color: #c9ccd3; font-size: 0.7em; min-width: 3em; text-align: center; }
+
+/* ---------- Explorador ---------- */
+.ex-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  padding: 0.35em 0.5em;
+  border-bottom: 1px solid #e0e3e8;
+}
+.ex-path {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  height: 1.3em;
+  padding: 0 0.6em;
+  margin-left: 0.3em;
+  font-size: 0.72em;
+  border: 1px solid #ccd2db;
+  border-radius: 0.25em;
+  background: #fff;
+}
+.crumb[data-go]:hover { text-decoration: underline; color: var(--os-accent); }
+.sep { color: var(--os-muted); }
+.ex-actions { display: flex; gap: 0.4em; }
+.ex-main { flex: 1; min-height: 0; display: flex; }
+.ex-side {
+  flex: none;
+  width: 9em;
+  padding: 0.4em 0.3em;
+  border-right: 1px solid #e0e3e8;
+  background: #f0f2f5;
+  overflow: auto;
+}
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.3em 0.45em;
+  border: 1px solid transparent;
+  border-radius: 0.25em;
+  font-size: 0.72em;
+}
+.side-item:hover { background: rgba(74, 143, 224, 0.12); }
+.side-item.current { background: var(--os-accent-soft); }
+.side-icon { width: 1.4em; height: 1.4em; flex: none; }
+.side-icon svg { width: 100%; height: 100%; display: block; }
+.ex-view {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  overflow: auto;
+  padding: 0.5em;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.3em;
+}
+.ex-view .icon { position: relative; }
+.empty { color: var(--os-muted); font-size: 0.75em; padding: 1em; pointer-events: none; }
+
+/* ---------- Barra de tareas ---------- */
+#taskbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.6em;
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0 0.4em;
+  box-sizing: border-box;
+  background: var(--os-taskbar);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e8ebf1;
+  z-index: 5000;
+}
+#start-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  height: 2em;
+  padding: 0 0.8em 0 0.55em;
+  border-radius: 0.3em;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+#start-btn .logo {
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe7a8, #f29a5a 55%, #b8506b);
+  box-shadow: 0 0 0.4em rgba(242, 154, 90, 0.6);
+}
+#start-btn:hover, #start-btn.open { background: rgba(255, 255, 255, 0.12); }
+#task-items { flex: 1; display: flex; gap: 0.25em; min-width: 0; height: 100%; align-items: center; }
+.task {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  max-width: 11em;
+  min-width: 0;
+  height: 2em;
+  padding: 0 0.6em;
+  box-sizing: border-box;
+  border-radius: 0.3em;
+  border-bottom: 2px solid transparent;
+  font-size: 0.78em;
+  background: rgba(255, 255, 255, 0.05);
+}
+.task:hover { background: rgba(255, 255, 255, 0.12); }
+.task.active { background: rgba(255, 255, 255, 0.16); border-bottom-color: var(--os-accent); }
+.task-icon { width: 1.2em; height: 1.2em; flex: none; }
+.task-icon svg { width: 100%; height: 100%; display: block; }
+.task-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tray { padding: 0 0.5em; }
+#clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.68em;
+  line-height: 1.25;
+}
+
+/* ---------- Menú de inicio ---------- */
+#start-menu {
+  position: absolute;
+  left: 0.4em;
+  bottom: 2.9em;
+  width: 15em;
+  z-index: 6000;
+  padding: 0.6em;
+  border-radius: 0.5em;
+  background: rgba(28, 33, 48, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0.6em 2em rgba(0, 0, 0, 0.5);
+  color: #e8ebf1;
+}
+.start-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.3em 0.4em 0.7em;
+  margin-bottom: 0.4em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.8em;
+}
+.avatar { width: 1.8em; height: 1.8em; border-radius: 50%; background: linear-gradient(135deg, #6aa8f0, #8b6fd6); }
+.start-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.4em 0.5em;
+  border-radius: 0.3em;
+  font-size: 0.78em;
+}
+.start-item:hover { background: rgba(255, 255, 255, 0.1); }
+.start-icon { width: 1.5em; height: 1.5em; flex: none; }
+.start-icon svg { width: 100%; height: 100%; display: block; }
