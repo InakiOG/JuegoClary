@@ -97,6 +97,7 @@
     const btn = mouseEl.querySelector(`[data-btn="${e.button}"]`);
     if (!btn) return;
     btn.classList.toggle('down', down);
+    Game.sound.mouse(down);
     if (down && rightOnKeyboard) { clearTimeout(rightReturnTimer); rightToMouse(); }
     right.press(BTN_FINGER[e.button], down);
   }
@@ -121,12 +122,15 @@
 
   window.addEventListener('keydown', (e) => {
     const code = e.code;
-    if (!e.ctrlKey && !e.metaKey && !/^F\d+$/.test(code)) e.preventDefault(); // evita scroll/atajos
+    // Evita scroll/atajos, salvo al escribir en un campo de texto del juego (ahí solo se bloquea Tab).
+    const typing = e.target.closest && e.target.closest('textarea, input');
+    if (typing ? code === 'Tab' : (!e.ctrlKey && !e.metaKey && !/^F\d+$/.test(code))) e.preventDefault();
     if (!kb.has(code) || held.has(code)) return;
     const f = Game.layout.fingers[code];
     if (!f) return;
     kb.setDown(code, true);
     held.set(code, f);
+    Game.sound.key(true, code);
     if (f.hand === 'L') {
       clearTimeout(leftReturnTimer);
       aimFor('L', f.finger, code);
@@ -144,6 +148,7 @@
     if (!f) return;
     held.delete(code);
     kb.setDown(code, false);
+    Game.sound.key(false, code);
     const hand = f.hand === 'L' ? left : right;
     // Solo levanta el dedo si ninguna otra tecla lo mantiene pulsado.
     const stillUsed = [...held.values()].some((o) => o.hand === f.hand && o.finger === f.finger);

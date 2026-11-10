@@ -22,6 +22,15 @@ El jugador está sentado frente a un ordenador: ve el monitor, el teclado, el ra
 - Teclado completo sin bloque numérico: **fila de funciones** (Esc y F1–F12 en grupos de cuatro, teclas más bajas), bloque principal y, a la derecha, **Ins/Inicio/RePág/Supr/Fin/AvPág** y las **flechas en T invertida** (las pulsa la mano derecha). Las teclas F no bloquean la acción del navegador (F5 recarga, F12 abre las herramientas).
 - Distribución de teclado **ISO española** por defecto (Ñ, Ç, Enter alto). Si el navegador lo permite (`navigator.keyboard.getLayoutMap`, Chrome/Edge), las etiquetas se adaptan a la distribución real del usuario.
 
+## Ordenador del juego (pantalla)
+
+- **Escritorio** con fondo de pantalla, iconos (Este equipo, Papelera, `nota.txt`, `playa.jpg`), barra de tareas con menú de inicio y reloj.
+- **Ventanas** que se pueden mover, redimensionar (esquina inferior derecha), maximizar (doble clic en la barra de título), minimizar y cerrar.
+- **Explorador de archivos** con Escritorio, Documentos, Imágenes y Papelera. Los archivos se arrastran entre carpetas, al escritorio o a la papelera; en la papelera se pueden restaurar o vaciar.
+- **Notas** (archivos .txt editables) y **Fotos** (visor con zoom; las fotos se pintan con canvas, sin archivos de imagen).
+- Teclado: `Supr` manda el archivo seleccionado a la papelera (dentro de la papelera lo borra), `Enter` lo abre.
+- **Sonido**: clic sintetizado (Web Audio) al pulsar teclas y botones del ratón.
+
 ## Estructura
 
 ```
@@ -31,6 +40,10 @@ js/layout.js      Distribución de teclas y qué dedo pulsa cada una
 js/keyboard.js    Construcción del teclado y estado pulsado
 js/hands.js       Manos en SVG y su animación
 js/main.js        Disposición, entrada de ratón/teclado y bucle de animación
+js/sound.js       Sonidos de teclas y ratón (Web Audio)
+js/files.js       Archivos del ordenador del juego, fotos generadas e iconos
+js/os.js          Escritorio, ventanas, explorador, notas, visor y barra de tareas
+css/os.css        Estilos del sistema operativo de la pantalla
 ```
 
 Todo el escritorio se mide en "unidades de tecla" (1em del plano = una tecla), así que escala cambiando un solo `font-size`.

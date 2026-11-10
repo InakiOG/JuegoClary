@@ -6,10 +6,9 @@
   --key-top: #e9e6df;
   --key-side: #b9b4aa;
   --key-text: #4a4740;
-  --key-active: #7fd8ff;
   --plate: #2b2e35;
-  --skin: #e2b48f;
-  --skin-dark: #a87a58;
+  --skin: #a8744e;
+  --skin-dark: #6b442a;
   --sleeve: #33415c;
   --sleeve-dark: #1f2838;
 }
@@ -88,6 +87,7 @@ html, body {
   top: 0;
   width: 2.4vmin;
   height: 3.6vmin;
+  z-index: 10000;
   pointer-events: none;
   will-change: transform;
 }
@@ -155,10 +155,10 @@ html, body {
 .key.wide .lbl { font-size: 0.24em; font-weight: 500; }
 .key.down {
   transform: translateY(0.05em);
-  background: linear-gradient(180deg, #d4f3ff 0%, var(--key-active) 100%);
+  background: linear-gradient(180deg, #e6e3dc 0%, #dcd8cf 70%, #cfcac0 100%);
   box-shadow:
     0 0.01em 0 var(--key-side),
-    0 0 0.35em rgba(127,216,255,0.9);
+    0 0.03em 0.04em rgba(0,0,0,0.4);
 }
 
 /* ---------- Ratón ---------- */
@@ -193,7 +193,8 @@ html, body {
   border-radius: 0.2em;
   background: #55524d;
 }
-#mouse .down { background: var(--key-active) !important; box-shadow: 0 0 0.4em rgba(127,216,255,0.9); }
+#mouse .mbtn.down { background: rgba(0,0,0,0.07); box-shadow: inset 0 0.06em 0.12em rgba(0,0,0,0.3); }
+#mouse .wheel.down { background: #3f3d39; }
 
 /* ---------- Manos ---------- */
 .hand {
@@ -211,4 +212,4 @@ html, body {
   transition: transform 70ms ease-out;
 }
 .hand .finger.press { transform: scaleY(0.86); }
-.hand .finger.press .fill { stroke: #d6a37d; }
+.hand .finger.press .fill { stroke: #966542; }
