@@ -17,10 +17,10 @@ El jugador está sentado frente a un ordenador: ve el monitor, el teclado, el ra
 Tecnología vieja y reparada mezclada con escultura sagrada, con un aire cyberpunk de anime de finales de los 90.
 
 - **Habitación** oscura: pared de hormigón con grietas y manchas, cables gruesos colgando del techo y amontonados en el escritorio, algunos metiéndose en las grietas.
-- **Rostro de piedra** gigante con los ojos cerrados, agrietado y medio tragado por los cables, a la izquierda del monitor.
+- **Santa de piedra** tallada en un nicho de la pared, a la izquierda del monitor: velo, aureola, cabeza inclinada, ojos cerrados y manos juntas. Está agrietada, los cables la envuelven y uno se enchufa en su aureola.
 - **La pantalla es la única luz**: un brillo cian ilumina la habitación, el escritorio y el contorno de las manos. Sombras de trama roja (puntos) en las esquinas.
 - **Monitor CRT** gris y rozado, con cinta adhesiva y una pieza de repuesto; cristal abombado (esquinas curvas, viñeta y reflejo), líneas de barrido, una banda de luz que baja y un parpadeo ocasional que también oscurece la habitación. La curvatura es un efecto visual: la imagen no se deforma, así los clics caen donde apuntas.
-- **Teclado** gris apagado con teclas de repuesto que no combinan y un trozo de cinta; el cable del ratón sigue al ratón y se pierde detrás del monitor.
+- **Teclado** gris apagado con teclas de repuesto que no combinan, un trozo de cinta y cuatro teclas que faltan (3, J, F7 y punto: se ve el interruptor, que se hunde al pulsar); el cable del ratón sigue al ratón y se pierde detrás del monitor.
 - **Sistema operativo** de fósforo: fondo negro con grano, texto verde-cian con brillo, letra monoespaciada, ventanas cuadradas con bordes finos.
 
 ## Qué hay por ahora (escena base)
@@ -50,7 +50,7 @@ css/style.css     Estilos y colores (variables al principio)
 js/layout.js      Distribución de teclas y qué dedo pulsa cada una
 js/keyboard.js    Construcción del teclado y estado pulsado
 js/hands.js       Manos en SVG y su animación
-js/room.js        Pared, grietas, rostro de piedra y cables (SVG generado)
+js/room.js        Pared, grietas, santa en el nicho y cables (SVG generado)
 js/main.js        Disposición, entrada de ratón/teclado y bucle de animación
 js/sound.js       Sonidos de teclas y ratón (Web Audio)
 js/files.js       Archivos del ordenador del juego, fotos generadas e iconos

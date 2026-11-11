@@ -428,3 +428,49 @@ html, body {
 }
 .hand .finger.press { transform: scaleY(0.86); }
 .hand .finger.press .fill { stroke: #3a2c30; }
+
+/* teclas que faltan: solo queda el interruptor (carcasa y vástago en cruz) */
+.key[data-code="Digit3"], .key[data-code="KeyJ"], .key[data-code="F7"], .key[data-code="Period"] {
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+.key[data-code="Digit3"] .lbl, .key[data-code="KeyJ"] .lbl,
+.key[data-code="F7"] .lbl, .key[data-code="Period"] .lbl { display: none; }
+/* carcasa del interruptor */
+.key[data-code="Digit3"]::before, .key[data-code="KeyJ"]::before,
+.key[data-code="F7"]::before, .key[data-code="Period"]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.58em;
+  height: 0.58em;
+  transform: translate(-50%, -50%);
+  border-radius: 0.04em;
+  background: linear-gradient(180deg, #1b1c1f, #0e0e10);
+  box-shadow: inset 0 0 0 0.03em #2c2d31, 0 0.03em 0.05em rgba(0,0,0,0.6);
+}
+/* vástago en cruz */
+.key[data-code="Digit3"]::after, .key[data-code="KeyJ"]::after,
+.key[data-code="F7"]::after, .key[data-code="Period"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.22em;
+  height: 0.22em;
+  transform: translate(-50%, -50%);
+  background:
+    linear-gradient(#b7ab8c, #b7ab8c) center / 100% 30% no-repeat,
+    linear-gradient(#b7ab8c, #b7ab8c) center / 30% 100% no-repeat;
+  filter: drop-shadow(0 0.02em 0 #4a4434);
+}
+/* al pulsar, se hunde el vástago y no la tecla entera */
+.key[data-code="Digit3"].down, .key[data-code="KeyJ"].down,
+.key[data-code="F7"].down, .key[data-code="Period"].down { transform: none; filter: none; }
+.key[data-code="Digit3"].down::after, .key[data-code="KeyJ"].down::after,
+.key[data-code="F7"].down::after, .key[data-code="Period"].down::after {
+  transform: translate(-50%, -50%) scale(0.8);
+  filter: brightness(0.7);
+}

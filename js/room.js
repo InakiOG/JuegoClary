@@ -1,5 +1,5 @@
-// Habitación: pared de hormigón agrietada, rostro de piedra con los ojos cerrados medio
-// tragado por cables, cables colgando del techo y cables sobre el escritorio.
+// Habitación: pared de hormigón agrietada, una santa de piedra en un nicho de la pared
+// envuelta en cables, cables colgando del techo y cables sobre el escritorio.
 // Todo se genera en SVG al cargar (sin archivos de imagen). Las grietas usan un azar con
 // semilla, así la habitación es siempre la misma.
 window.Game = window.Game || {};
@@ -52,47 +52,73 @@ window.Game = window.Game || {};
     cable(`M${x1} ${y1} Q${(x1 + x2) / 2} ${Math.max(y1, y2) + sag} ${x2} ${y2}`, w);
   const curve = (x1, y1, cx, cy, x2, y2, w) => cable(`M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`, w);
 
-  // ---------- Rostro de piedra ----------
-  const HEAD = 'M0,-270 C120,-270 190,-180 190,-40 C190,60 160,150 110,210 C70,255 30,272 0,272 ' +
-               'C-30,272 -70,255 -110,210 C-160,150 -190,60 -190,-40 C-190,-180 -120,-270 0,-270 Z';
+  // ---------- Santa en un nicho de la pared ----------
+  // Figura de piedra tallada en un nicho con arco: velo, aureola, cabeza inclinada,
+  // ojos cerrados y manos juntas. Los cables la envuelven y uno se enchufa en la aureola.
+  const NICHE = 'M-165,700 V195 A165,165 0 0 1 165,195 V700 Z';
+  const RECESS = 'M-135,700 V200 A135,135 0 0 1 135,200 V700 Z';
+  const ROBE = 'M-78,258 C-100,340 -112,470 -122,700 L122,700 C112,470 100,340 78,258 Z';
+  const VEIL = 'M0,128 C34,128 52,160 54,205 C58,235 66,250 80,264 L-80,264 C-66,250 -58,235 -54,205 C-52,160 -34,128 0,128 Z';
+  const SLEEVE = 'M-76,300 C-62,346 -30,366 -8,352 L-7,338 C-30,346 -52,330 -66,292 Z';
 
-  function face(rnd) {
-    const eye = (s) => // s = -1 izquierda, 1 derecha
-      `<ellipse cx="${75 * s}" cy="-28" rx="58" ry="30" fill="#000" opacity=".38" filter="url(#soft)"/>` +
-      `<path d="M${75 * s - 48},-30 C${75 * s - 28},-50 ${75 * s + 28},-50 ${75 * s + 48},-30" stroke="#8fa3a0" stroke-width="2.2" opacity=".55" fill="none"/>` +
-      `<path d="M${75 * s - 50},-27 C${75 * s - 25},-8 ${75 * s + 25},-8 ${75 * s + 50},-27" stroke="#08090a" stroke-width="3.2" fill="none"/>` +
-      `<path d="M${75 * s - 62},-74 C${75 * s - 30},-100 ${75 * s + 30},-100 ${75 * s + 66},-70" stroke="#0b0c0d" stroke-width="5" opacity=".55" fill="none" filter="url(#soft)"/>`;
+  function saint() {
+    const fold = (d) =>
+      `<path d="${d}" stroke="#000" stroke-width="7" opacity=".4" filter="url(#soft)"/>` +
+      `<path d="${d}" transform="translate(4 0)" stroke="#9db3af" stroke-width="1.6" opacity=".35"/>`;
 
-    // Cables que tapan la mitad inferior del rostro
-    let swallow = '';
+    // cables que envuelven la túnica
+    let wrap = '';
     const r = seeded(77);
-    for (let i = 0; i < 9; i++) {
-      const y1 = 60 + i * 26 + r() * 20;
-      const y2 = 110 + i * 22 + r() * 30;
-      swallow += curve(-260, y1, -20 + r() * 60, y1 + 40 + r() * 70, 260, y2, 9 + r() * 9);
+    for (let i = 0; i < 6; i++) {
+      const y1 = 400 + i * 38 + r() * 20;
+      const y2 = 380 + i * 42 + r() * 30;
+      wrap += curve(-230, y1, r() * 60 - 30, y1 + 50 + r() * 50, 230, y2, 8 + r() * 8);
     }
 
-    return `<g transform="translate(250 330) rotate(-8)">` +
-      `<path d="${HEAD}" fill="url(#stone)"/>` +
-      `<g clip-path="url(#headclip)">` +
-      `  <rect x="-200" y="-280" width="400" height="560" filter="url(#grit)" opacity=".55"/>` +
-      `  <ellipse cx="-120" cy="40" rx="120" ry="260" fill="#000" opacity=".45" filter="url(#soft)"/>` +
-      eye(-1) + eye(1) +
-      // nariz
-      `  <path d="M8,-60 C14,0 30,48 34,70" stroke="#a7bab6" stroke-width="2" opacity=".45" fill="none"/>` +
-      `  <path d="M-34,70 C-20,88 20,88 34,70" stroke="#060708" stroke-width="3" fill="none"/>` +
-      `  <path d="M-26,72 q8,7 16,2 M10,74 q8,5 16,-2" stroke="#050506" stroke-width="3" fill="none"/>` +
-      `  <path d="M-30,60 C-36,20 -28,-20 -14,-56" stroke="#000" stroke-width="10" opacity=".35" fill="none" filter="url(#soft)"/>` +
-      // boca
-      `  <path d="M-58,138 C-20,148 20,148 58,138" stroke="#050506" stroke-width="3.4" fill="none"/>` +
-      `  <path d="M-55,136 C-25,122 -8,128 0,132 C8,128 25,122 55,136" stroke="#8fa3a0" stroke-width="1.6" opacity=".4" fill="none"/>` +
-      `  <path d="M-40,158 C-15,172 15,172 40,158" stroke="#000" stroke-width="6" opacity=".4" fill="none" filter="url(#soft)"/>` +
-      // grieta que atraviesa la frente y un ojo
-      `  <g fill="none" stroke-linecap="round" stroke-linejoin="round">${crack(seeded(9), 70, -275, 1.9, 300, 4.5)}</g>` +
-      `</g>` +
-      `<path d="${HEAD}" fill="none" stroke="#000" stroke-width="3" opacity=".6"/>` +
-      `<g fill="none" stroke-linecap="round">${swallow}</g>` +
-      `</g>`;
+    return '<g transform="translate(230 0)">' +
+      // nicho: marco de piedra y hueco oscuro
+      `<path d="${NICHE}" fill="url(#stone)"/>` +
+      `<path d="${RECESS}" fill="url(#recess)"/>` +
+      `<path d="${RECESS}" fill="none" stroke="#000" stroke-width="6" opacity=".6" filter="url(#soft)"/>` +
+      // aureola de piedra con rayos tallados
+      '<circle cx="0" cy="186" r="76" fill="url(#stone)" opacity=".55"/>' +
+      '<circle cx="0" cy="186" r="76" fill="none" stroke="#a9bcb8" stroke-width="3" opacity=".5"/>' +
+      '<circle cx="0" cy="186" r="66" fill="none" stroke="#000" stroke-width="2" opacity=".5"/>' +
+      '<g stroke="#000" stroke-width="2" opacity=".35">' +
+      Array.from({ length: 16 }, (_, i) => {
+        const a = (i / 16) * Math.PI * 2;
+        return `<path d="M${f1(Math.cos(a) * 46)},${f1(186 + Math.sin(a) * 46)} L${f1(Math.cos(a) * 64)},${f1(186 + Math.sin(a) * 64)}"/>`;
+      }).join('') + '</g>' +
+      // cable enchufado en la aureola
+      curve(70, -20, 120, 80, 62, 140, 9) +
+      '<rect x="52" y="132" width="20" height="13" rx="2" fill="#1a1c1e" stroke="#000" transform="rotate(30 62 138)"/>' +
+      // túnica, mangas y manos
+      `<path d="${ROBE}" fill="url(#stone)"/>` +
+      `<g fill="none" stroke-linecap="round">` +
+      fold('M-40,380 C-45,470 -50,560 -55,700') + fold('M-10,370 C-12,470 -8,560 -14,700') +
+      fold('M25,375 C30,470 34,560 40,700') + fold('M55,360 C68,450 78,560 85,700') + '</g>' +
+      `<path d="${SLEEVE}" fill="url(#stone)" stroke="#000" stroke-opacity=".5" stroke-width="2"/>` +
+      `<path d="${SLEEVE}" transform="scale(-1 1)" fill="url(#stone)" stroke="#000" stroke-opacity=".5" stroke-width="2"/>` +
+      '<path d="M-9,352 C-12,330 -6,300 0,288 C6,300 12,330 9,352 Z" fill="url(#stone)" stroke="#000" stroke-opacity=".55" stroke-width="2"/>' +
+      '<path d="M0,292 V350" stroke="#000" stroke-width="1.4" opacity=".6"/>' +
+      // velo y cara, inclinada hacia abajo
+      '<g transform="rotate(-9 0 200)">' +
+      `<path d="${VEIL}" fill="url(#stone)" stroke="#000" stroke-opacity=".5" stroke-width="2"/>` +
+      '<ellipse cx="2" cy="196" rx="25" ry="32" fill="url(#stone)"/>' +
+      '<ellipse cx="2" cy="196" rx="25" ry="32" fill="none" stroke="#000" stroke-width="4" opacity=".45" filter="url(#soft)"/>' +
+      '<path d="M-15,191 q7,5 13,0 M6,191 q7,5 13,0" stroke="#050506" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M-16,185 q8,-5 15,-1 M5,184 q8,-5 15,0" stroke="#a9bcb8" stroke-width="1.2" opacity=".5" fill="none"/>' +
+      '<path d="M3,190 C4,200 6,207 3,212" stroke="#a9bcb8" stroke-width="1.4" opacity=".5" fill="none"/>' +
+      '<path d="M-6,220 q6,2.5 12,0" stroke="#050506" stroke-width="2" fill="none"/>' +
+      '</g>' +
+      // textura, sombra del lado lejos de la pantalla y grieta
+      '<g clip-path="url(#nicheclip)">' +
+      '  <rect x="-170" y="20" width="340" height="700" filter="url(#grit)" opacity=".5"/>' +
+      '  <ellipse cx="-150" cy="380" rx="110" ry="380" fill="#000" opacity=".45" filter="url(#soft)"/>' +
+      `  <g fill="none" stroke-linecap="round" stroke-linejoin="round">${crack(seeded(9), 95, 30, 1.95, 420, 4.5)}${crack(seeded(31), -160, 330, 0.25, 200, 3.5)}</g>` +
+      '</g>' +
+      `<g fill="none" stroke-linecap="round">${wrap}</g>` +
+      '</g>';
   }
 
   // ---------- Pared completa ----------
@@ -156,7 +182,9 @@ window.Game = window.Game || {};
       '<feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2 1.2"/></filter>' +
       '<filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="30"/></filter>' +
       '<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>' +
-      `<clipPath id="headclip"><path d="${HEAD}"/></clipPath>` +
+      `<clipPath id="nicheclip"><path d="${NICHE}"/></clipPath>` +
+      '<linearGradient id="recess" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#030404"/>' +
+      '<stop offset="1" stop-color="#152020"/></linearGradient>' +
       '</defs>' +
       '<rect width="1600" height="900" fill="url(#wall)"/>' +
       '<rect width="1600" height="900" filter="url(#blotch)" opacity=".5"/>' +
@@ -165,7 +193,7 @@ window.Game = window.Game || {};
       '<path d="M150 0 V900 M1450 0 V900" stroke="#08090a" stroke-width="3" opacity=".6"/>' +
       `<g fill="none" stroke-linecap="round" stroke-linejoin="round">${cracks}</g>` +
       `<g fill="none" stroke-linecap="round">${back}</g>` +
-      face(rnd) + box +
+      saint() + box +
       `<g fill="none" stroke-linecap="round">${front}</g>` +
       '</svg>';
   }
