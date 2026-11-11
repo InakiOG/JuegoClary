@@ -1,5 +1,5 @@
-// Habitación: pared de hormigón agrietada, una santa de piedra en un nicho de la pared
-// envuelta en cables, cables colgando del techo y cables sobre el escritorio.
+// Habitación: pared de hormigón agrietada, una estampa de una santa sin rostro colgada
+// de un cable, cables colgando del techo y cables sobre el escritorio.
 // Todo se genera en SVG al cargar (sin archivos de imagen). Las grietas usan un azar con
 // semilla, así la habitación es siempre la misma.
 window.Game = window.Game || {};
@@ -52,72 +52,45 @@ window.Game = window.Game || {};
     cable(`M${x1} ${y1} Q${(x1 + x2) / 2} ${Math.max(y1, y2) + sag} ${x2} ${y2}`, w);
   const curve = (x1, y1, cx, cy, x2, y2, w) => cable(`M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`, w);
 
-  // ---------- Santa en un nicho de la pared ----------
-  // Figura de piedra tallada en un nicho con arco: velo, aureola, cabeza inclinada,
-  // ojos cerrados y manos juntas. Los cables la envuelven y uno se enchufa en la aureola.
-  const NICHE = 'M-165,700 V195 A165,165 0 0 1 165,195 V700 Z';
-  const RECESS = 'M-135,700 V200 A135,135 0 0 1 135,200 V700 Z';
-  const ROBE = 'M-78,258 C-100,340 -112,470 -122,700 L122,700 C112,470 100,340 78,258 Z';
-  const VEIL = 'M0,128 C34,128 52,160 54,205 C58,235 66,250 80,264 L-80,264 C-66,250 -58,235 -54,205 C-52,160 -34,128 0,128 Z';
-  const SLEEVE = 'M-76,300 C-62,346 -30,366 -8,352 L-7,338 C-30,346 -52,330 -66,292 Z';
+  // ---------- Estampa de una santa colgada en la pared ----------
+  // Cuadrito con arco: santa con velo, aureola y manos juntas, pero sin rostro (óvalo vacío).
+  // Cuelga de un cable en vez de un cordel; cristal agrietado y una lucecita roja debajo.
+  const FRAME = 'M-70,95 V-50 A70,70 0 0 1 70,-50 V95 Z';
+  const PICTURE = 'M-57,82 V-48 A57,57 0 0 1 57,-48 V82 Z';
 
   function saint() {
-    const fold = (d) =>
-      `<path d="${d}" stroke="#000" stroke-width="7" opacity=".4" filter="url(#soft)"/>` +
-      `<path d="${d}" transform="translate(4 0)" stroke="#9db3af" stroke-width="1.6" opacity=".35"/>`;
-
-    // cables que envuelven la túnica
-    let wrap = '';
-    const r = seeded(77);
-    for (let i = 0; i < 6; i++) {
-      const y1 = 400 + i * 38 + r() * 20;
-      const y2 = 380 + i * 42 + r() * 30;
-      wrap += curve(-230, y1, r() * 60 - 30, y1 + 50 + r() * 50, 230, y2, 8 + r() * 8);
-    }
-
-    return '<g transform="translate(230 0)">' +
-      // nicho: marco de piedra y hueco oscuro
-      `<path d="${NICHE}" fill="url(#stone)"/>` +
-      `<path d="${RECESS}" fill="url(#recess)"/>` +
-      `<path d="${RECESS}" fill="none" stroke="#000" stroke-width="6" opacity=".6" filter="url(#soft)"/>` +
-      // aureola de piedra con rayos tallados
-      '<circle cx="0" cy="186" r="76" fill="url(#stone)" opacity=".55"/>' +
-      '<circle cx="0" cy="186" r="76" fill="none" stroke="#a9bcb8" stroke-width="3" opacity=".5"/>' +
-      '<circle cx="0" cy="186" r="66" fill="none" stroke="#000" stroke-width="2" opacity=".5"/>' +
-      '<g stroke="#000" stroke-width="2" opacity=".35">' +
-      Array.from({ length: 16 }, (_, i) => {
-        const a = (i / 16) * Math.PI * 2;
-        return `<path d="M${f1(Math.cos(a) * 46)},${f1(186 + Math.sin(a) * 46)} L${f1(Math.cos(a) * 64)},${f1(186 + Math.sin(a) * 64)}"/>`;
-      }).join('') + '</g>' +
-      // cable enchufado en la aureola
-      curve(70, -20, 120, 80, 62, 140, 9) +
-      '<rect x="52" y="132" width="20" height="13" rx="2" fill="#1a1c1e" stroke="#000" transform="rotate(30 62 138)"/>' +
-      // túnica, mangas y manos
-      `<path d="${ROBE}" fill="url(#stone)"/>` +
-      `<g fill="none" stroke-linecap="round">` +
-      fold('M-40,380 C-45,470 -50,560 -55,700') + fold('M-10,370 C-12,470 -8,560 -14,700') +
-      fold('M25,375 C30,470 34,560 40,700') + fold('M55,360 C68,450 78,560 85,700') + '</g>' +
-      `<path d="${SLEEVE}" fill="url(#stone)" stroke="#000" stroke-opacity=".5" stroke-width="2"/>` +
-      `<path d="${SLEEVE}" transform="scale(-1 1)" fill="url(#stone)" stroke="#000" stroke-opacity=".5" stroke-width="2"/>` +
-      '<path d="M-9,352 C-12,330 -6,300 0,288 C6,300 12,330 9,352 Z" fill="url(#stone)" stroke="#000" stroke-opacity=".55" stroke-width="2"/>' +
-      '<path d="M0,292 V350" stroke="#000" stroke-width="1.4" opacity=".6"/>' +
-      // velo y cara, inclinada hacia abajo
-      '<g transform="rotate(-9 0 200)">' +
-      `<path d="${VEIL}" fill="url(#stone)" stroke="#000" stroke-opacity=".5" stroke-width="2"/>` +
-      '<ellipse cx="2" cy="196" rx="25" ry="32" fill="url(#stone)"/>' +
-      '<ellipse cx="2" cy="196" rx="25" ry="32" fill="none" stroke="#000" stroke-width="4" opacity=".45" filter="url(#soft)"/>' +
-      '<path d="M-15,191 q7,5 13,0 M6,191 q7,5 13,0" stroke="#050506" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
-      '<path d="M-16,185 q8,-5 15,-1 M5,184 q8,-5 15,0" stroke="#a9bcb8" stroke-width="1.2" opacity=".5" fill="none"/>' +
-      '<path d="M3,190 C4,200 6,207 3,212" stroke="#a9bcb8" stroke-width="1.4" opacity=".5" fill="none"/>' +
-      '<path d="M-6,220 q6,2.5 12,0" stroke="#050506" stroke-width="2" fill="none"/>' +
+    return '<g transform="translate(225 250) rotate(4)">' +
+      // cable del que cuelga, desde un clavo
+      `<g fill="none" stroke-linejoin="round">${cable('M-44,-88 L0,-150 L44,-88', 3)}</g>` +
+      '<circle cx="0" cy="-150" r="4" fill="#3a3d40" stroke="#000"/>' +
+      // sombra en la pared y marco
+      `<path d="${FRAME}" transform="translate(8 10)" fill="#000" opacity=".6" filter="url(#soft)"/>` +
+      `<path d="${FRAME}" fill="url(#frame)" stroke="#000" stroke-width="2"/>` +
+      '<path d="M-64,90 V-50 A64,64 0 0 1 64,-50 V90 Z" fill="none" stroke="#8a7240" stroke-width="1.5" opacity=".6"/>' +
+      // pintura
+      '<g clip-path="url(#picclip)">' +
+      `  <path d="${PICTURE}" fill="url(#icon-bg)"/>` +
+      '  <circle cx="0" cy="-38" r="44" fill="url(#icon-glow)"/>' +
+      '  <circle cx="0" cy="-38" r="27" fill="#9c7f3c" opacity=".55" stroke="#c9a24a" stroke-width="2"/>' +
+      '  <path d="M-42,-2 C-50,30 -54,60 -56,90 L56,90 C54,60 50,30 42,-2 Z" fill="#5a1c22"/>' +
+      '  <path d="M-15,0 C-17,30 -17,60 -19,90 L19,90 C17,60 17,30 15,0 Z" fill="#1f3a39"/>' +
+      '  <path d="M0,-64 C17,-64 26,-48 27,-28 C29,-14 33,-6 42,0 L-42,0 C-33,-6 -29,-14 -27,-28 C-26,-48 -17,-64 0,-64 Z" fill="#5a1c22"/>' +
+      '  <path d="M0,-64 C17,-64 26,-48 27,-28" fill="none" stroke="#c9a24a" stroke-width="1.4" opacity=".7"/>' +
+      '  <path d="M0,-64 C-17,-64 -26,-48 -27,-28" fill="none" stroke="#c9a24a" stroke-width="1.4" opacity=".7"/>' +
+      // sin rostro: solo un óvalo liso
+      '  <ellipse cx="0" cy="-36" rx="12" ry="16" fill="#cfc8b4"/>' +
+      '  <path d="M-5,34 C-6,24 -2,14 0,10 C2,14 6,24 5,34 Z" fill="#cfc8b4"/>' +
+      '  <path d="M-30,20 C-22,34 -12,38 -5,34 M30,20 C22,34 12,38 5,34" fill="none" stroke="#2a0c10" stroke-width="2"/>' +
+      // pintura vieja: grano, sombra del lado lejos de la pantalla, reflejo y grietas del cristal
+      '  <rect x="-60" y="-110" width="120" height="200" filter="url(#grit)" opacity=".45"/>' +
+      '  <rect x="-60" y="-110" width="60" height="200" fill="#000" opacity=".35" filter="url(#soft)"/>' +
+      '  <path d="M-60,-20 L20,-110 L45,-110 L-60,10 Z" fill="#fff" opacity=".05"/>' +
+      '  <path d="M22,40 L-40,-30 M22,40 L50,-60 M22,40 L-10,90 M22,40 L60,55 M22,40 L-45,62" stroke="#d6fff4" stroke-width=".9" opacity=".35"/>' +
       '</g>' +
-      // textura, sombra del lado lejos de la pantalla y grieta
-      '<g clip-path="url(#nicheclip)">' +
-      '  <rect x="-170" y="20" width="340" height="700" filter="url(#grit)" opacity=".5"/>' +
-      '  <ellipse cx="-150" cy="380" rx="110" ry="380" fill="#000" opacity=".45" filter="url(#soft)"/>' +
-      `  <g fill="none" stroke-linecap="round" stroke-linejoin="round">${crack(seeded(9), 95, 30, 1.95, 420, 4.5)}${crack(seeded(31), -160, 330, 0.25, 200, 3.5)}</g>` +
-      '</g>' +
-      `<g fill="none" stroke-linecap="round">${wrap}</g>` +
+      // lucecita roja de vela bajo el cuadro
+      '<circle cx="0" cy="128" r="26" fill="url(#votive)"/>' +
+      '<rect x="-6" y="122" width="12" height="16" rx="2" fill="#2a1416" stroke="#000"/>' +
+      '<circle cx="0" cy="124" r="3" fill="#ff3346"/>' +
       '</g>';
   }
 
@@ -182,9 +155,15 @@ window.Game = window.Game || {};
       '<feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2 1.2"/></filter>' +
       '<filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="30"/></filter>' +
       '<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>' +
-      `<clipPath id="nicheclip"><path d="${NICHE}"/></clipPath>` +
-      '<linearGradient id="recess" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#030404"/>' +
-      '<stop offset="1" stop-color="#152020"/></linearGradient>' +
+      `<clipPath id="picclip"><path d="${PICTURE}"/></clipPath>` +
+      '<linearGradient id="frame" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#17130f"/>' +
+      '<stop offset=".7" stop-color="#3a3128"/><stop offset="1" stop-color="#5b5246"/></linearGradient>' +
+      '<linearGradient id="icon-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14201e"/>' +
+      '<stop offset="1" stop-color="#070d0c"/></linearGradient>' +
+      '<radialGradient id="icon-glow"><stop offset="0" stop-color="#c9a24a" stop-opacity=".35"/>' +
+      '<stop offset="1" stop-color="#c9a24a" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="votive"><stop offset="0" stop-color="#ff3346" stop-opacity=".45"/>' +
+      '<stop offset="1" stop-color="#ff3346" stop-opacity="0"/></radialGradient>' +
       '</defs>' +
       '<rect width="1600" height="900" fill="url(#wall)"/>' +
       '<rect width="1600" height="900" filter="url(#blotch)" opacity=".5"/>' +
