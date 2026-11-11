@@ -8,9 +8,9 @@
   --halftone: #b3122a;
 
   /* carcasa del monitor */
-  --case-hi: #5b5d61;
-  --case: #45474b;
-  --case-lo: #2b2c30;
+  --case-hi: #8a8b8e;
+  --case: #6f7175;
+  --case-lo: #45464a;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.4 .9'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
 
   /* teclado */
@@ -21,12 +21,15 @@
   --key-text: #232325;
   --plate: #1f2024;
 
-  /* manos: oscuras, con el contorno iluminado por la pantalla */
-  --skin: #2a2023;
-  --skin-dark: #3f8079;
-  --nail: #3b2e30;
-  --sleeve: #111216;
-  --sleeve-dark: #2a5551;
+  /* manos (de día, con su color normal) */
+  --skin: #b07a55;
+  --skin-dark: #6b442a;
+  --nail: #d4a385;
+  --sleeve: #3b3f4a;
+  --sleeve-dark: #23262d;
+
+  /* madera vieja del escritorio: veta estirada en horizontal */
+  --wood: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='300'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.003 .16' numOctaves='3' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .14 0 0 0 0 .08 0 0 0 0 .03 0 0 0 -2.2 1.25'/%3E%3C/filter%3E%3Crect width='900' height='300' filter='url(%23w)'/%3E%3C/svg%3E");
 }
 
 html, body {
@@ -61,8 +64,11 @@ html, body {
   pointer-events: none;
   mix-blend-mode: screen;
   background:
-    radial-gradient(ellipse 48% 52% at 50% 38%, rgba(var(--glow), 0.30) 0%, rgba(var(--glow), 0.10) 45%, transparent 75%),
-    radial-gradient(ellipse 90% 70% at 50% 40%, rgba(var(--glow), 0.06), transparent 80%);
+    radial-gradient(ellipse 40% 45% at 50% 38%, rgba(var(--glow), 0.12) 0%, transparent 70%),
+    /* rayos de sol en el aire, entrando desde la derecha */
+    linear-gradient(118deg, transparent 58%, rgba(255, 240, 205, 0.10) 63%, transparent 70%),
+    linear-gradient(118deg, transparent 70%, rgba(255, 240, 205, 0.14) 75%, transparent 83%),
+    linear-gradient(118deg, transparent 84%, rgba(255, 240, 205, 0.09) 88%, transparent 94%);
 }
 
 /* trama roja en las esquinas, como las sombras de un manga impreso */
@@ -71,7 +77,7 @@ html, body {
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.28;
   background-image: radial-gradient(circle, var(--halftone) 0 1.1px, transparent 1.6px);
   background-size: 6px 6px;
   -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 42%, transparent 45%, #000 100%);
@@ -177,6 +183,7 @@ html, body {
   border-radius: inherit;
   background:
     radial-gradient(ellipse 52% 30% at 32% 12%, rgba(255,255,255,0.075), transparent 70%),
+    linear-gradient(115deg, transparent 60%, rgba(255,250,235,0.06) 64%, transparent 72%),
     radial-gradient(ellipse 72% 72% at 50% 50%, transparent 58%, rgba(0,0,0,0.35) 82%, rgba(0,0,0,0.75) 100%);
   box-shadow: inset 0 0 4vmin rgba(0,0,0,0.6);
 }
@@ -263,9 +270,11 @@ html, body {
   perspective: 1200px;
   perspective-origin: 50% 0%;
   background:
-    var(--grain),
-    linear-gradient(180deg, #17161a 0%, #1d1b1f 30%, #0d0c0f 100%);
-  box-shadow: inset 0 1.5vh 2vh rgba(0,0,0,0.7);
+    var(--wood),
+    linear-gradient(176deg, transparent 30%, rgba(255,235,200,0.05) 30.3%, transparent 31%),
+    linear-gradient(183deg, transparent 62%, rgba(0,0,0,0.18) 62.3%, transparent 63%),
+    linear-gradient(180deg, #6a4a31 0%, #5a3e28 40%, #3b281a 100%);
+  box-shadow: inset 0 1.5vh 2vh rgba(0,0,0,0.5);
 }
 
 #plane {
@@ -286,12 +295,14 @@ html, body {
 #desk::before {
   z-index: 2;
   background:
-    linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.55) 100%),
-    radial-gradient(ellipse 70% 120% at 50% 100%, transparent 40%, rgba(0,0,0,0.5) 100%);
+    linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.35) 100%),
+    radial-gradient(ellipse 70% 120% at 50% 100%, transparent 45%, rgba(0,0,0,0.3) 100%);
 }
 #desk::after {
   z-index: 3;
-  background: radial-gradient(ellipse 55% 90% at 50% 0%, rgba(var(--glow), 0.10), transparent 75%);
+  background:
+    radial-gradient(ellipse 55% 90% at 50% 0%, rgba(var(--glow), 0.06), transparent 75%),
+    radial-gradient(ellipse 30% 70% at 88% 35%, rgba(255, 236, 196, 0.16), transparent 75%);
 }
 
 #desk-cables {
@@ -427,7 +438,7 @@ html, body {
   transition: transform 70ms ease-out;
 }
 .hand .finger.press { transform: scaleY(0.86); }
-.hand .finger.press .fill { stroke: #3a2c30; }
+.hand .finger.press .fill { stroke: #966542; }
 
 /* teclas que faltan: solo queda el interruptor (carcasa y vástago en cruz) */
 .key[data-code="Digit3"], .key[data-code="KeyJ"], .key[data-code="F7"], .key[data-code="Period"] {

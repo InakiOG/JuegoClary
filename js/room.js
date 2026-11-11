@@ -6,7 +6,7 @@ window.Game = window.Game || {};
 
 (function () {
   const NS = 'http://www.w3.org/2000/svg';
-  const LIT = 'rgba(120, 225, 210, 0.28)';   // reflejo de la luz del monitor en los cables
+  const LIT = 'rgba(255, 250, 235, 0.32)';   // reflejo de la luz del día en los cables
   const CABLE = '#060608';
 
   function seeded(seed) {
@@ -36,8 +36,8 @@ window.Game = window.Game || {};
       const chunk = pts.slice(i, i + 5);
       const d = 'M' + chunk.map((p) => `${f1(p[0])} ${f1(p[1])}`).join(' L');
       const width = Math.max(0.6, w * (1 - i / pts.length));
-      out += `<path d="${d}" transform="translate(1.4 1.6)" stroke="#2c3133" stroke-width="${f1(width * 0.7)}"/>` +
-             `<path d="${d}" stroke="#020203" stroke-width="${f1(width)}"/>`;
+      out += `<path d="${d}" transform="translate(1.4 1.6)" stroke="#f4efe2" stroke-width="${f1(width * 0.7)}"/>` +
+             `<path d="${d}" stroke="#2e2a24" stroke-width="${f1(width)}"/>`;
     }
     return out;
   }
@@ -64,7 +64,7 @@ window.Game = window.Game || {};
       `<g fill="none" stroke-linejoin="round">${cable('M-44,-88 L0,-150 L44,-88', 3)}</g>` +
       '<circle cx="0" cy="-150" r="4" fill="#3a3d40" stroke="#000"/>' +
       // sombra en la pared y marco
-      `<path d="${FRAME}" transform="translate(8 10)" fill="#000" opacity=".6" filter="url(#soft)"/>` +
+      `<path d="${FRAME}" transform="translate(-8 10)" fill="#3a3326" opacity=".45" filter="url(#soft)"/>` +
       `<path d="${FRAME}" fill="url(#frame)" stroke="#000" stroke-width="2"/>` +
       '<path d="M-64,90 V-50 A64,64 0 0 1 64,-50 V90 Z" fill="none" stroke="#8a7240" stroke-width="1.5" opacity=".6"/>' +
       // pintura
@@ -94,6 +94,16 @@ window.Game = window.Game || {};
       '</g>';
   }
 
+  // ---------- Luz del día ----------
+  // Entra por una ventana con persiana fuera de cuadro, a la derecha, y dibuja franjas
+  // inclinadas de luz cálida sobre la pared izquierda (y sobre la estampa).
+  function sunPatch() {
+    let stripes = '';
+    for (let i = 0; i < 7; i++) stripes += `<rect x="0" y="${i * 46}" width="360" height="28"/>`;
+    return '<g fill="#fff3d6" opacity=".38" style="mix-blend-mode:screen" filter="url(#sunsoft)" ' +
+      'transform="translate(40 40) skewY(-16) skewX(-12)">' + stripes + '</g>';
+  }
+
   // ---------- Pared completa ----------
   function buildWalls() {
     const rnd = seeded(2024);
@@ -109,14 +119,14 @@ window.Game = window.Game || {};
     let stains = '';
     for (let i = 0; i < 9; i++) {
       stains += `<ellipse cx="${f1(rnd() * 1600)}" cy="${f1(rnd() * 500)}" rx="${f1(60 + rnd() * 160)}" ` +
-        `ry="${f1(40 + rnd() * 120)}" fill="${rnd() < 0.5 ? '#2a1c14' : '#000'}" opacity=".35" filter="url(#blur)"/>`;
+        `ry="${f1(40 + rnd() * 120)}" fill="${rnd() < 0.5 ? '#9a7f50' : '#6d6455'}" opacity=".3" filter="url(#blur)"/>`;
     }
     // chorretones desde el techo
     let drips = '';
     for (let i = 0; i < 14; i++) {
       const x = rnd() * 1600;
-      drips += `<path d="M${f1(x)} 0 l${f1((rnd() - 0.5) * 6)} ${f1(60 + rnd() * 200)}" stroke="#000" ` +
-        `stroke-width="${f1(2 + rnd() * 5)}" opacity=".25" filter="url(#soft)"/>`;
+      drips += `<path d="M${f1(x)} 0 l${f1((rnd() - 0.5) * 6)} ${f1(60 + rnd() * 200)}" stroke="#7a6542" ` +
+        `stroke-width="${f1(2 + rnd() * 5)}" opacity=".35" filter="url(#soft)"/>`;
     }
 
     const back =
@@ -143,8 +153,8 @@ window.Game = window.Game || {};
 
     return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">` +
       '<defs>' +
-      '<linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16181b"/>' +
-      '<stop offset=".6" stop-color="#1c1f22"/><stop offset="1" stop-color="#0c0d0f"/></linearGradient>' +
+      '<linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9c2b0"/>' +
+      '<stop offset=".45" stop-color="#d3ccba"/><stop offset="1" stop-color="#a39a84"/></linearGradient>' +
       '<linearGradient id="stone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#121516"/>' +
       '<stop offset=".55" stop-color="#3e4a49"/><stop offset="1" stop-color="#7e908d"/></linearGradient>' +
       '<filter id="grit" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035 .05" numOctaves="4" seed="3"/>' +
@@ -152,10 +162,13 @@ window.Game = window.Game || {};
       '<filter id="concrete" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="5"/>' +
       '<feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.2 .75"/></filter>' +
       '<filter id="blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="8"/>' +
-      '<feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2 1.2"/></filter>' +
+      '<feColorMatrix values="0 0 0 0 .45  0 0 0 0 .37  0 0 0 0 .22  0 0 0 -2 1.2"/></filter>' +
       '<filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="30"/></filter>' +
       '<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>' +
       `<clipPath id="picclip"><path d="${PICTURE}"/></clipPath>` +
+      '<radialGradient id="corners" cx=".5" cy=".45" r=".75"><stop offset=".55" stop-color="#2a2418" stop-opacity="0"/>' +
+      '<stop offset="1" stop-color="#2a2418" stop-opacity=".45"/></radialGradient>' +
+      '<filter id="sunsoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>' +
       '<linearGradient id="frame" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#17130f"/>' +
       '<stop offset=".7" stop-color="#3a3128"/><stop offset="1" stop-color="#5b5246"/></linearGradient>' +
       '<linearGradient id="icon-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14201e"/>' +
@@ -167,13 +180,15 @@ window.Game = window.Game || {};
       '</defs>' +
       '<rect width="1600" height="900" fill="url(#wall)"/>' +
       '<rect width="1600" height="900" filter="url(#blotch)" opacity=".5"/>' +
-      '<rect width="1600" height="900" filter="url(#concrete)" opacity=".35"/>' +
+      '<rect width="1600" height="900" filter="url(#concrete)" opacity=".18"/>' +
       stains + drips +
-      '<path d="M150 0 V900 M1450 0 V900" stroke="#08090a" stroke-width="3" opacity=".6"/>' +
+      '<path d="M150 0 V900 M1450 0 V900" stroke="#857d6c" stroke-width="3" opacity=".6"/>' +
+      '<rect width="1600" height="900" fill="url(#corners)"/>' +
       `<g fill="none" stroke-linecap="round" stroke-linejoin="round">${cracks}</g>` +
       `<g fill="none" stroke-linecap="round">${back}</g>` +
       saint() + box +
       `<g fill="none" stroke-linecap="round">${front}</g>` +
+      sunPatch() +
       '</svg>';
   }
 

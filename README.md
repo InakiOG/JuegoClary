@@ -16,9 +16,9 @@ El jugador está sentado frente a un ordenador: ve el monitor, el teclado, el ra
 
 Tecnología vieja y reparada mezclada con escultura sagrada, con un aire cyberpunk de anime de finales de los 90.
 
-- **Habitación** oscura: pared de hormigón con grietas y manchas, cables gruesos colgando del techo y amontonados en el escritorio, algunos metiéndose en las grietas.
+- **Habitación de día**: pared blanca percudida (amarillenta, con manchas, chorretones y grietas oscuras), escritorio de madera vieja, cables gruesos colgando del techo y amontonados en el escritorio, algunos metiéndose en las grietas.
 - **Estampa de una santa** colgada en la pared, a la izquierda del monitor: velo, aureola y manos juntas, pero **sin rostro** (un óvalo liso). Cuelga de un cable, tiene el cristal agrietado y una lucecita roja de vela debajo.
-- **La pantalla es la única luz**: un brillo cian ilumina la habitación, el escritorio y el contorno de las manos. Sombras de trama roja (puntos) en las esquinas.
+- **Luz**: entra un poco de sol por una ventana con persiana fuera de cuadro, a la derecha: franjas de luz cálida sobre la pared izquierda y la estampa, rayos tenues en el aire y un reflejo en el cristal del monitor. La pantalla añade un brillo cian suave. Sombras de trama roja (puntos) en las esquinas.
 - **Monitor CRT** gris y rozado, con cinta adhesiva y una pieza de repuesto; cristal abombado (esquinas curvas, viñeta y reflejo), líneas de barrido, una banda de luz que baja y un parpadeo ocasional que también oscurece la habitación. La curvatura es un efecto visual: la imagen no se deforma, así los clics caen donde apuntas.
 - **Teclado** gris apagado con teclas de repuesto que no combinan, un trozo de cinta y cuatro teclas que faltan (3, J, F7 y punto: se ve el interruptor, que se hunde al pulsar); el cable del ratón sigue al ratón y se pierde detrás del monitor.
 - **Sistema operativo** de fósforo: fondo negro con grano, texto verde-cian con brillo, letra monoespaciada, ventanas cuadradas con bordes finos.
