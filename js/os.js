@@ -23,20 +23,28 @@
     up: '<svg viewBox="0 0 10 10"><path d="M1.5 6.5L5 3l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>',
   };
 
+  // Fondo: oscuro y con grano, anillos tenues y líneas de barrido, como una señal lejana.
   const WALLPAPER =
     '<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">' +
-    '<defs><linearGradient id="wp-sky" x1="0" y1="0" x2="0" y2="1">' +
-    '<stop offset="0" stop-color="#1d3b6e"/><stop offset=".55" stop-color="#4f78b0"/>' +
-    '<stop offset="1" stop-color="#f2b38a"/></linearGradient>' +
-    '<radialGradient id="wp-sun" cx=".5" cy=".5" r=".5">' +
-    '<stop offset="0" stop-color="#fff2cf"/><stop offset=".35" stop-color="#ffd79a" stop-opacity=".9"/>' +
-    '<stop offset="1" stop-color="#ffd79a" stop-opacity="0"/></radialGradient></defs>' +
-    '<rect width="1600" height="900" fill="url(#wp-sky)"/>' +
-    '<circle cx="1120" cy="520" r="260" fill="url(#wp-sun)"/>' +
-    '<path d="M0 600 C220 520 420 560 640 600 S1060 520 1300 560 S1520 600 1600 590 V900 H0Z" fill="#6d6aa8" opacity=".85"/>' +
-    '<path d="M0 680 C260 610 520 690 780 660 S1200 600 1600 670 V900 H0Z" fill="#4b4f8c"/>' +
-    '<path d="M0 760 C300 700 620 780 940 740 S1380 700 1600 750 V900 H0Z" fill="#2f3566"/>' +
-    '<path d="M0 840 C400 790 800 860 1200 820 S1520 820 1600 830 V900 H0Z" fill="#1e2347"/>' +
+    '<defs><radialGradient id="wp-bg" cx=".62" cy=".42" r=".8">' +
+    '<stop offset="0" stop-color="#0c2420"/><stop offset=".5" stop-color="#061311"/>' +
+    '<stop offset="1" stop-color="#020606"/></radialGradient>' +
+    '<filter id="wp-grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4"/>' +
+    '<feColorMatrix values="0 0 0 0 .37  0 0 0 0 .88  0 0 0 0 .78  0 0 0 -1.5 .95"/></filter>' +
+    '<pattern id="wp-lines" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 0.5H8" stroke="#5fe0c8" stroke-opacity=".05"/></pattern></defs>' +
+    '<rect width="1600" height="900" fill="url(#wp-bg)"/>' +
+    '<rect width="1600" height="900" fill="url(#wp-lines)"/>' +
+    '<g fill="none" stroke="#5fe0c8">' +
+    '<circle cx="1000" cy="380" r="140" stroke-opacity=".10" stroke-width="2"/>' +
+    '<circle cx="1000" cy="380" r="230" stroke-opacity=".07" stroke-dasharray="3 9"/>' +
+    '<circle cx="1000" cy="380" r="340" stroke-opacity=".05"/>' +
+    '<circle cx="1000" cy="380" r="480" stroke-opacity=".035" stroke-dasharray="40 18"/>' +
+    '<path d="M1000 0V900M0 380H1600" stroke-opacity=".04"/>' +
+    '<path d="M1000 330 l14 50 -14 50 -14 -50z" stroke-opacity=".14"/>' +
+    '</g>' +
+    '<rect width="1600" height="900" filter="url(#wp-grain)" opacity=".12"/>' +
+    '<text x="1000" y="800" text-anchor="middle" font-family="Lucida Console, Consolas, monospace" font-size="18" ' +
+    'fill="#5fe0c8" fill-opacity=".22" letter-spacing="4">NODO_03 :: ENLACE ESTABLE</text>' +
     '</svg>';
 
   os.innerHTML =

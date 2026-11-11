@@ -200,40 +200,36 @@ window.Game = window.Game || {};
   };
 
   // ---------- Iconos ----------
-  const svg = (body) => `<svg viewBox="0 0 48 48">${body}</svg>`;
+  // Dibujo de líneas en color fósforo, como en un terminal antiguo.
+  const C = '#7ff0d8', D = '#2f7d72';
+  const svg = (body) =>
+    `<svg viewBox="0 0 48 48" fill="none" stroke="${C}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${body}</svg>`;
   Game.icons = {
     pc: () => svg(
-      '<rect x="5" y="8" width="38" height="26" rx="2.5" fill="#2b3240" stroke="#151922"/>' +
-      '<rect x="8" y="11" width="32" height="20" rx="1" fill="#5aa9e6"/>' +
-      '<path d="M8 25 L18 17 L26 23 L31 19 L40 26 V31 H8Z" fill="#3b82c4"/>' +
-      '<rect x="20" y="34" width="8" height="5" fill="#3a4150"/>' +
-      '<rect x="13" y="39" width="22" height="3" rx="1.5" fill="#4a5262"/>'),
+      '<rect x="7" y="7" width="34" height="27" rx="4"/>' +
+      `<rect x="11" y="11" width="26" height="19" rx="3" stroke="${D}"/>` +
+      '<path d="M15 17h9M15 22h14M15 26h6"/>' +
+      '<path d="M18 34l-2 6h16l-2-6M12 43h24"/>'),
     folder: () => svg(
-      '<path d="M4 12 a2 2 0 0 1 2-2 h12 l4 4 h20 a2 2 0 0 1 2 2 v4 H4Z" fill="#d9a527"/>' +
-      '<path d="M4 18 h40 v20 a2 2 0 0 1 -2 2 H6 a2 2 0 0 1 -2-2Z" fill="#f4c64b"/>' +
-      '<path d="M4 18 h40 v3 H4Z" fill="#ffe08a" opacity=".7"/>'),
+      '<path d="M5 13v26h38V17H22l-4-4z"/>' +
+      `<path d="M5 21h38" stroke="${D}"/>`),
     text: () => svg(
-      '<path d="M11 4 h19 l9 9 v31 H11Z" fill="#fbfbf8" stroke="#9aa1ab"/>' +
-      '<path d="M30 4 v9 h9" fill="#e3e6ea" stroke="#9aa1ab"/>' +
-      '<g stroke="#7f95b5" stroke-width="1.6"><path d="M15 19h20M15 24h20M15 29h20M15 34h13"/></g>'),
+      '<path d="M12 5h17l8 8v30H12z"/><path d="M29 5v8h8"/>' +
+      `<path d="M17 20h14M17 25h14M17 30h14M17 35h8" stroke="${D}"/>`),
     image: (src) =>
       `<div class="thumb"><img src="${src}" alt="" draggable="false"></div>`,
     trash: (full) => svg(
-      '<path d="M12 14 h24 l-2.2 28 a2 2 0 0 1 -2 1.8 H16.2 a2 2 0 0 1 -2-1.8Z" fill="#cfd8e3" stroke="#6b7b8e"/>' +
-      '<g stroke="#8e9db0" stroke-width="1.4"><path d="M19 19 l.8 20M24 19v20M29 19 l-.8 20"/></g>' +
-      (full
-        ? '<path d="M14 13 l5-7 7 3 5-4 4 8Z" fill="#f4f1e8" stroke="#9aa1ab"/>' +
-          '<path d="M20 12 l9-6 3 6Z" fill="#9cc3e6" stroke="#6a8bb0"/>'
-        : '') +
-      '<rect x="9" y="11" width="30" height="4" rx="1.5" fill="#aebccb" stroke="#6b7b8e"/>' +
-      '<rect x="20" y="8" width="8" height="3" rx="1" fill="#aebccb" stroke="#6b7b8e"/>'),
+      '<path d="M13 15l2.4 27h17.2L35 15"/>' +
+      '<path d="M10 13h28M20 13V9h8v4"/>' +
+      `<path d="M20 20l.8 17M24 20v17M28 20l-.8 17" stroke="${D}"/>` +
+      (full ? '<path d="M15 12l5-6 6 3 4-3 3 6" stroke-dasharray="2 2"/>' : '')),
     viewer: () => svg(
-      '<rect x="5" y="9" width="38" height="30" rx="3" fill="#3d8bd6"/>' +
-      '<circle cx="16" cy="19" r="4" fill="#ffe08a"/>' +
-      '<path d="M5 34 L17 24 L25 31 L32 25 L43 34 V36 a3 3 0 0 1 -3 3 H8 a3 3 0 0 1 -3-3Z" fill="#2d6aa8"/>'),
+      '<rect x="5" y="9" width="38" height="30"/>' +
+      '<circle cx="16" cy="19" r="3.5"/>' +
+      `<path d="M5 34l12-10 8 7 7-6 11 9" stroke="${D}"/>`),
     notes: () => svg(
-      '<rect x="9" y="6" width="30" height="37" rx="2" fill="#fff6c9" stroke="#b39b3d"/>' +
-      '<rect x="9" y="6" width="30" height="6" rx="2" fill="#f0c94a"/>' +
-      '<g stroke="#b9a35a" stroke-width="1.4"><path d="M14 19h20M14 24h20M14 29h20M14 34h12"/></g>'),
+      '<rect x="10" y="6" width="28" height="37"/>' +
+      '<path d="M10 12h28"/>' +
+      `<path d="M15 19h18M15 24h18M15 29h18M15 34h10" stroke="${D}"/>`),
   };
 })();

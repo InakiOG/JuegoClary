@@ -22,7 +22,7 @@
   // ---------- Cursor virtual ----------
   cursor.innerHTML =
     '<svg viewBox="0 0 16 24"><path d="M1,1 L1,19 L5.5,14.8 L8.6,22 L11.4,20.8 L8.4,13.8 L14.5,13.8 Z" ' +
-    'fill="#f5f7fa" stroke="#111" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+    'fill="#d6fff4" stroke="#03120f" stroke-width="1.2" stroke-linejoin="round"/></svg>';
 
   // ---------- Disposición ----------
   function layout() {
@@ -43,6 +43,7 @@
       left: `${mouseHome.x - 3}em`, top: `${mouseHome.y - 3.2}em`, width: '6em', height: '7em',
     });
     Object.assign(mouseEl.style, { width: `${MOUSE_W}em`, height: `${MOUSE_H}em` });
+    Game.room.layoutDesk({ planeW, planeH: desk.clientHeight / u, kx, ky, kw: kb.width, mouseHome });
     updateMouse();
     right.snap();
     left.snap();
@@ -56,6 +57,7 @@
     };
     mouseEl.style.transform =
       `translate(${(mousePos.x - MOUSE_W / 2).toFixed(4)}em, ${(mousePos.y - MOUSE_H / 2).toFixed(4)}em)`;
+    Game.room.updateMouseCable({ x: mousePos.x, y: mousePos.y - MOUSE_H / 2 + 0.1 });
   }
 
   // Punto del ratón bajo el índice (botón izquierdo).

@@ -12,9 +12,20 @@ El jugador está sentado frente a un ordenador: ve el monitor, el teclado, el ra
   ```
   y abre http://localhost:8000
 
+## Dirección de arte: maquinaria divina
+
+Tecnología vieja y reparada mezclada con escultura sagrada, con un aire cyberpunk de anime de finales de los 90.
+
+- **Habitación** oscura: pared de hormigón con grietas y manchas, cables gruesos colgando del techo y amontonados en el escritorio, algunos metiéndose en las grietas.
+- **Rostro de piedra** gigante con los ojos cerrados, agrietado y medio tragado por los cables, a la izquierda del monitor.
+- **La pantalla es la única luz**: un brillo cian ilumina la habitación, el escritorio y el contorno de las manos. Sombras de trama roja (puntos) en las esquinas.
+- **Monitor CRT** gris y rozado, con cinta adhesiva y una pieza de repuesto; cristal abombado (esquinas curvas, viñeta y reflejo), líneas de barrido, una banda de luz que baja y un parpadeo ocasional que también oscurece la habitación. La curvatura es un efecto visual: la imagen no se deforma, así los clics caen donde apuntas.
+- **Teclado** gris apagado con teclas de repuesto que no combinan y un trozo de cinta; el cable del ratón sigue al ratón y se pierde detrás del monitor.
+- **Sistema operativo** de fósforo: fondo negro con grano, texto verde-cian con brillo, letra monoespaciada, ventanas cuadradas con bordes finos.
+
 ## Qué hay por ahora (escena base)
 
-- **Monitor** con marco que ocupa casi toda la ventana y escala con ella. La pantalla está vacía (fondo oscuro con un brillo sutil).
+- **Monitor CRT** centrado, en proporción 4:3, que escala con la ventana.
 - **Cursor virtual** dentro de la pantalla: el cursor real se oculta y el del juego sigue al ratón (se queda en el borde si el ratón sale de la pantalla). Al cargar, el cursor aparece centrado hasta que mueves el ratón.
 - **Escritorio** en la franja inferior con teclado, alfombrilla, ratón y las dos manos. El teclado se coloca justo debajo de la parte del escritorio que tapa el monitor, así nunca queda oculto.
 - **Ratón real → ratón del juego**: al mover el ratón, el ratón del escritorio y la mano derecha se desplazan en proporción. Los clics iluminan el botón correspondiente y el dedo se flexiona.
@@ -39,6 +50,7 @@ css/style.css     Estilos y colores (variables al principio)
 js/layout.js      Distribución de teclas y qué dedo pulsa cada una
 js/keyboard.js    Construcción del teclado y estado pulsado
 js/hands.js       Manos en SVG y su animación
+js/room.js        Pared, grietas, rostro de piedra y cables (SVG generado)
 js/main.js        Disposición, entrada de ratón/teclado y bucle de animación
 js/sound.js       Sonidos de teclas y ratón (Web Audio)
 js/files.js       Archivos del ordenador del juego, fotos generadas e iconos

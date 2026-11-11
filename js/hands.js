@@ -55,7 +55,7 @@
       const angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
       g.appendChild(make('rect', {
         x: nx - f.w * 0.3, y: ny - 0.02, width: f.w * 0.6, height: 0.42, rx: 0.16,
-        fill: '#c79b7a', opacity: 0.85,
+        fill: 'var(--nail)', opacity: 0.85,
         transform: `rotate(${angle} ${nx} ${ny + 0.19})`,
       }));
       root.appendChild(g);

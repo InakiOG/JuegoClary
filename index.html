@@ -4,14 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JuegoClary</title>
-  <link rel="stylesheet" href="css/style.css?v=4">
-  <link rel="stylesheet" href="css/os.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/os.css?v=5">
 </head>
 <body>
   <div id="room">
-    <!-- Escritorio (plano inclinado con teclado, ratón y manos) -->
+    <!-- Pared agrietada, rostro de piedra y cables colgantes (SVG generado en room.js) -->
+    <div id="walls"></div>
+    <!-- Luz del monitor sobre la habitación -->
+    <div id="roomglow" class="flicker-sync"></div>
+
+    <!-- Escritorio (plano inclinado con cables, teclado, ratón y manos) -->
     <div id="desk">
       <div id="plane">
+        <svg id="desk-cables"></svg>
         <div id="mousepad"></div>
         <div id="keyboard"></div>
         <div id="mouse">
@@ -24,22 +30,30 @@
       </div>
     </div>
 
-    <!-- Monitor -->
+    <!-- Sombras de trama roja en los bordes -->
+    <div id="halftone"></div>
+
+    <!-- Monitor CRT -->
     <div id="monitor">
+      <div class="tape"></div>
+      <div class="patch"><i></i><i></i></div>
       <div id="screen">
         <div id="os"></div>
         <div id="cursor"></div>
+        <div class="crt-roll"></div>
+        <div class="crt-flicker flicker-sync"></div>
       </div>
       <div id="led"></div>
     </div>
   </div>
 
-  <script src="js/layout.js?v=4"></script>
-  <script src="js/sound.js?v=4"></script>
-  <script src="js/files.js?v=4"></script>
-  <script src="js/os.js?v=4"></script>
-  <script src="js/keyboard.js?v=4"></script>
-  <script src="js/hands.js?v=4"></script>
-  <script src="js/main.js?v=4"></script>
+  <script src="js/layout.js?v=5"></script>
+  <script src="js/sound.js?v=5"></script>
+  <script src="js/files.js?v=5"></script>
+  <script src="js/os.js?v=5"></script>
+  <script src="js/room.js?v=5"></script>
+  <script src="js/keyboard.js?v=5"></script>
+  <script src="js/hands.js?v=5"></script>
+  <script src="js/main.js?v=5"></script>
 </body>
 </html>
