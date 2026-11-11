@@ -279,13 +279,13 @@
       mouseButtonVisual(0, false);
     },
     // Teclea un texto en el teclado del escritorio. onChar(ch) se llama con cada carácter.
-    async type(text, onChar, speed = 1) {
+    async type(text, onChar, speed = 1.5) {
       for (const ch of text) {
         const k = keysFor(ch);
         if (k) {
-          if (k.accent) await tap('Quote', 45);           // tecla de acento antes de la vocal
+          if (k.accent) await tap('Quote', 45 / speed);           // tecla de acento antes de la vocal
           if (k.shift) press('ShiftLeft');
-          await tap(k.code);
+          await tap(k.code, 55 / speed);
           if (k.shift) release('ShiftLeft');
         }
         if (onChar) onChar(ch);

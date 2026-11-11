@@ -27,11 +27,11 @@ window.Game = window.Game || {};
     });
   }
 
-  async function typewriter(el, text, cps = 38) {
+  async function typewriter(el, text, cps = 57) {
     for (const ch of text) {
       el.textContent += ch;
       if (ch !== ' ') Game.sound.tick();
-      await wait(1000 / cps + (/[,.]/.test(ch) ? 180 : 0));
+      await wait(1000 / cps + (/[,.]/.test(ch) ? 120 : 0));
     }
   }
 
