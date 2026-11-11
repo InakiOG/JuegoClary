@@ -12,6 +12,23 @@ El jugador está sentado frente a un ordenador: ve el monitor, el teclado, el ra
   ```
   y abre http://localhost:8000
 
+## Historia
+
+Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el código). Lo marcado como PROVISIONAL es relleno hasta tener el texto definitivo.
+
+**Personajes:** Tomás (14 años), su mamá, su papá Eduardo, la IA LucIAno y la Sociedad Revolucionaria (SR). El juego transcurre en **2040** (el reloj del ordenador usa ese año).
+
+**INICIO:** "clic para empezar" (los navegadores no dejan sonar audio sin un clic); la pantalla real queda oscurecida y semitransparente y, a los 4 segundos, aparece el texto en verde neón. Luego la pantalla se aclara.
+
+**ACTO 1:**
+1. Tomás abre **LucIAno** (el cursor va solo al icono y hace doble clic) y escribe sus mensajes: sus manos teclean de verdad en el teclado del escritorio. Mientras tanto la entrada del jugador está bloqueada.
+2. Llega la notificación con glitch "SR: Capturaron a Eduardo" (abajo a la derecha, 5 s).
+3. El jugador ya puede chatear con LucIAno (respuestas por palabras clave, en `guion.js`).
+4. LucIAno procesa el juego; la barra se atasca. Llega un mensaje de SR con un link y el juego espera a que el jugador haga clic. Sobre el link el cursor se vuelve una mano.
+5. LucIAno "fusiona" el juego con el link y se abre un **mapa interactivo** (provisional: la colonia, el ejido y el centro de datos, con lugares que se pueden pulsar).
+
+Para probar sin la intro: http://localhost:8000/?sin-intro
+
 ## Dirección de arte: maquinaria divina
 
 Tecnología vieja y reparada mezclada con escultura sagrada, con un aire cyberpunk de anime de finales de los 90.
@@ -51,11 +68,16 @@ js/layout.js      Distribución de teclas y qué dedo pulsa cada una
 js/keyboard.js    Construcción del teclado y estado pulsado
 js/hands.js       Manos en SVG y su animación
 js/room.js        Pared, grietas, estampa de la santa y cables (SVG generado)
-js/main.js        Disposición, entrada de ratón/teclado y bucle de animación
-js/sound.js       Sonidos de teclas y ratón (Web Audio)
+js/main.js        Disposición, entrada de ratón/teclado, control de las manos desde la historia (Game.input)
+js/sound.js       Sonidos (Web Audio): teclas, ratón, intro, chat e interferencias
 js/files.js       Archivos del ordenador del juego, fotos generadas e iconos
 js/os.js          Escritorio, ventanas, explorador, notas, visor y barra de tareas
 css/os.css        Estilos del sistema operativo de la pantalla
+js/guion.js       Textos de la historia (personajes, intro, acto 1, respuestas de LucIAno, mapa)
+js/luciano.js     Programa de chat LucIAno
+js/mapa.js        Mapa interactivo (contenido del link de SR)
+js/story.js       Intro y secuencia del acto 1
+css/story.css     Estilos de la intro, el chat, la notificación, los glitches y el mapa
 ```
 
 Todo el escritorio se mide en "unidades de tecla" (1em del plano = una tecla), así que escala cambiando un solo `font-size`.

@@ -223,6 +223,15 @@ window.Game = window.Game || {};
       '<path d="M10 13h28M20 13V9h8v4"/>' +
       `<path d="M20 20l.8 17M24 20v17M28 20l-.8 17" stroke="${D}"/>` +
       (full ? '<path d="M15 12l5-6 6 3 4-3 3 6" stroke-dasharray="2 2"/>' : '')),
+    // LucIAno: burbuja de chat azul con una chispa dentro.
+    luciano: () =>
+      '<svg viewBox="0 0 48 48" fill="none" stroke="#4d8dff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">' +
+      '<path d="M8 10h32a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H22l-9 7v-7H8a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z"/>' +
+      '<path d="M24 14l2.2 5.8L32 22l-5.8 2.2L24 30l-2.2-5.8L16 22l5.8-2.2z" fill="#4d8dff" fill-opacity=".35"/></svg>',
+    mapa: () => svg(
+      '<path d="M5 11l12-4 14 4 12-4v30l-12 4-14-4-12 4z"/>' +
+      `<path d="M17 7v30M31 11v30" stroke="${D}"/>` +
+      '<circle cx="24" cy="22" r="3"/>'),
     viewer: () => svg(
       '<rect x="5" y="9" width="38" height="30"/>' +
       '<circle cx="16" cy="19" r="3.5"/>' +

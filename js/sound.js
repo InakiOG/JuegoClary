@@ -1,4 +1,4 @@
-// Sonidos sintetizados con Web Audio (sin archivos): clic de teclas y botones del ratón.
+// Sonidos sintetizados con Web Audio (sin archivos): teclas, ratón, intro, chat e interferencias.
 // El contexto de audio se crea en la primera pulsación (los navegadores exigen un gesto del usuario).
 window.Game = window.Game || {};
 
@@ -77,5 +77,41 @@ window.Game = window.Game || {};
         ? { freq: 4200, q: 5, dur: 0.018, gain: 0.55, thump: 900, thumpDur: 0.012 }
         : { freq: 3600, q: 5, dur: 0.014, gain: 0.3 });
     },
+    // Llamar desde un clic/tecla del jugador para que el navegador deje sonar el audio.
+    unlock() { ensure(); },
+    // Tic suave de máquina de escribir (texto de la intro).
+    tick() {
+      click({ freq: 5200, q: 6, dur: 0.012, gain: 0.12 });
+    },
+    // Aviso de mensaje en el chat: dos notas cortas (más agudas si escribe LucIAno).
+    message(fromAI) {
+      const base = fromAI ? 880 : 660;
+      tone(base, 0, 0.07, 0.12, 'sine');
+      tone(base * 1.5, 0.07, 0.09, 0.1, 'sine');
+    },
+    // Interferencia: pitidos cuadrados a saltos con ráfagas de ruido (mensajes de SR).
+    glitch() {
+      for (let i = 0; i < 7; i++) {
+        tone(200 + Math.random() * 1800, i * 0.045, 0.035, 0.07, 'square');
+      }
+      click({ freq: 1800, q: 0.7, dur: 0.12, gain: 0.35 });
+      setTimeout(() => click({ freq: 900, q: 0.7, dur: 0.08, gain: 0.25 }), 180);
+    },
   };
+
+  function tone(freq, delay, dur, gain, type) {
+    const c = ensure();
+    if (!c) return;
+    const t = c.currentTime + delay;
+    const o = c.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(master);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
 })();

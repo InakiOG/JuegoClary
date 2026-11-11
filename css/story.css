@@ -1,0 +1,276 @@
+/* Historia: intro, cursor de mano, chat de LucIAno, notificación de SR, glitches y mapa. */
+
+/* ---------- Cursor: flecha o mano ---------- */
+#cursor .c-hand { display: none; }
+#cursor.hand .c-arrow { display: none; }
+#cursor.hand .c-hand { display: block; }
+#cursor.hand { width: 2.9vmin; margin-left: -0.9vmin; }
+
+/* bloquea los clics mientras la historia controla las manos */
+#blocker { position: absolute; inset: 0; z-index: 9999; display: none; }
+body.locked #blocker { display: block; }
+
+/* ---------- INICIO: pantalla real oscurecida ---------- */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8vw;
+  background: rgba(0, 0, 0, 0.86);
+  transition: opacity 1.6s ease;
+}
+#intro.fade { opacity: 0; pointer-events: none; }
+#intro[hidden] { display: none; }
+.intro-start {
+  font: 1.6vmin/1 "Lucida Console", Consolas, monospace;
+  letter-spacing: 0.3em;
+  color: #39ff7a;
+  text-shadow: 0 0 0.6em rgba(57, 255, 122, 0.7);
+  animation: blink 1.4s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0.15; } }
+.intro-text { max-width: 62ch; }
+.intro-text p {
+  margin: 0 0 1.4em;
+  min-height: 1.5em;
+  font: clamp(17px, 2.3vw, 34px)/1.5 "Lucida Console", Consolas, "Courier New", monospace;
+  color: #39ff7a;
+  text-align: center;
+  text-shadow: 0 0 0.25em rgba(57, 255, 122, 0.9), 0 0 1em rgba(57, 255, 122, 0.45);
+}
+
+/* ---------- LucIAno ---------- */
+.luciano {
+  background: #040914;
+  text-shadow: 0 0 0.35em rgba(77, 141, 255, 0.45);
+}
+.lu-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.5em 0.8em;
+  border-bottom: 1px solid #16305e;
+  color: #cfe0ff;
+  font-size: 0.8em;
+}
+.lu-head small { display: block; font-size: 0.75em; color: #4d8dff; }
+.lu-logo {
+  width: 1.7em; height: 1.7em; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #bcd6ff, #4d8dff 45%, #12307a 100%);
+  box-shadow: 0 0 0.6em rgba(77, 141, 255, 0.8);
+}
+.lu-log-wrap { flex: 1; min-height: 0; position: relative; }
+.chat-log {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  padding: 0.8em;
+}
+.msg { max-width: 78%; }
+.msg .who { display: block; font-size: 0.55em; letter-spacing: 0.08em; opacity: 0.6; margin-bottom: 0.2em; }
+.msg p { margin: 0; line-height: 1.45; }
+.msg.tomas {                       /* Tomás: azul bajito, a la derecha */
+  align-self: flex-end;
+  text-align: right;
+  color: #a9cbff;
+  font-size: 0.72em;
+}
+.msg.tomas p { padding: 0.4em 0.7em; border: 1px solid rgba(169, 203, 255, 0.25); background: rgba(80, 130, 220, 0.08); }
+.msg.luciano {                     /* LucIAno: azul fuerte, a la izquierda */
+  align-self: flex-start;
+  color: #4d8dff;
+  font-weight: 700;
+  font-size: 0.8em;
+}
+.msg.luciano p { padding: 0.45em 0.75em; border: 1px solid #2f6fff; background: rgba(40, 100, 255, 0.12); }
+.msg.typing p i {
+  display: inline-block; width: 0.4em; height: 0.4em; margin: 0 0.12em; border-radius: 50%;
+  background: #4d8dff; animation: dots 1s infinite;
+}
+.msg.typing p i:nth-child(2) { animation-delay: 0.15s; }
+.msg.typing p i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dots { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+
+.lu-progress { height: 0.35em; margin-top: 0.4em; border: 1px solid #2f6fff; }
+.lu-progress span { display: block; height: 100%; width: 0; background: #4d8dff; transition: width 0.3s; }
+.lu-progress.done span { background: #39ff7a; }
+
+/* mensaje de SR colado en el chat */
+.msg.sr {
+  align-self: flex-start;
+  color: #ff3b4f;
+  font-size: 0.78em;
+  text-shadow: 0.08em 0 0 rgba(0, 255, 230, 0.6), -0.08em 0 0 rgba(255, 0, 80, 0.7);
+}
+.msg.sr p { padding: 0.45em 0.75em; border: 1px dashed #ff3b4f; background: rgba(255, 30, 60, 0.08); }
+.sr-link {
+  display: inline-block;
+  margin-top: 0.4em;
+  padding: 0.2em 0.5em;
+  color: #fff;
+  text-decoration: underline;
+  background: rgba(255, 59, 79, 0.2);
+  animation: srpulse 1.6s ease-in-out infinite;
+}
+.sr-link:hover { background: rgba(255, 59, 79, 0.45); }
+.sr-link.visited { animation: none; opacity: 0.45; text-decoration: line-through; }
+@keyframes srpulse { 50% { box-shadow: 0 0 0.8em rgba(255, 59, 79, 0.7); } }
+.glitch-in { animation: glitch-in 0.6s steps(2) both; }
+@keyframes glitch-in {
+  0% { opacity: 0; transform: translateX(-0.6em) skewX(20deg); clip-path: inset(40% 0 30% 0); }
+  25% { opacity: 1; transform: translateX(0.5em); clip-path: inset(0 0 60% 0); }
+  50% { transform: translateX(-0.3em) skewX(-10deg); clip-path: inset(50% 0 0 0); }
+  75% { transform: translateX(0.2em); clip-path: inset(10% 0 20% 0); }
+  100% { opacity: 1; transform: none; clip-path: inset(0); }
+}
+
+.lu-input {
+  flex: none;
+  display: flex;
+  gap: 0.4em;
+  padding: 0.5em;
+  border-top: 1px solid #16305e;
+}
+.lu-input input {
+  flex: 1;
+  min-width: 0;
+  height: 1.9em;
+  padding: 0 0.6em;
+  border: 1px solid #2f6fff;
+  outline: none;
+  background: #020610;
+  color: #cfe0ff;
+  font: 0.75em var(--os-font);
+  caret-color: #4d8dff;
+}
+.lu-input input[readonly] { opacity: 0.85; }
+.lu-send { color: #cfe0ff; border: 1px solid #2f6fff; font-size: 0.7em; padding: 0 0.8em; height: auto; }
+.lu-send:hover { background: rgba(77, 141, 255, 0.2); }
+
+/* ---------- Notificación de SR con glitch ---------- */
+.notif {
+  position: absolute;
+  right: 1.2em;
+  bottom: 3.3em;
+  z-index: 7000;
+  width: 16em;
+  background: rgba(12, 0, 4, 0.94);
+  border: 1px solid #ff2e48;
+  box-shadow: 0 0 1em rgba(255, 46, 72, 0.4);
+  color: #ffd6db;
+  animation: notif-in 0.5s steps(3) both, notif-jitter 2.2s steps(1) 0.5s infinite;
+}
+.notif.out { animation: notif-out 0.4s steps(2) forwards; }
+.notif-bar {
+  display: flex; align-items: center; gap: 0.5em;
+  padding: 0.3em 0.6em;
+  font-size: 0.55em; letter-spacing: 0.2em;
+  color: #ff2e48;
+  border-bottom: 1px solid rgba(255, 46, 72, 0.4);
+}
+.notif-dot { width: 0.7em; height: 0.7em; border-radius: 50%; background: #ff2e48; box-shadow: 0 0 0.5em #ff2e48; }
+.notif p { position: relative; margin: 0; padding: 0.6em 0.8em; font-size: 0.8em; font-weight: 700; text-shadow: none; }
+.notif p::before, .notif p::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  padding: inherit;
+  pointer-events: none;
+}
+.notif p::before { color: #00ffe1; opacity: 0.7; animation: slice-a 1.3s steps(1) infinite; }
+.notif p::after { color: #ff2e48; opacity: 0.7; animation: slice-b 1.7s steps(1) infinite; }
+@keyframes slice-a {
+  0%, 100% { clip-path: inset(0 0 100% 0); }
+  10% { clip-path: inset(10% 0 60% 0); transform: translateX(-0.15em); }
+  40% { clip-path: inset(55% 0 20% 0); transform: translateX(0.2em); }
+  70% { clip-path: inset(0 0 100% 0); }
+}
+@keyframes slice-b {
+  0%, 100% { clip-path: inset(0 0 100% 0); }
+  20% { clip-path: inset(40% 0 35% 0); transform: translateX(0.18em); }
+  55% { clip-path: inset(70% 0 5% 0); transform: translateX(-0.2em); }
+  80% { clip-path: inset(0 0 100% 0); }
+}
+@keyframes notif-in {
+  0% { opacity: 0; transform: translateX(1em) skewX(-15deg); }
+  50% { opacity: 1; transform: translateX(-0.4em); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes notif-jitter {
+  0%, 100% { transform: none; }
+  8% { transform: translateX(-0.2em); }
+  9% { transform: translateX(0.3em) skewX(8deg); }
+  10% { transform: none; }
+  61% { transform: translateY(0.15em); }
+  62% { transform: none; }
+}
+@keyframes notif-out { to { opacity: 0; transform: translateX(0.8em) skewX(20deg); } }
+
+/* ---------- Glitch de toda la pantalla (fusión del juego) ---------- */
+#screen.glitching #os { animation: screen-glitch 0.5s steps(1) infinite; }
+@keyframes screen-glitch {
+  0% { transform: translate(0.6vmin, 0); filter: hue-rotate(90deg) contrast(1.4); }
+  20% { transform: translate(-0.8vmin, 0.3vmin) skewX(4deg); filter: invert(0.15); }
+  40% { transform: none; clip-path: inset(30% 0 40% 0); }
+  60% { transform: translate(0.4vmin, -0.2vmin); filter: hue-rotate(-60deg) saturate(2); clip-path: none; }
+  80% { transform: translate(-0.3vmin, 0); filter: none; }
+  100% { transform: none; }
+}
+
+/* ---------- Mapa ---------- */
+.mapa { background: #020807; }
+.map-hud {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35em 0.8em;
+  font-size: 0.6em;
+  letter-spacing: 0.15em;
+  border-bottom: 1px solid var(--os-line);
+  color: var(--os-accent);
+}
+.map-blink { color: #ff3b4f; animation: blink 1.2s steps(1) infinite; }
+.map-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; color: var(--os-line-hi); }
+.map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-svg path, .map-svg rect { vector-effect: non-scaling-stroke; }
+.map-streets path { stroke: var(--os-line-hi); stroke-width: 2px; fill: none; opacity: 0.7; }
+.map-parcels rect { fill: rgba(95, 224, 200, 0.07); stroke: var(--os-line-hi); stroke-width: 1px; stroke-dasharray: 3 2; }
+.map-river { fill: none; stroke: #2d6fff; stroke-width: 5px; opacity: 0.55; }
+.map-dc { fill: rgba(255, 59, 79, 0.12); stroke: #ff3b4f; stroke-width: 1.5px; }
+.map-dc-fence { fill: none; stroke: #ff3b4f; stroke-width: 1px; stroke-dasharray: 6 4; opacity: 0.7; }
+.map-dc-rows path { stroke: #ff3b4f; stroke-width: 1px; opacity: 0.5; }
+.map-pins { position: absolute; inset: 0; }
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+}
+.map-pin i {
+  width: 0.9em; height: 0.9em; border-radius: 50%;
+  border: 2px solid var(--os-accent);
+  background: rgba(95, 224, 200, 0.25);
+  animation: pin 1.8s ease-out infinite;
+}
+.map-pin span { font-size: 0.55em; white-space: nowrap; color: var(--os-text); background: rgba(2, 8, 7, 0.8); padding: 0 0.3em; }
+.map-pin:hover i, .map-pin.on i { background: var(--os-accent); }
+.map-pin.on span { color: #000; background: var(--os-accent); text-shadow: none; }
+@keyframes pin { 0% { box-shadow: 0 0 0 0 rgba(95, 224, 200, 0.6); } 100% { box-shadow: 0 0 0 0.9em rgba(95, 224, 200, 0); } }
+.map-info {
+  flex: none;
+  padding: 0.5em 0.8em;
+  border-top: 1px solid var(--os-line);
+  font-size: 0.7em;
+  min-height: 3.6em;
+}
+.map-info p { margin: 0.3em 0 0; color: var(--os-muted); }
+.glitch-open { animation: screen-glitch 0.4s steps(1) 3; }

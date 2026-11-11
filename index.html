@@ -4,12 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JuegoClary</title>
-  <link rel="stylesheet" href="css/style.css?v=6">
-  <link rel="stylesheet" href="css/os.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/os.css?v=7">
+  <link rel="stylesheet" href="css/story.css?v=7">
 </head>
 <body>
   <div id="room">
-    <!-- Pared agrietada, rostro de piedra y cables colgantes (SVG generado en room.js) -->
+    <!-- Pared agrietada, estampa de la santa y cables colgantes (SVG generado en room.js) -->
     <div id="walls"></div>
     <!-- Luz del monitor sobre la habitación -->
     <div id="roomglow" class="flicker-sync"></div>
@@ -39,6 +40,8 @@
       <div class="patch"><i></i><i></i></div>
       <div id="screen">
         <div id="os"></div>
+        <!-- bloquea los clics del jugador mientras la historia mueve las manos de Tomás -->
+        <div id="blocker"></div>
         <div id="cursor"></div>
         <div class="crt-roll"></div>
         <div class="crt-flicker flicker-sync"></div>
@@ -47,13 +50,20 @@
     </div>
   </div>
 
-  <script src="js/layout.js?v=6"></script>
-  <script src="js/sound.js?v=6"></script>
-  <script src="js/files.js?v=6"></script>
-  <script src="js/os.js?v=6"></script>
-  <script src="js/room.js?v=6"></script>
-  <script src="js/keyboard.js?v=6"></script>
-  <script src="js/hands.js?v=6"></script>
-  <script src="js/main.js?v=6"></script>
+  <!-- Intro: la pantalla real oscurecida con el texto en verde neón -->
+  <div id="intro"></div>
+
+  <script src="js/layout.js?v=7"></script>
+  <script src="js/sound.js?v=7"></script>
+  <script src="js/files.js?v=7"></script>
+  <script src="js/os.js?v=7"></script>
+  <script src="js/room.js?v=7"></script>
+  <script src="js/keyboard.js?v=7"></script>
+  <script src="js/hands.js?v=7"></script>
+  <script src="js/main.js?v=7"></script>
+  <script src="js/guion.js?v=7"></script>
+  <script src="js/luciano.js?v=7"></script>
+  <script src="js/mapa.js?v=7"></script>
+  <script src="js/story.js?v=7"></script>
 </body>
 </html>

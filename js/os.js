@@ -107,6 +107,7 @@
   }
 
   // ---------- Escritorio ----------
+  const apps = []; // programas añadidos por otros módulos (Game.os.addApp)
   const SLOT_W = 5.6, SLOT_H = 5.4, PAD = 0.5;
   const positions = {}; // id -> {x, y} (en em)
 
@@ -117,6 +118,7 @@
         id: 'sys-trash', name: 'Papelera', iconHtml: icons.trash(fs.in('trash').length > 0),
         dropLoc: 'trash', open: () => openExplorer('trash'),
       },
+      ...apps,
       ...fs.in('desktop').map((f) => ({ id: f.id, name: f.name, iconHtml: iconFor(f), file: f, open: () => openFile(f) })),
     ];
   }
@@ -594,8 +596,8 @@
   });
 
   // ---------- Reloj ----------
-  // El juego transcurre en 2036: misma hora, día y mes que en la realidad, pero en ese año.
-  Game.YEAR = 2036;
+  // El juego transcurre en 2040: misma hora, día y mes que en la realidad, pero en ese año.
+  Game.YEAR = 2040;
   Game.now = () => {
     const d = new Date();
     d.setFullYear(Game.YEAR);
@@ -631,5 +633,21 @@
   tick();
   setInterval(tick, 10000);
 
-  Game.os = { openExplorer, openFile, changed };
+  // ---------- API para otros módulos ----------
+  Game.os = {
+    openExplorer,
+    openFile,
+    changed,
+    createWindow,
+    closeWindow: closeWin,
+    focusWindow: (W) => { W.min = false; applyWin(W); focus(W); },
+    // Añade un programa al escritorio: { id, name, iconHtml, open }.
+    addApp(app) {
+      apps.push(app);
+      renderDesktop();
+    },
+    iconEl: (id) => desktopEl.querySelector(`.icon[data-id="${id}"]`),
+    get em() { return em; },
+    deskSize,
+  };
 })();

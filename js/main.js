@@ -1,4 +1,6 @@
 // Escena principal: coloca los elementos, conecta ratón y teclado reales con los del juego.
+// También expone Game.input para que la historia pueda "mover las manos de Tomás"
+// (mover el cursor, hacer clic y teclear) mientras la entrada del jugador está bloqueada.
 (function () {
   const plane = document.getElementById('plane');
   const desk = document.getElementById('desk');
@@ -18,10 +20,15 @@
   let mouseHome = { x: 0, y: 0 };       // centro de reposo del ratón
   let pointer = { nx: 0.5, ny: 0.5 };   // posición normalizada sobre la pantalla
   let mousePos = { x: 0, y: 0 };
+  let locked = false;                   // true = la historia controla las manos
 
-  // ---------- Cursor virtual ----------
+  // ---------- Cursor virtual (flecha, o mano sobre lo que se puede pulsar) ----------
   cursor.innerHTML =
-    '<svg viewBox="0 0 16 24"><path d="M1,1 L1,19 L5.5,14.8 L8.6,22 L11.4,20.8 L8.4,13.8 L14.5,13.8 Z" ' +
+    '<svg class="c-arrow" viewBox="0 0 16 24"><path d="M1,1 L1,19 L5.5,14.8 L8.6,22 L11.4,20.8 L8.4,13.8 L14.5,13.8 Z" ' +
+    'fill="#d6fff4" stroke="#03120f" stroke-width="1.2" stroke-linejoin="round"/></svg>' +
+    '<svg class="c-hand" viewBox="0 0 20 24"><path d="M7,1.5 C8.3,1.5 9,2.3 9,3.6 V10 L9.6,9.6 C10,8.4 12.4,8.4 12.6,10 ' +
+    'C13.1,8.9 15.4,9 15.6,10.6 C16.2,9.8 18.4,10.1 18.4,12 V16.5 C18.4,20 16,22.5 12.6,22.5 H10.4 C8.3,22.5 7,21.6 5.8,20 ' +
+    'L1.9,14.6 C1.1,13.5 2.4,11.9 3.7,12.8 L5,13.8 V3.6 C5,2.3 5.7,1.5 7,1.5 Z" ' +
     'fill="#d6fff4" stroke="#03120f" stroke-width="1.2" stroke-linejoin="round"/></svg>';
 
   // ---------- Disposición ----------
@@ -71,22 +78,46 @@
     right.aimFinger(3, mouseIndexPoint(), 0);
   }
 
+  // Coloca el cursor virtual en (nx, ny) de la pantalla y mueve el ratón y la mano.
+  function setPointer(nx, ny) {
+    const r = screen.getBoundingClientRect();
+    pointer = { nx, ny };
+    cursor.style.transform = `translate(${(nx * r.width).toFixed(1)}px, ${(ny * r.height).toFixed(1)}px)`;
+    updateMouse();
+    if (!rightOnKeyboard) rightToMouse();
+    updateHover();
+  }
+
+  // El cursor se vuelve mano sobre lo que se puede pulsar (data-cursor="hand").
+  // Se comprueba al mover el puntero y cuando cambia lo que hay en pantalla.
+  let lastHover = false;
+  function updateHover() {
+    const c = cursor.getBoundingClientRect();
+    const hit = document.elementFromPoint(c.left + 1, c.top + 1);
+    const hover = !!(hit && hit.closest('[data-cursor="hand"]'));
+    if (hover !== lastHover) { cursor.classList.toggle('hand', hover); lastHover = hover; }
+  }
+  let hoverQueued = false;
+  new MutationObserver(() => {
+    if (hoverQueued) return;
+    hoverQueued = true;
+    setTimeout(() => { hoverQueued = false; updateHover(); }, 50);
+  }).observe(document.getElementById('os'), { childList: true, subtree: true, attributes: true, attributeFilter: ['data-cursor', 'hidden'] });
+
   // Última posición real del puntero (null hasta el primer movimiento: cursor centrado).
   let client = null;
 
   function applyPointer() {
     const r = screen.getBoundingClientRect();
+    // El cursor virtual se queda en el borde de la pantalla, como en un ordenador real.
     const nx = client ? Math.min(1, Math.max(0, (client.x - r.left) / r.width)) : 0.5;
     const ny = client ? Math.min(1, Math.max(0, (client.y - r.top) / r.height)) : 0.5;
-    pointer = { nx, ny };
-    // El cursor virtual se queda en el borde de la pantalla, como en un ordenador real.
-    cursor.style.transform = `translate(${(nx * r.width).toFixed(1)}px, ${(ny * r.height).toFixed(1)}px)`;
-    updateMouse();
-    if (!rightOnKeyboard) rightToMouse();
+    setPointer(nx, ny);
   }
 
   window.addEventListener('mousemove', (e) => {
     client = { x: e.clientX, y: e.clientY };
+    if (locked) return;
     if (rightOnKeyboard && Math.hypot(e.movementX || 0, e.movementY || 0) > 2) {
       clearTimeout(rightReturnTimer);
       rightToMouse();
@@ -95,16 +126,19 @@
   });
 
   const BTN_FINGER = { 0: 3, 1: 3, 2: 2 }; // izquierdo → índice, rueda → índice, derecho → corazón
-  function mouseButton(e, down) {
-    const btn = mouseEl.querySelector(`[data-btn="${e.button}"]`);
+  function mouseButtonVisual(button, down) {
+    const btn = mouseEl.querySelector(`[data-btn="${button}"]`);
     if (!btn) return;
     btn.classList.toggle('down', down);
     Game.sound.mouse(down);
     if (down && rightOnKeyboard) { clearTimeout(rightReturnTimer); rightToMouse(); }
-    right.press(BTN_FINGER[e.button], down);
+    right.press(BTN_FINGER[button], down);
   }
-  window.addEventListener('mousedown', (e) => { mouseButton(e, true); if (e.button === 1) e.preventDefault(); });
-  window.addEventListener('mouseup', (e) => mouseButton(e, false));
+  window.addEventListener('mousedown', (e) => {
+    if (e.button === 1) e.preventDefault();
+    if (!locked) mouseButtonVisual(e.button, true);
+  });
+  window.addEventListener('mouseup', (e) => { if (!locked) mouseButtonVisual(e.button, false); });
   window.addEventListener('contextmenu', (e) => e.preventDefault());
   document.addEventListener('mouseleave', () => cursor.classList.add('hidden'));
   document.addEventListener('mouseenter', () => cursor.classList.remove('hidden'));
@@ -122,11 +156,7 @@
     h.aimFinger(finger, kb.center(code), finger === 4 ? -0.05 : 0.15);
   }
 
-  window.addEventListener('keydown', (e) => {
-    const code = e.code;
-    // Evita scroll/atajos, salvo al escribir en un campo de texto del juego (ahí solo se bloquea Tab).
-    const typing = e.target.closest && e.target.closest('textarea, input');
-    if (typing ? code === 'Tab' : (!e.ctrlKey && !e.metaKey && !/^F\d+$/.test(code))) e.preventDefault();
+  function press(code) {
     if (!kb.has(code) || held.has(code)) return;
     const f = Game.layout.fingers[code];
     if (!f) return;
@@ -143,6 +173,15 @@
       aimFor('R', f.finger, code);
       right.press(f.finger, true);
     }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const code = e.code;
+    // Evita scroll/atajos, salvo al escribir en un campo de texto del juego (ahí solo se bloquea Tab).
+    const typing = !locked && e.target.closest && e.target.closest('textarea, input');
+    if (typing ? code === 'Tab' : (!e.ctrlKey && !e.metaKey && !/^F\d+$/.test(code))) e.preventDefault();
+    if (locked) return;
+    press(code);
   });
 
   function release(code) {
@@ -168,12 +207,94 @@
     }
   }
 
-  window.addEventListener('keyup', (e) => release(e.code));
-  window.addEventListener('blur', () => {
+  window.addEventListener('keyup', (e) => { if (!locked) release(e.code); });
+  function releaseAll() {
     [...held.keys()].forEach(release);
     mouseEl.querySelectorAll('.down').forEach((b) => b.classList.remove('down'));
     [0, 1, 2, 3, 4].forEach((i) => right.press(i, false));
-  });
+  }
+  window.addEventListener('blur', releaseAll);
+
+  // ---------- Control desde la historia ----------
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Carácter → tecla física (distribución española) y si hace falta Mayúsculas.
+  const ACCENTS = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u' };
+  const SYMBOLS = {
+    ' ': ['Space'], ',': ['Comma'], '.': ['Period'], '-': ['Slash'], "'": ['Minus'], '¡': ['Equal'],
+    '?': ['Minus', true], '¿': ['Equal', true], '!': ['Digit1', true], ':': ['Period', true],
+    ';': ['Comma', true], '"': ['Digit2', true], '(': ['Digit8', true], ')': ['Digit9', true],
+    'ñ': ['Semicolon'], 'Ñ': ['Semicolon', true], '\n': ['Enter'],
+  };
+  function keysFor(ch) {
+    if (SYMBOLS[ch]) return { code: SYMBOLS[ch][0], shift: !!SYMBOLS[ch][1] };
+    const lower = ch.toLowerCase();
+    const base = ACCENTS[lower] || lower;
+    if (/^[a-z]$/.test(base)) {
+      return { code: `Key${base.toUpperCase()}`, shift: ch !== lower, accent: !!ACCENTS[lower] };
+    }
+    if (/^[0-9]$/.test(ch)) return { code: `Digit${ch}` };
+    return null;
+  }
+
+  async function tap(code, hold = 55) {
+    press(code);
+    await wait(hold);
+    release(code);
+  }
+
+  Game.input = {
+    get locked() { return locked; },
+    // Bloquea la entrada del jugador: la historia mueve las manos.
+    lock() {
+      locked = true;
+      releaseAll();
+      document.body.classList.add('locked');
+    },
+    unlock() {
+      locked = false;
+      document.body.classList.remove('locked');
+      if (client) applyPointer();
+    },
+    // Lleva el cursor al centro de un elemento de la pantalla, con un movimiento suave.
+    async moveToElement(el, ms = 900) {
+      const s = screen.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const to = { nx: (r.left + r.width / 2 - s.left) / s.width, ny: (r.top + r.height / 2 - s.top) / s.height };
+      const from = { ...pointer };
+      const t0 = performance.now();
+      await new Promise((done) => {
+        function step() {
+          const t = Math.min(1, (performance.now() - t0) / ms);
+          const k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // suave al salir y al llegar
+          setPointer(from.nx + (to.nx - from.nx) * k, from.ny + (to.ny - from.ny) * k);
+          if (t < 1) setTimeout(step, 16); else done();
+        }
+        step();
+      });
+    },
+    async click() {
+      mouseButtonVisual(0, true);
+      await wait(90);
+      mouseButtonVisual(0, false);
+    },
+    // Teclea un texto en el teclado del escritorio. onChar(ch) se llama con cada carácter.
+    async type(text, onChar, speed = 1) {
+      for (const ch of text) {
+        const k = keysFor(ch);
+        if (k) {
+          if (k.accent) await tap('Quote', 45);           // tecla de acento antes de la vocal
+          if (k.shift) press('ShiftLeft');
+          await tap(k.code);
+          if (k.shift) release('ShiftLeft');
+        }
+        if (onChar) onChar(ch);
+        const base = ch === ' ' ? 70 : /[,.?!]/.test(ch) ? 160 : 55;
+        await wait((base + Math.random() * 60) / speed);
+      }
+    },
+    tap,
+  };
 
   // ---------- Bucle ----------
   let last = performance.now();
@@ -194,7 +315,8 @@
   right.snap();
   window.addEventListener('resize', () => {
     layout();
-    applyPointer(); // recoloca el cursor virtual con el nuevo tamaño de pantalla
+    if (!locked) applyPointer(); // recoloca el cursor virtual con el nuevo tamaño de pantalla
+    else setPointer(pointer.nx, pointer.ny);
     homeLeft();
     left.snap();
     right.snap();
