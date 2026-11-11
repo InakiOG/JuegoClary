@@ -49,16 +49,21 @@ window.Game = window.Game || {};
     intro.hidden = true;
   }
 
-  // ---------- Notificación con glitch (abajo a la derecha, 5 s) ----------
-  async function notify(text) {
+  // ---------- Notificación con glitch (abajo a la derecha) ----------
+  // duracion en ms; suave = menos glitches; onClick = qué pasa al pulsarla (el cursor se vuelve mano).
+  async function notify(text, { duracion = 5000, suave = false, onClick = null } = {}) {
     const n = document.createElement('div');
-    n.className = 'notif glitch';
+    n.className = 'notif glitch' + (suave ? ' soft' : '');
+    if (onClick) {
+      n.dataset.cursor = 'hand';
+      n.addEventListener('click', onClick);
+    }
     n.innerHTML = '<div class="notif-bar"><span class="notif-dot"></span>MENSAJE</div><p></p>';
     n.querySelector('p').textContent = text;
     n.querySelector('p').dataset.text = text;
     document.getElementById('os').appendChild(n);
     Game.sound.glitch();
-    await wait(5000);
+    await wait(duracion);
     n.classList.add('out');
     await wait(400);
     n.remove();
@@ -153,6 +158,62 @@ window.Game = window.Game || {};
     await wait(500);
     screenEl.classList.remove('glitching');
     Game.mapa.open();
+    await act1Mapa();
+  }
+
+  // Tras abrirse el mapa: el jugador deja de tener el control y es espectador del diálogo.
+  async function act1Mapa() {
+    await wait(2500);
+    Game.input.lock();
+    setBusy(true);
+
+    // Tomás vuelve al chat de LucIAno (pestaña en la barra de tareas, o el icono si lo cerró).
+    if (Game.luciano.window) {
+      await Game.input.moveToElement(Game.luciano.window.task, 900);
+      await wait(200);
+      await Game.input.click();
+      Game.os.focusWindow(Game.luciano.window);
+    } else {
+      await Game.input.moveToElement(Game.os.iconEl('app-luciano'), 900);
+      await wait(200);
+      await Game.input.click();
+      await wait(110);
+      await Game.input.click();
+      Game.luciano.open();
+    }
+    await wait(700);
+    for (const line of G.dialogoMapa) {
+      if (line.quien === 'tomas') await Game.luciano.typeAsTomas(line.texto);
+      else await Game.luciano.say(line.texto);
+      await wait(900);
+    }
+
+    // Tomás abre Mensajes y entra al chat de su mamá: mensajes no enviados.
+    await wait(600);
+    await Game.input.moveToElement(Game.os.iconEl('app-mensajes'), 1000);
+    await wait(250);
+    await Game.input.click();
+    await wait(110);
+    await Game.input.click();
+    Game.mensajes.open();
+    Game.mensajes.showList(); // por si el jugador ya la había abierto en otra pantalla
+    await wait(1100);
+    await Game.input.moveToElement(Game.mensajes.chatItem(), 700);
+    await wait(200);
+    await Game.input.click();
+    Game.mensajes.chatItem().click();
+    await wait(3500);
+
+    // Otro mensaje de SR (10 s, menos glitch). Al poco, el control regresa al jugador;
+    // pulsar la notificación o la pestaña del mapa trae el mapa al frente.
+    notify(G.sr2.texto, {
+      duracion: G.sr2.duracion,
+      suave: true,
+      onClick: () => Game.mapa.open(), // lo trae al frente (o lo reabre si se cerró)
+    });
+    await wait(2000);
+    setBusy(false);
+    Game.input.unlock();
   }
 
   Game.story = { notify };

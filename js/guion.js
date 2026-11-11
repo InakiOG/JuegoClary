@@ -47,6 +47,27 @@ Game.guion = {
     '¡Listo, mijo! Tu juego está listo.',
   ],
 
+  // Tras abrirse el mapa: el jugador deja de tener el control y es espectador de este diálogo.
+  dialogoMapa: [
+    { quien: 'tomas', texto: 'Qué es esto?' },
+    { quien: 'luciano', texto: 'Debes de unir las empresas que controla las Inteligencias Artificiales con los acontecimientos de manipulación.' },
+    { quien: 'tomas', texto: 'Eso qué' },
+  ],
+
+  // Tomás abre la app de mensajes: en el chat de su mamá hay mensajes que no se enviaron.
+  mensajes: {
+    contacto: 'Amá',
+    noEnviados: [
+      { texto: 'Amá a qué hora llegas?', hora: '17:04 p.m.' },
+      { texto: 'Ya saliste de la empresa?', hora: '17:45 p.m.' },
+      { texto: 'Ontaaas', hora: '19:27 p.m.' },
+    ],
+  },
+
+  // Otro mensaje de SR: dura 10 segundos, con menos glitches que los anteriores.
+  // Después el control regresa al jugador.
+  sr2: { texto: 'SR: Dile la verdad a Tomás.', duracion: 10000 },
+
   // ---------- Chat libre con LucIAno ----------
   // PROVISIONAL. Si el mensaje del jugador contiene alguna de las claves (sin acentos ni mayúsculas),
   // LucIAno contesta con una de las respuestas, por turnos. La primera regla que coincide gana.

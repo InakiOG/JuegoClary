@@ -228,6 +228,12 @@ window.Game = window.Game || {};
       '<svg viewBox="0 0 48 48" fill="none" stroke="#4d8dff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">' +
       '<path d="M8 10h32a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H22l-9 7v-7H8a3 3 0 0 1-3-3V13a3 3 0 0 1 3-3z"/>' +
       '<path d="M24 14l2.2 5.8L32 22l-5.8 2.2L24 30l-2.2-5.8L16 22l5.8-2.2z" fill="#4d8dff" fill-opacity=".35"/></svg>',
+    // Mensajes: globo de diálogo verde con tres puntos.
+    mensajes: () =>
+      '<svg viewBox="0 0 48 48" fill="none" stroke="#3ddc84" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">' +
+      '<path d="M24 7c10 0 18 7 18 16s-8 16-18 16c-2.6 0-5-.4-7.2-1.2L8 41l2.4-7.6C7.6 30.6 6 27 6 23 6 14 14 7 24 7z"/>' +
+      '<circle cx="16" cy="23" r="1.6" fill="#3ddc84"/><circle cx="24" cy="23" r="1.6" fill="#3ddc84"/>' +
+      '<circle cx="32" cy="23" r="1.6" fill="#3ddc84"/></svg>',
     mapa: () => svg(
       '<path d="M5 11l12-4 14 4 12-4v30l-12 4-14-4-12 4z"/>' +
       `<path d="M17 7v30M31 11v30" stroke="${D}"/>` +

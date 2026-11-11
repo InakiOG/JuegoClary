@@ -26,6 +26,9 @@ Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el cód
 3. El jugador ya puede chatear con LucIAno (respuestas por palabras clave, en `guion.js`).
 4. LucIAno procesa el juego; la barra se atasca. Llega un mensaje de SR con un link y el juego espera a que el jugador haga clic. Sobre el link el cursor se vuelve una mano.
 5. LucIAno "fusiona" el juego con el link y se abre un **mapa interactivo** (provisional: la colonia, el ejido y el centro de datos, con lugares que se pueden pulsar).
+6. El jugador vuelve a ser espectador: Tomás regresa al chat ("Qué es esto?"), LucIAno le dice que una las empresas que controlan las IA con los acontecimientos de manipulación, y Tomás responde "Eso qué".
+7. Tomás abre **Mensajes** y entra al chat de su mamá ("Amá"): tres mensajes suyos sin enviar (17:04, 17:45 y 19:27).
+8. Llega otro mensaje de SR, "Dile la verdad a Tomás." (10 s, con menos glitch). A los 2 s el control regresa al jugador. El cursor se vuelve mano sobre la notificación y sobre la pestaña del mapa en la barra de tareas; pulsar cualquiera de las dos trae el mapa al frente.
 
 Para probar sin la intro: http://localhost:8000/?sin-intro
 
@@ -76,6 +79,7 @@ css/os.css        Estilos del sistema operativo de la pantalla
 js/guion.js       Textos de la historia (personajes, intro, acto 1, respuestas de LucIAno, mapa)
 js/luciano.js     Programa de chat LucIAno
 js/mapa.js        Mapa interactivo (contenido del link de SR)
+js/mensajes.js    App de mensajes (chat de la mamá con mensajes no enviados)
 js/story.js       Intro y secuencia del acto 1
 css/story.css     Estilos de la intro, el chat, la notificación, los glitches y el mapa
 ```

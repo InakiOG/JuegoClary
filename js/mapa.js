@@ -35,7 +35,7 @@ window.Game = window.Game || {};
   }
 
   function open() {
-    return Game.os.createWindow({
+    const W = Game.os.createWindow({
       key: 'mapa', title: M.titulo, iconHtml: Game.icons.mapa(), w: 44, h: 28,
       build(body) {
         body.classList.add('mapa', 'glitch-open');
@@ -62,6 +62,9 @@ window.Game = window.Game || {};
         setTimeout(() => body.classList.remove('glitch-open'), 1200);
       },
     });
+    // La pestaña del mapa en la barra de tareas muestra el cursor de mano.
+    W.task.dataset.cursor = 'hand';
+    return W;
   }
 
   Game.mapa = { open };
