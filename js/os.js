@@ -594,8 +594,16 @@
   });
 
   // ---------- Reloj ----------
+  // El juego transcurre en 2036: misma hora, día y mes que en la realidad, pero en ese año.
+  Game.YEAR = 2036;
+  Game.now = () => {
+    const d = new Date();
+    d.setFullYear(Game.YEAR);
+    return d;
+  };
+
   function tick() {
-    const now = new Date();
+    const now = Game.now();
     clock.innerHTML =
       `<span>${now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>` +
       `<span>${now.toLocaleDateString('es-ES')}</span>`;
