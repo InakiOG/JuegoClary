@@ -1,20 +1,32 @@
-// Historia: INICIO (texto sobre la pantalla real oscurecida) y ACTO 1 (chat con LucIAno,
-// notificación de SR, mensaje con link y mapa). Los textos están en guion.js.
+// Historia completa: INICIO, ACTO 1 (LucIAno, SR y el mapa), ACTO 2 (sopa de letras, contraseña EJIDO,
+// la termoeléctrica), ACTO 3 (pesca, Plan México, contraseña APAGÓN, LucIAno borra el mapa, maquila,
+// chat con SR y LucIAno revelado), ACTO 4 (pelea final, código PTAL) y créditos.
+// Los textos están en guion.js.
 //
-// Para probar sin esperar la intro: añade ?sin-intro a la dirección (http://localhost:8000/?sin-intro).
+// Para probar:
+//   ?sin-intro          salta la intro
+//   ?desde=acto2        empieza en el acto 2 (también: acto3, borrado, maquila, pelea, codigo)
+//   ?desde=nada         escritorio libre, sin historia
 window.Game = window.Game || {};
 
 (function () {
   const G = Game.guion;
+  const { pensamiento, instruccion, zoomTo, glitch, shake } = Game.escena;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const waitFor = (pred, every = 200) => new Promise((r) => {
+    (function check() { if (pred()) r(); else setTimeout(check, every); })();
+  });
   const intro = document.getElementById('intro');
   const screenEl = document.getElementById('screen');
+  const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[¿?¡!.,]/g, ' ');
 
   // ---------- INICIO ----------
   // Los navegadores no dejan sonar audio hasta el primer clic/tecla, así que la intro empieza
   // con un clic. Desde ese momento cuentan los 4 segundos del guion.
   function waitForStart() {
     return new Promise((resolve) => {
+      intro.hidden = false;
+      intro.classList.remove('fade');
       intro.innerHTML = '<div class="intro-start">[ clic para empezar ]</div>';
       const go = () => {
         window.removeEventListener('mousedown', go, true);
@@ -36,7 +48,6 @@ window.Game = window.Game || {};
   }
 
   async function runIntro() {
-    await waitForStart();
     intro.innerHTML = '<div class="intro-text"><p></p><p></p></div>';
     const [p1, p2] = intro.querySelectorAll('p');
     await wait(4000);
@@ -45,32 +56,43 @@ window.Game = window.Game || {};
     await typewriter(p2, G.intro[1]);
     await wait(3200);
     intro.classList.add('fade');            // la pantalla real se vuelve visible
+    Game.atencion.show();                   // con la barra de atención al 100
     await wait(1600);
     intro.hidden = true;
   }
 
   // ---------- Notificación con glitch (abajo a la derecha) ----------
   // duracion en ms; suave = menos glitches; onClick = qué pasa al pulsarla (el cursor se vuelve mano).
-  async function notify(text, { duracion = 5000, suave = false, onClick = null } = {}) {
+  // Devuelve una promesa que se cumple cuando la notificación desaparece (por tiempo o por clic).
+  function notify(text, { duracion = 5000, suave = false, onClick = null, largo = false } = {}) {
     const n = document.createElement('div');
     n.className = 'notif glitch' + (suave ? ' soft' : '');
-    if (onClick) {
-      n.dataset.cursor = 'hand';
-      n.addEventListener('click', onClick);
-    }
+    if (largo) n.style.width = '24em';
     n.innerHTML = '<div class="notif-bar"><span class="notif-dot"></span>MENSAJE</div><p></p>';
     n.querySelector('p').textContent = text;
     n.querySelector('p').dataset.text = text;
     document.getElementById('os').appendChild(n);
     Game.sound.glitch();
-    await wait(duracion);
-    n.classList.add('out');
-    await wait(400);
-    n.remove();
+    let gone = false;
+    const leave = async () => {
+      if (gone) return;
+      gone = true;
+      n.classList.add('out');
+      await wait(400);
+      n.remove();
+    };
+    const p = new Promise((resolve) => {
+      if (onClick) {
+        n.dataset.cursor = 'hand';
+        n.addEventListener('click', () => { if (Game.input.locked) return; onClick(); leave().then(resolve); });
+      }
+      setTimeout(() => leave().then(resolve), duracion);
+    });
+    p.el = n;
+    return p;
   }
 
-  // ---------- Chat libre ----------
-  const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[¿?¡!.,]/g, ' ');
+  // ---------- Chat libre con LucIAno ----------
   const turn = new Map();
   function reply(text) {
     const t = ` ${norm(text)} `;
@@ -82,14 +104,24 @@ window.Game = window.Game || {};
   }
 
   // Los mensajes del jugador se contestan en orden; si LucIAno está en mitad del guion, esperan.
+  // nextReply: respuesta del guion para el próximo mensaje del jugador (en vez de las palabras clave).
   let busy = false;
   let draining = false;
+  let nextReply = null;
   const queue = [];
   async function drain() {
     if (draining || busy) return;
     draining = true;
     while (queue.length && !busy) {
-      await Game.luciano.say(reply(queue.shift()));
+      const text = queue.shift();
+      if (nextReply) {
+        const r = nextReply;
+        nextReply = null;
+        await Game.luciano.say(r.text);
+        r.resolve();
+      } else {
+        await Game.luciano.say(reply(text));
+      }
     }
     draining = false;
   }
@@ -101,19 +133,143 @@ window.Game = window.Game || {};
     busy = v;
     if (!v) drain();
   }
+  // Espera al próximo mensaje del jugador y contesta con el texto del guion.
+  function scriptedReply(text) {
+    return new Promise((resolve) => { nextReply = { text, resolve }; drain(); });
+  }
 
-  // ---------- ACTO 1 ----------
-  async function act1() {
-    Game.input.lock();
-    await wait(900);
+  // ---------- Control ----------
+  // Tomás (la historia) toma las manos / se las devuelve al jugador.
+  function pilot() { Game.input.lock(); setBusy(true); }
+  function free({ chat = true } = {}) { Game.input.unlock(); if (chat) setBusy(false); }
 
-    // Tomás abre LucIAno (doble clic en el icono).
-    const icon = Game.os.iconEl('app-luciano');
-    await Game.input.moveToElement(icon, 1100);
+  async function clickEl(el, ms = 900) {
+    if (!el) return;
+    await Game.input.moveToElement(el, ms);
+    await wait(200);
+    await Game.input.click();
+  }
+  async function openIcon(id) {
+    const icon = Game.os.iconEl(id);
+    await Game.input.moveToElement(icon, 1000);
     await wait(250);
     await Game.input.click();
     await wait(110);
     await Game.input.click();
+  }
+  // Tomás vuelve a LucIAno (pestaña de la barra de tareas o icono del escritorio).
+  async function goToLuciano() {
+    const w = Game.luciano.window;
+    if (w) {
+      await clickEl(w.task);
+      Game.os.focusWindow(w);
+    } else {
+      await openIcon('app-luciano');
+      Game.luciano.open();
+    }
+    await wait(500);
+  }
+  function maximize(W) {
+    if (W && !W.max) W.el.querySelector('.titlebar').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  }
+
+  // Hace parpadear el icono de LucIAno (y su pestaña) hasta que el jugador lo abra.
+  async function waitLucianoOpened() {
+    const tick = () => {
+      const icon = Game.os.iconEl('app-luciano');
+      const w = Game.luciano.window;
+      const on = !Game.luciano.isActive;
+      if (icon) icon.classList.toggle('blink-icon', on);
+      if (w) w.task.classList.toggle('blink-task', on);
+    };
+    const t = setInterval(tick, 200);
+    await waitFor(() => Game.luciano.isActive);
+    clearInterval(t);
+    const icon = Game.os.iconEl('app-luciano');
+    if (icon) icon.classList.remove('blink-icon');
+    if (Game.luciano.window) Game.luciano.window.task.classList.remove('blink-task');
+  }
+
+  // Pregunta de LucIAno con dos opciones. La 1 baja la atención; después sale la 2 obligatoria.
+  async function pregunta(q, obligatoria) {
+    await Game.luciano.say(q.luciano);
+    const i = await Game.luciano.choose([q.opcion1, q.opcion2]);
+    if (i === 0) {
+      Game.atencion.set(q.atencion);
+      await wait(600);
+      await Game.luciano.say(q.respuesta1);
+      await Game.luciano.choose([obligatoria || q.opcion2]);
+    }
+  }
+
+  // ---------- Mapa ----------
+  // El archivo MAPA7382 aparece en el escritorio cuando LucIAno "fusiona" el juego con el link.
+  let onMapReopen = null;
+  const mapFile = {
+    id: 'mapa7382', name: G.acto3.archivoMapa, type: 'app', loc: 'desktop',
+    iconHtml: Game.icons.mapa(),
+    open(f) {
+      if (f.loc === 'trash') { Game.files.restore(f); Game.os.changed(); }
+      Game.mapa.open();
+      if (onMapReopen) { const fn = onMapReopen; onMapReopen = null; fn(); }
+    },
+  };
+  function addMapFile() {
+    Game.files.add(mapFile);
+    Game.os.changed();
+  }
+
+  // Abre el mapa, lleva la cámara a la sección y espera a que el jugador la pulse.
+  async function mapClick(sec, { abrir = true } = {}) {
+    if (abrir) {
+      Game.mapa.open();
+      await wait(300);
+      await Game.mapa.focus(sec === 'ribera2' ? 'ribera' : sec, 1300, 0.15);
+    }
+    free();
+    // Si el jugador cierra el mapa, el icono del archivo parpadea.
+    // Si el mapa está detrás de otras ventanas, parpadea su pestaña en la barra de tareas.
+    const t = setInterval(() => {
+      const icon = Game.os.iconEl('mapa7382');
+      if (icon) icon.classList.toggle('blink-icon', !Game.mapa.isOpen);
+      const W = Game.mapa.window;
+      if (W) W.task.classList.toggle('blink-task', W.min || !W.el.classList.contains('active'));
+    }, 250);
+    await Game.mapa.waitClick(sec);
+    clearInterval(t);
+    const icon = Game.os.iconEl('mapa7382');
+    if (icon) icon.classList.remove('blink-icon');
+    if (Game.mapa.window) Game.mapa.window.task.classList.remove('blink-task');
+    pilot();
+  }
+
+  // Abre un minijuego "en otra pestaña" (ventana maximizada sin botones) y espera a que termine.
+  async function minijuego(nombre, titulo) {
+    const W = Game.os.createWindow({
+      key: `mj-${nombre}`, title: titulo, iconHtml: Game.icons.mapa(), w: 60, h: 40,
+      build(body) { body.classList.add('minijuego'); },
+    });
+    W.el.querySelectorAll('.tb-close, .tb-min, .tb-max').forEach((b) => { b.hidden = true; });
+    maximize(W);
+    W.el.querySelector('.titlebar').style.pointerEvents = 'none'; // no se puede restaurar ni mover
+    await glitch(500);
+    const game = Game.minijuegos[nombre](W.body);
+    free({ chat: false });
+    const result = await game.done;
+    pilot();
+    game.destroy();
+    Game.os.closeWindow(W);
+    return result;
+  }
+
+  // ---------- ACTO 1 ----------
+  async function act1() {
+    pilot();
+    Game.musica.play('acto1');
+    await wait(900);
+
+    // Tomás abre LucIAno (doble clic en el icono).
+    await openIcon('app-luciano');
     Game.luciano.open();
     await wait(900);
 
@@ -130,7 +286,6 @@ window.Game = window.Game || {};
     Game.input.unlock();
     Game.luciano.enableInput(onPlayer);
 
-    setBusy(true);
     const msg = await Game.luciano.say(G.procesando);
     const bar = Game.luciano.progress(msg);
     setBusy(false);
@@ -143,45 +298,23 @@ window.Game = window.Game || {};
 
     // LucIAno "fusiona" el juego con la información del link.
     setBusy(true);
-    screenEl.classList.add('glitching');
-    Game.sound.glitch();
-    await wait(900);
-    screenEl.classList.remove('glitching');
+    await glitch(900);
     await Game.luciano.say(G.fusion[0]);
     for (let v = 0.87; v <= 1; v += 0.03) { bar.set(v); await wait(140); }
     bar.done();
     await Game.luciano.say(G.fusion[1]);
-    setBusy(false);
     await wait(500);
-    screenEl.classList.add('glitching');
-    Game.sound.glitch();
-    await wait(500);
-    screenEl.classList.remove('glitching');
+    await glitch(500);
+    addMapFile();
     Game.mapa.open();
     await act1Mapa();
   }
 
-  // Tras abrirse el mapa: el jugador deja de tener el control y es espectador del diálogo.
+  // Tras abrirse el mapa: el jugador deja de tener el control y es espectador.
   async function act1Mapa() {
     await wait(2500);
-    Game.input.lock();
-    setBusy(true);
-
-    // Tomás vuelve al chat de LucIAno (pestaña en la barra de tareas, o el icono si lo cerró).
-    if (Game.luciano.window) {
-      await Game.input.moveToElement(Game.luciano.window.task, 900);
-      await wait(200);
-      await Game.input.click();
-      Game.os.focusWindow(Game.luciano.window);
-    } else {
-      await Game.input.moveToElement(Game.os.iconEl('app-luciano'), 900);
-      await wait(200);
-      await Game.input.click();
-      await wait(110);
-      await Game.input.click();
-      Game.luciano.open();
-    }
-    await wait(700);
+    pilot();
+    await goToLuciano();
     for (const line of G.dialogoMapa) {
       if (line.quien === 'tomas') await Game.luciano.typeAsTomas(line.texto);
       else await Game.luciano.say(line.texto);
@@ -190,40 +323,474 @@ window.Game = window.Game || {};
 
     // Tomás abre Mensajes y entra al chat de su mamá: mensajes no enviados.
     await wait(600);
-    await Game.input.moveToElement(Game.os.iconEl('app-mensajes'), 1000);
-    await wait(250);
-    await Game.input.click();
-    await wait(110);
-    await Game.input.click();
+    await openIcon('app-mensajes');
     Game.mensajes.open();
     Game.mensajes.showList(); // por si el jugador ya la había abierto en otra pantalla
     await wait(1100);
-    await Game.input.moveToElement(Game.mensajes.chatItem(), 700);
-    await wait(200);
-    await Game.input.click();
+    await clickEl(Game.mensajes.chatItem(), 700);
     Game.mensajes.chatItem().click();
     await wait(3500);
 
-    // Otro mensaje de SR (10 s, menos glitch). Al poco, el control regresa al jugador;
-    // pulsar la notificación o la pestaña del mapa trae el mapa al frente.
+    // Otro mensaje de SR (10 s, menos glitch). Al poco, el control regresa al jugador; pulsar la
+    // notificación o la pestaña del mapa trae el mapa al frente.
+    let clicked = false;
     notify(G.sr2.texto, {
       duracion: G.sr2.duracion,
       suave: true,
-      onClick: () => Game.mapa.open(), // lo trae al frente (o lo reabre si se cerró)
+      onClick: () => { clicked = true; Game.mapa.open(); },
     });
     await wait(2000);
-    setBusy(false);
-    Game.input.unlock();
+    free();
+    const W = Game.mapa.window;
+    if (W) W.task.addEventListener('click', () => { clicked = true; }, { once: true });
+    // El acto 2 empieza cuando el jugador vuelve al mapa (o a los 12 s).
+    const t0 = Date.now();
+    await waitFor(() => clicked || Date.now() - t0 > 12000);
+    await wait(1500);
+  }
+
+  // ---------- ACTO 2 ----------
+  async function act2() {
+    const A = G.acto2;
+    Game.musica.play('acto2');
+    Game.luciano.enableInput(onPlayer);
+    free();
+
+    // Pensamiento: si el jugador no interactúa, vuelve a salir.
+    let asked = false;
+    let interacted = false;
+    const mark = () => { interacted = true; };
+    window.addEventListener('mousedown', mark);
+    window.addEventListener('keydown', mark);
+    const answered = scriptedReply(A.respuestaLink).then(() => { asked = true; });
+    (async () => {
+      do {
+        interacted = false;
+        await pensamiento(A.pensamiento1, { duracion: 10000 });
+      } while (!asked && !interacted);
+      // si interactuó pero aún no ha preguntado, se lo recordamos de vez en cuando
+      while (!asked) {
+        await wait(12000);
+        if (!asked) await pensamiento(A.pensamiento1, { duracion: 6000 });
+      }
+    })();
+    await answered;
+    window.removeEventListener('mousedown', mark);
+    window.removeEventListener('keydown', mark);
+
+    await wait(1200);
+    pilot();
+    await pensamiento(A.pensamiento2);
+
+    // Tomás va a Mensajes, al chat de su mamá, y escribe. Los mensajes no llegan.
+    await openIcon('app-mensajes');
+    Game.mensajes.openChat();
+    await wait(900);
+    for (const m of A.aMama) {
+      await Game.mensajes.typeAsTomas(m.texto);
+      await wait(800);
+    }
+    await wait(1200);
+    await pensamiento(A.pensamiento3);
+
+    // SR: "Entramos a fase 3". Al pulsarla (o cuando se va) se abre la pestaña de la fase 3.
+    free();
+    await notify(A.sr3, { duracion: 5000, onClick: () => {} });
+    pilot();
+
+    // Pestaña glitcheando con código → sopa de letras.
+    await minijuego('sopa', A.codigoTitulo);
+    await pensamiento(A.pensamiento4);
+    // Puede anotarlas en el Post-it.
+    const postit = Game.os.iconEl('app-postit');
+    if (postit) postit.classList.add('blink-icon');
+    setTimeout(() => { const p = Game.os.iconEl('app-postit'); if (p) p.classList.remove('blink-icon'); }, 9000);
+    free();
+    await wait(3500);
+    await pensamiento(A.pensamiento5);
+
+    // "Vuelve al mapa": el texto glitcheado de Acatlán parpadea hasta que el jugador lo pulse.
+    const quitar = instruccion(A.instruccionMapa);
+    await mapClick('acatlan', { abrir: false });
+    quitar();
+    free();
+    await Game.mapa.password(A.password1);
+    pilot();
+    await pensamiento(A.pensamiento6);
+
+    // Se abre la sección de Acatlán y su texto se lee en voz alta.
+    Game.mapa.open();
+    await Game.mapa.focus('acatlan', 1500);
+    Game.mapa.unlock('acatlan');
+    await wait(1300);
+    await Game.voz.say(G.mapa.secciones.acatlan.voz, { titulo: G.mapa.secciones.acatlan.nombre.toUpperCase() });
+    await pensamiento(A.pensamiento7);
+
+    // El jugador va a preguntarle a LucIAno.
+    free({ chat: false });
+    await waitLucianoOpened();
+    await pregunta(A.pregunta, A.pregunta.obligatoria);
+    pilot();
+    await Game.luciano.say(A.pregunta.respuesta2);
+    await wait(1500);
+    await pensamiento(A.pensamiento8);
+    await act3();
+  }
+
+  // ---------- ACTO 3 ----------
+  async function act3() {
+    const A = G.acto3;
+    const S = G.mapa.secciones;
+
+    // La Ribera de Chapala parpadea (aún glitcheada).
+    await mapClick('ribera');
+    Game.musica.play('acto3');
+    await minijuego('pesca', 'pesca.exe');
+
+    // Se des-glitchea la primera parte del texto y se lee.
+    Game.mapa.open();
+    await Game.mapa.focus('ribera', 1200);
+    Game.mapa.unlock('ribera', 1);
+    await wait(1300);
+    await Game.voz.say(S.ribera.voz, { titulo: S.ribera.nombre.toUpperCase() });
+    await pensamiento(A.pensamiento1);
+
+    // Plan México parpadea → serpiente.
+    await mapClick('planmexico');
+    await minijuego('serpiente', 'plan_mexico.exe');
+
+    // Se desbloquea la imagen de la CFE y la cámara sigue el hilo rojo hasta la Ribera.
+    Game.mapa.open();
+    await Game.mapa.focus('cfe', 1200, 0.2);
+    Game.mapa.unlock('cfe');
+    await wait(1500);
+    Game.mapa.thread('cfe', 'ribera');
+    await Game.mapa.focus(['cfe', 'ribera'], 1800, 0.05);
+    await wait(800);
+    await Game.mapa.focus('ribera', 1400, 0.15);
+    await mapClick('ribera2', { abrir: false });
+    Game.mapa.thread('cfe', 'ribera', false);
+    free();
+    await Game.mapa.password(A.password2);
+    pilot();
+    Game.mapa.unlock('ribera', 2);
+    await wait(1200);
+    await pensamiento(A.pensamiento2);
+
+    // El chat con LucIAno se abre solo.
+    Game.luciano.show();
+    await wait(600);
+    free({ chat: false });
+    await pregunta(A.pregunta1);
+    await pregunta(A.pregunta2);
+    pilot();
+    for (const line of A.dialogo) {
+      if (line.quien === 'tomas') await Game.luciano.typeAsTomas(line.texto);
+      else await Game.luciano.say(line.texto);
+      await wait(900);
+    }
+    await Game.luciano.say(A.virus, { extraHtml: `<a class="lu-virus">${A.virusLink}</a>` });
+    await wait(1200);
+    await Game.luciano.typeAsTomas(A.noElimines);
+    await wait(600);
+    await Game.luciano.say(A.eliminado);
+    await wait(800);
+
+    // El mapa se elimina a la vista y va a la papelera.
+    if (!Game.mapa.isOpen) Game.mapa.open();
+    await wait(400);
+    await Game.mapa.destroy();
+    const f = Game.files.get('mapa7382');
+    if (f) { Game.files.move(f, 'trash'); Game.os.changed(); }
+    await wait(600);
+    await pensamiento(A.pensamiento3);
+    await borrado();
+  }
+
+  // El jugador recupera el mapa de la papelera.
+  async function borrado() {
+    const A = G.acto3;
+    const S = G.mapa.secciones;
+    const trash = () => Game.os.iconEl('sys-trash');
+    const t = setInterval(() => { const el = trash(); if (el) el.classList.add('blink-icon'); }, 250);
+    await zoomTo(trash());
+    const reopened = new Promise((r) => { onMapReopen = r; });
+    free();
+    await reopened;
+    clearInterval(t);
+    if (trash()) trash().classList.remove('blink-icon');
+    pilot();
+    await wait(900);
+
+    // Chihuahua parpadea; su texto se lee y la cámara recorre los hilos hasta Silicon Valley y Querétaro.
+    await mapClick('chihuahua');
+    await Game.mapa.focus('chihuahua', 900, 0.1);
+    await Game.voz.say(S.chihuahua.voz, { titulo: S.chihuahua.nombre.toUpperCase() });
+    Game.mapa.thread('chihuahua', 'rqou3u1uylqk');
+    await Game.mapa.focus(['chihuahua', 'silicon'], 1800, 0.04);
+    await Game.mapa.focus('silicon', 1500, 0.1);
+    await wait(700);
+    Game.mapa.thread('chihuahua', 'queretaro');
+    await Game.mapa.focus(['chihuahua', 'queretaro'], 1800, 0.04);
+    await Game.mapa.focus('queretaro', 1500, 0.1);
+    await wait(700);
+    Game.mapa.thread('chihuahua', 'rqou3u1uylqk', false);
+    Game.mapa.thread('chihuahua', 'queretaro', false);
+    await maquila();
+  }
+
+  async function maquila() {
+    const A = G.acto3;
+    const S = G.mapa.secciones;
+    await mapClick('silicon');
+    await minijuego('maquila', 'silicon_valley.exe');
+    Game.mapa.open();
+    await Game.mapa.focus('silicon', 1200, 0.1);
+    Game.mapa.unlock('silicon');
+    await wait(1300);
+    await Game.voz.say(S.silicon.voz, { titulo: S.silicon.nombre.toUpperCase() });
+
+    // Toda la pantalla se glitchea y se abre LucIAno: "Hola Tomás…" seis veces.
+    screenEl.classList.add('glitching');
+    Game.sound.glitch();
+    const W = Game.luciano.show();
+    maximize(W);
+    for (let i = 0; i < 6; i++) {
+      Game.sound.glitch();
+      await Game.luciano.say(A.holaRepetido, { typing: 350, cls: 'repeat' });
+      await wait(250);
+    }
+    screenEl.classList.remove('glitching');
+    for (let i = 0; i < 2; i++) {
+      await Game.voz.say(A.holaRepetido, { titulo: 'LucIAno', pitch: 0.05, rate: 0.72, profunda: true });
+    }
+    await wait(600);
+    await chatSR();
+  }
+
+  // ---------- Chat con SR y LucIAno revelado ----------
+  async function chatSR() {
+    const A = G.acto3;
+    let n = notify(A.srHalcon, { duracion: 12000, largo: true, onClick: () => {} });
+    await wait(1500);
+    await pensamiento(A.pensamiento4);
+    // Tomás pulsa el mensaje de SR y escribe en automático.
+    if (n.el.isConnected) await clickEl(n.el, 800);
+    n.el.remove();
+    Game.sr.open();
+    Game.sr.log(A.srHalcon.replace(/^SR:\s*/, ''));
+    await wait(900);
+    for (const line of A.chatSR) {
+      if (line.quien === 'tomas') await Game.sr.typeAsTomas(line.texto);
+      else await Game.sr.say(line.texto);
+      await wait(700);
+    }
+
+    // Glitch: LucIAno se mete. Tomás vuelve al chat de SR.
+    await glitch(1200);
+    Game.luciano.show();
+    await Game.luciano.say(A.conQuien);
+    await wait(900);
+    await clickEl(Game.sr.window.task, 800);
+    Game.sr.open();
+    await Game.sr.typeAsTomas(A.queHago);
+    await wait(700);
+
+    // LucIAno a pantalla completa, en rojo y parpadeando.
+    await glitch(1000);
+    const W = Game.luciano.show();
+    maximize(W);
+    Game.luciano.setEvil(true);
+    for (const t of A.revelacion) {
+      await Game.luciano.say(t, { cls: 'flash' });
+      await wait(2500);
+    }
+
+    // SR pide el código (notificación abajo a la derecha; también queda en el chat de SR).
+    Game.sr.log(A.srCodigo.replace(/^SR:\s*/, ''));
+    n = notify(A.srCodigo, { duracion: 26000, suave: true, largo: true, onClick: () => Game.sr.open() });
+    await wait(9000);
+    await pensamiento(A.pensamiento5);
+
+    // La última sección del mapa parpadea.
+    await mapClick('codigo');
+    if (n.el.isConnected) n.el.remove();
+    shake(true);
+    await glitch(900);
+    const L = Game.luciano.show();
+    maximize(L);
+    for (const t of A.reto) {
+      await Game.luciano.say(t, { cls: 'flash' });
+      await wait(1500);
+    }
+    shake(false);
+    free({ chat: false });
+    await Game.luciano.choose(A.opcionesReto);   // todas las opciones son correctas
+    pilot();
+    await wait(900);
+    await act4();
+  }
+
+  // ---------- ACTO 4 ----------
+  async function act4() {
+    Game.musica.play('acto4');
+    await glitch(600);
+    for (;;) {
+      const gano = await minijuego('pelea', 'ultimo_minijuego.exe');
+      if (gano) break;
+      const otra = await pantallaPierde();
+      if (!otra) return reiniciar();
+    }
+    await ganaPelea();
+  }
+
+  // Pantalla final sobre la pantalla real.
+  const fin = document.createElement('div');
+  fin.id = 'final';
+  fin.hidden = true;
+  document.body.appendChild(fin);
+
+  function boton(texto, lado) {
+    const b = document.createElement('button');
+    b.className = `f-btn ${lado}`;
+    b.textContent = texto;
+    fin.appendChild(b);
+    return new Promise((r) => b.addEventListener('click', () => r()));
+  }
+
+  async function pantallaPierde() {
+    const A = G.acto4;
+    Game.voz.stop();
+    fin.innerHTML = '';
+    fin.hidden = false;
+    fin.classList.add('cursor-on');
+    await wait(3000);
+    fin.innerHTML = `<p class="f-pensamiento">“${A.pierdePensamiento}”</p>`;
+    await wait(3500);
+    const p = document.createElement('p');
+    p.className = 'f-verde';
+    fin.appendChild(p);
+    await typewriter(p, A.pierdeError);
+    await wait(800);
+    const choice = await Promise.race([
+      boton(A.reintentar, 'der').then(() => true),
+      boton(A.finalizar, 'izq').then(() => false),
+    ]);
+    fin.hidden = true;
+    fin.innerHTML = '';
+    return choice;
+  }
+
+  async function ganaPelea() {
+    const A = G.acto4;
+    const S = G.mapa.secciones;
+    // Se abre el mapa y se vuelve visible la última sección, CÓDIGO.
+    Game.mapa.open();
+    await Game.mapa.focus('codigo', 1500, 0.1);
+    Game.mapa.unlock('codigo');
+    await wait(1400);
+    await Game.voz.say(S.codigo.voz, { titulo: S.codigo.nombre });
+    await pensamiento(A.pensamientoCodigo);
+
+    // SR pide el código; el jugador lo escribe en el chat de SR.
+    Game.sr.open();
+    await Game.sr.say(A.srApurate);
+    free({ chat: false });
+    await new Promise((resolve) => {
+      let last = Date.now();
+      const nag = setInterval(() => {
+        if (Date.now() - last >= 20000) { last = Date.now(); Game.sr.say(A.srApurateOtraVez); }
+      }, 1000);
+      Game.sr.enableInput(async (text) => {
+        last = Date.now();
+        if (norm(text).replace(/\s+/g, '') === norm(A.codigo)) {
+          clearInterval(nag);
+          Game.sr.enableInput(null);
+          resolve();
+        } else {
+          await Game.sr.say(A.srCodigoMal);
+        }
+      });
+      if (Game.sr.window && Game.sr.window.body) {
+        const input = Game.sr.window.body.querySelector('input');
+        if (input) input.focus();
+      }
+    });
+    pilot();
+    await Game.sr.say(A.srGracias);
+    await wait(3000);
+
+    // Pantalla en negro: LucIAno en verde, luego el pensamiento de Tomás y "Finalizar juego".
+    Game.musica.stop(2500);
+    fin.innerHTML = '';
+    fin.hidden = false;
+    fin.classList.add('cursor-on');
+    await wait(1500);
+    const p = document.createElement('p');
+    p.className = 'f-verde';
+    fin.appendChild(p);
+    await typewriter(p, A.lucianoFinal);
+    await wait(3500);
+    fin.innerHTML = '';
+    await wait(1500);
+    fin.innerHTML = `<p class="f-pensamiento">“${A.pensamientoFinal}”</p>`;
+    await wait(2000);
+    await boton(A.finalizar, 'izq');
+    await creditos();
+  }
+
+  async function creditos() {
+    const C = G.creditos;
+    fin.innerHTML =
+      `<div class="f-creditos"><h1>${C.fin}</h1><h2>${C.agradecimiento}</h2><h2>${C.titulo}</h2><dl>` +
+      C.lista.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('') + '</dl></div>';
+    await wait(2500);
+    await boton('Volver al inicio', 'izq');
+    reiniciar();
+  }
+
+  // Se acaba el juego y vuelve a la pantalla de inicio.
+  function reiniciar() {
+    location.href = location.pathname;
   }
 
   Game.story = { notify };
 
+  // ---------- Atajos para probar (?desde=…) ----------
+  // Dejan el estado como estaría en ese punto de la historia.
+  async function saltar(desde) {
+    Game.atencion.show();
+    Game.luciano.enableInput(onPlayer);
+    addMapFile();
+    const orden = ['acto2', 'acto3', 'borrado', 'maquila', 'pelea', 'codigo'];
+    const k = orden.indexOf(desde);
+    if (k >= 1) Game.mapa.unlock('acatlan');
+    if (k >= 2) { Game.mapa.unlock('ribera', 2); Game.mapa.unlock('cfe'); }
+    if (k >= 4) Game.mapa.unlock('silicon');
+    if (desde === 'acto2') { Game.mapa.open(); return act2(); }
+    if (desde === 'acto3') { Game.musica.play('acto2'); return act3(); }
+    if (desde === 'borrado') {
+      Game.musica.play('acto3');
+      const f = Game.files.get('mapa7382');
+      Game.files.move(f, 'trash'); Game.os.changed();
+      return borrado();
+    }
+    if (desde === 'maquila') { Game.musica.play('acto3'); return maquila(); }
+    if (desde === 'pelea') return act4();
+    if (desde === 'codigo') { Game.musica.play('acto4'); return ganaPelea(); }
+    return act1();
+  }
+
   async function start() {
-    const skip = new URLSearchParams(location.search).has('sin-intro');
+    const q = new URLSearchParams(location.search);
+    if (q.get('desde') === 'nada') { intro.hidden = true; return; } // escritorio libre, sin historia
     Game.input.lock();
-    if (skip) intro.hidden = true;
+    await waitForStart();
+    if (q.has('sin-intro') || q.has('desde')) { intro.hidden = true; Game.atencion.show(); }
     else await runIntro();
+    if (q.has('desde')) return saltar(q.get('desde'));
     await act1();
+    await act2();
   }
 
   start();

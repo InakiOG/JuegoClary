@@ -21,20 +21,62 @@ window.Game = window.Game || {};
     body.querySelector('[data-chat="mama"]').addEventListener('click', () => renderChat(body));
   }
 
+  const now = () => {
+    const d = Game.now();
+    const h = d.getHours(), m = d.getMinutes();
+    return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'a.m.' : 'p.m.'}`;
+  };
+  const failedHtml = (m) =>
+    '<div class="ms-msg out failed glitch-in">' +
+    `<p>${esc(m.texto)}</p>` +
+    `<span class="ms-meta">${esc(m.hora)} <span class="ms-fail">!</span> No enviado</span>` +
+    '</div>';
+
+  let input = null;
   function renderChat(body) {
     win.setTitle(`${M.contacto} — Mensajes`);
     body.innerHTML =
       `<div class="ms-head ms-chat-head"><span class="ms-back" data-cursor="hand">‹</span>${avatar(M.contacto)}` +
       `<div><b>${esc(M.contacto)}</b><small>sin conexión</small></div></div>` +
-      '<div class="ms-convo">' +
-      M.noEnviados.map((m) =>
-        '<div class="ms-msg out failed">' +
-        `<p>${esc(m.texto)}</p>` +
-        `<span class="ms-meta">${esc(m.hora)} <span class="ms-fail">!</span> No enviado</span>` +
-        '</div>').join('') +
-      '</div>' +
+      `<div class="ms-convo">${M.noEnviados.map(failedHtml).join('')}</div>` +
+      '<div class="lu-input ms-write"><input type="text" spellcheck="false" placeholder="Escribe un mensaje…">' +
+      '<div class="btn lu-send" data-cursor="hand">Enviar</div></div>' +
       '<div class="ms-input"><span>Sin conexión. Los mensajes se enviarán cuando vuelva la red.</span></div>';
-    body.querySelector('.ms-back').addEventListener('click', () => { win.setTitle('Mensajes'); renderList(body); });
+    input = body.querySelector('.ms-write input');
+    const send = () => {
+      const t = input.value.trim();
+      if (!t || Game.input.locked) return;
+      input.value = '';
+      addFailed(t);
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+    body.querySelector('.ms-write .lu-send').addEventListener('click', send);
+    body.querySelector('.ms-back').addEventListener('click', () => { input = null; win.setTitle('Mensajes'); renderList(body); });
+    const convo = body.querySelector('.ms-convo');
+    convo.scrollTop = convo.scrollHeight;
+  }
+
+  // Un mensaje más a la mamá que no llega.
+  function addFailed(texto, hora = now()) {
+    const m = { texto, hora };
+    M.noEnviados.push(m);
+    Game.sound.message(false);
+    const convo = win && win.body.querySelector('.ms-convo');
+    if (convo) {
+      convo.insertAdjacentHTML('beforeend', failedHtml(m));
+      convo.scrollTop = convo.scrollHeight;
+    }
+  }
+
+  // Tomás escribe en el chat de su mamá (con sus manos en el teclado) y lo envía.
+  async function typeAsTomas(texto, hora) {
+    if (!input) return addFailed(texto, hora);
+    input.value = '';
+    await Game.input.type(texto, (ch) => { if (input) { input.value += ch; input.scrollLeft = input.scrollWidth; } });
+    await new Promise((r) => setTimeout(r, 250));
+    await Game.input.tap('Enter', 70);
+    if (input) input.value = '';
+    addFailed(texto, hora);
   }
 
   function open() {
@@ -45,7 +87,7 @@ window.Game = window.Game || {};
         body.classList.add('mensajes');
         win = W;
         renderList(body);
-        W.onClose = () => { win = null; };
+        W.onClose = () => { win = null; input = null; };
       },
     });
     return win;
@@ -55,7 +97,10 @@ window.Game = window.Game || {};
     open,
     get window() { return win; },
     chatItem: () => win && win.body.querySelector('[data-chat="mama"]'),
-    showList() { if (win) { win.setTitle('Mensajes'); renderList(win.body); } },
+    showList() { if (win) { input = null; win.setTitle('Mensajes'); renderList(win.body); } },
+    // Abre (o trae al frente) la conversación con la mamá.
+    openChat() { open(); renderChat(win.body); },
+    typeAsTomas,
   };
 
   Game.os.addApp({ id: 'app-mensajes', name: 'Mensajes', iconHtml: Game.icons.mensajes(), open });

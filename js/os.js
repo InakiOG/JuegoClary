@@ -12,7 +12,7 @@
     pictures: 'Imágenes', trash: 'Papelera',
   };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const iconFor = (item) => (item.type === 'image' ? icons.image(item.src) : icons.text());
+  const iconFor = (item) => (item.iconHtml ? item.iconHtml : item.type === 'image' ? icons.image(item.src) : icons.text());
   const locIcon = (loc) => (loc === 'pc' ? icons.pc() : loc === 'trash' ? icons.trash(fs.in('trash').length > 0) : icons.folder());
 
   const UI = {
@@ -388,7 +388,8 @@
 
   // ---------- Abrir archivos ----------
   function openFile(file) {
-    if (file.type === 'text') openNotes(file);
+    if (file.open) file.open(file);
+    else if (file.type === 'text') openNotes(file);
     else if (file.type === 'image') openViewer(file);
   }
 
@@ -596,11 +597,12 @@
   });
 
   // ---------- Reloj ----------
-  // El juego transcurre en 2040: misma hora, día y mes que en la realidad, pero en ese año.
+  // El juego transcurre el 22 de noviembre de 2040 (Game.guion.fecha); la hora es la real.
   Game.YEAR = 2040;
   Game.now = () => {
     const d = new Date();
-    d.setFullYear(Game.YEAR);
+    const f = (Game.guion && Game.guion.fecha) || { anio: Game.YEAR, mes: 11, dia: 22 };
+    d.setFullYear(f.anio, f.mes - 1, f.dia);
     return d;
   };
 
@@ -647,6 +649,8 @@
       renderDesktop();
     },
     iconEl: (id) => desktopEl.querySelector(`.icon[data-id="${id}"]`),
+    // Ventana abierta con esa clave (o null).
+    getWindow: (key) => wins.get(key) || null,
     get em() { return em; },
     deskSize,
   };

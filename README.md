@@ -16,21 +16,23 @@ El jugador está sentado frente a un ordenador: ve el monitor, el teclado, el ra
 
 Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el código). Lo marcado como PROVISIONAL es relleno hasta tener el texto definitivo.
 
-**Personajes:** Tomás (14 años), su mamá, su papá Eduardo, la IA LucIAno y la Sociedad Revolucionaria (SR). El juego transcurre en **2040** (el reloj del ordenador usa ese año).
+**Personajes:** Tomás (14 años), su mamá, su papá Eduardo, la IA LucIAno y la Sociedad Revolucionaria (SR). El juego transcurre el **22 de noviembre de 2040**. La mamá es Jocelyn Sánchez Munoz.
 
-**INICIO:** "clic para empezar" (los navegadores no dejan sonar audio sin un clic); la pantalla real queda oscurecida y semitransparente y, a los 4 segundos, aparece el texto en verde neón. Luego la pantalla se aclara.
+**INICIO:** "clic para empezar" (los navegadores no dejan sonar audio sin un clic); la pantalla real queda oscurecida y, a los 4 segundos, aparece el texto en verde neón. Luego la pantalla se aclara y aparece arriba la **barra de atención** al 100 %. El calendario del ordenador marca el **22 de noviembre de 2040**.
 
-**ACTO 1:**
-1. Tomás abre **LucIAno** (el cursor va solo al icono y hace doble clic) y escribe sus mensajes: sus manos teclean de verdad en el teclado del escritorio. Mientras tanto la entrada del jugador está bloqueada.
-2. Llega la notificación con glitch "SR: Capturaron a Eduardo" (abajo a la derecha, 5 s).
-3. El jugador ya puede chatear con LucIAno (respuestas por palabras clave, en `guion.js`).
-4. LucIAno procesa el juego; la barra se atasca. Llega un mensaje de SR con un link y el juego espera a que el jugador haga clic. Sobre el link el cursor se vuelve una mano.
-5. LucIAno "fusiona" el juego con el link y se abre un **mapa interactivo** (provisional: la colonia, el ejido y el centro de datos, con lugares que se pueden pulsar).
-6. El jugador vuelve a ser espectador: Tomás regresa al chat ("Qué es esto?"), LucIAno le dice que una las empresas que controlan las IA con los acontecimientos de manipulación, y Tomás responde "Eso qué".
-7. Tomás abre **Mensajes** y entra al chat de su mamá ("Amá"): tres mensajes suyos sin enviar (17:04, 17:45 y 19:27).
-8. Llega otro mensaje de SR, "Dile la verdad a Tomás." (10 s, con menos glitch). A los 2 s el control regresa al jugador. El cursor se vuelve mano sobre la notificación y sobre la pestaña del mapa en la barra de tareas; pulsar cualquiera de las dos trae el mapa al frente.
+**ACTO I** (canción 1): Tomás abre LucIAno y teclea solo; notificación "SR: Capturaron a Eduardo"; el jugador ya puede chatear; mensaje de SR con link (el cursor se vuelve mano); LucIAno lo "fusiona" con el juego y se abre el **mapa** (el tablero "IA en México") y aparece el archivo **MAPA7382** en el escritorio. Tomás pregunta "Q es esto?", revisa Mensajes (tres mensajes a su mamá sin enviar) y llega "Dile la verdad a Tomás.".
 
-Para probar sin la intro: http://localhost:8000/?sin-intro
+**ACTO II** (canción 2): pensamiento de Tomás (pestaña arriba; vuelve a salir si el jugador no hace nada). A lo primero que el jugador le escriba, LucIAno contesta que no envió ningún link. Tomás escribe a su mamá (no llega), SR: "Entramos a fase 3" → pestaña con código glitcheando y **sopa de letras** (la del guion, palabras encriptadas). El jugador puede apuntar en el **Post-it**. "Vuelve al mapa" en morado: Acatlán parpadea → contraseña **EJIDO** (pista extra al minuto) → se lee el texto en voz en off. El jugador va a LucIAno: opciones (la 1 baja la atención a 75 % y luego sale la 2 obligatoria) y explicación de la termoeléctrica.
+
+**ACTO III** (canción 3): Ribera de Chapala → minijuego de **pesca** (solo vale el pez dorado; los mutantes dan el aviso en rojo) → se des-glitchea la primera parte y se lee. Plan México → **serpiente** con la bandera de EE. UU. que se come los estados → se desbloquea la imagen de la CFE, la cámara sigue el hilo rojo hasta la segunda parte de la Ribera → contraseña **APAGÓN**. LucIAno se abre solo: dos preguntas con opciones (atención a 60 % y 50 %), conversación, "virus" y LucIAno **borra el mapa** (va a la Papelera; la cámara se acerca a la papelera parpadeante y el jugador lo recupera con doble clic). Chihuahua → voz en off y recorrido por los hilos hasta Silicon Valley y Querétaro. Silicon Valley → **maquila** (60 s, botellas de pipí y sed) → voz en off. LucIAno repite "Hola Tomás…" seis veces y lo dice dos veces con voz profunda; chat automático con **SR**; LucIAno se revela (rojo, pantalla completa); SR pide el código; la sección CÓDIGO parpadea; reto de LucIAno con tres opciones (todas valen).
+
+**ACTO IV** (canción 2): **pelea** arcade (flechas y ESPACIO; barra azul claro/verde neón). Si pierde: negro, pensamiento, "ERROR 102…" en verde y botones "Volver a intentar el último minijuego" / "Finalizar juego". Si gana: se ve la sección CÓDIGO (voz en off), "¡Claro!, el código es PTAL", el jugador lo escribe en el chat de SR (SR insiste cada 20 s), final en negro, "Finalizar juego" y **créditos**.
+
+**Voz en off:** síntesis de voz del navegador en español, con subtítulos abajo de la pantalla real (la música baja mientras habla).
+**Música:** `audio/acto1.mp3`, `acto2.mp3` (actos II y IV) y `acto3.mp3`, en bucle.
+**Mapa:** tablero de Fernando Calderón (imágenes en `img/mapa/`, posiciones e hilos del tablero original). Se mueve arrastrando y con la rueda. La sección **CÓDIGO** no estaba en el tablero: es provisional (acróstico P-T-A-L en `guion.js`).
+
+Para probar: `?sin-intro` salta la intro; `?desde=acto2` (también `acto3`, `borrado`, `maquila`, `pelea`, `codigo`) empieza en ese punto; `?desde=nada` deja el escritorio libre sin historia.
 
 ## Dirección de arte: maquinaria divina
 
@@ -78,10 +80,17 @@ js/os.js          Escritorio, ventanas, explorador, notas, visor y barra de tare
 css/os.css        Estilos del sistema operativo de la pantalla
 js/guion.js       Textos de la historia (personajes, intro, acto 1, respuestas de LucIAno, mapa)
 js/luciano.js     Programa de chat LucIAno
-js/mapa.js        Mapa interactivo (contenido del link de SR)
+js/mapa.js        Mapa de corcho (contenido del link de SR): secciones, hilos, cámara, contraseñas
 js/mensajes.js    App de mensajes (chat de la mamá con mensajes no enviados)
-js/story.js       Intro y secuencia del acto 1
-css/story.css     Estilos de la intro, el chat, la notificación, los glitches y el mapa
+js/sr.js          Chat cifrado con SR
+js/postit.js      Post-it para apuntar
+js/escena.js      Música, voz en off con subtítulos, barra de atención, pensamientos, zoom y sacudidas
+js/minijuegos/    sopa, pesca, serpiente, maquila y pelea (cada uno: Game.minijuegos.x(host) → { done, destroy })
+js/story.js       Toda la historia (intro, actos I–IV, finales y créditos)
+css/story.css     Estilos de la intro, el chat, la notificación y los glitches
+css/actos.css     Estilos del mapa, HUD, opciones, SR, post-it, sopa y pantallas finales
+audio/            Música de cada acto
+img/mapa/         Recortes del tablero "IA en México"
 ```
 
 Todo el escritorio se mide en "unidades de tecla" (1em del plano = una tecla), así que escala cambiando un solo `font-size`.

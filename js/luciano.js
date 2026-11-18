@@ -14,6 +14,8 @@ window.Game = window.Game || {};
   let input = null;
   let inputEnabled = false;
   let onPlayer = null;
+  let evil = false;
+  let choices = null;      // { opciones, resolve } mientras se espera que el jugador elija
 
   function scroll() { log.scrollTop = log.scrollHeight; }
 
@@ -49,6 +51,8 @@ window.Game = window.Game || {};
         };
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
         body.querySelector('.lu-send').addEventListener('click', send);
+        body.classList.toggle('evil', evil);
+        if (choices) setTimeout(renderChoices, 0); // win aún no está asignada dentro de build
         W.onClose = () => { win = null; input = null; };
         setTimeout(scroll, 0);
         if (inputEnabled) setTimeout(() => input && input.focus(), 0);
@@ -63,12 +67,54 @@ window.Game = window.Game || {};
   }
 
   // LucIAno "escribe" un momento y luego aparece su mensaje.
-  async function say(text, { typing = 900 + text.length * 18 } = {}) {
+  // cls: clases extra del mensaje; extraHtml: algo debajo del texto (p. ej. un link).
+  async function say(text, { typing = 900 + text.length * 18, cls = '', extraHtml = '' } = {}) {
     const dots = add('luciano typing', '<span class="who">LucIAno</span><p><i></i><i></i><i></i></p>');
     await wait(Math.min(typing, 2600));
     dots.remove();
     Game.sound.message(true);
-    return add('luciano', `<span class="who">LucIAno</span><p>${esc(text)}</p>`);
+    return add(`luciano ${cls}`, `<span class="who">LucIAno</span><p>${esc(text)}</p>${extraHtml}`);
+  }
+
+  // Opciones de respuesta: botones en lugar de la caja de texto. Devuelve el índice elegido.
+  function renderChoices() {
+    if (!win) return;
+    const body = win.body;
+    body.querySelectorAll('.lu-choices').forEach((n) => n.remove());
+    const inputRow = body.querySelector('.lu-input');
+    if (!choices) { inputRow.style.display = ''; return; }
+    inputRow.style.display = 'none';
+    const box = document.createElement('div');
+    box.className = 'lu-choices';
+    choices.opciones.forEach((t, i) => {
+      const b = document.createElement('div');
+      b.className = 'lu-choice';
+      b.dataset.cursor = 'hand';
+      b.textContent = t;
+      b.addEventListener('click', () => {
+        if (Game.input.locked || !choices) return;
+        const c = choices;
+        choices = null;
+        renderChoices();
+        tomas(t);
+        c.resolve(i);
+      });
+      box.appendChild(b);
+    });
+    inputRow.after(box);
+    scroll();
+  }
+  function choose(opciones) {
+    return new Promise((resolve) => {
+      choices = { opciones, resolve };
+      if (!win) open(); else renderChoices();
+    });
+  }
+
+  // Modo revelado: rojo, mensajes que parpadean, ventana a pantalla completa.
+  function setEvil(on) {
+    evil = on;
+    if (win) win.body.classList.toggle('evil', on);
   }
 
   // Tomás teclea el mensaje en la caja de texto (con sus manos en el teclado) y lo envía.
@@ -114,6 +160,8 @@ window.Game = window.Game || {};
   Game.luciano = {
     open,
     say,
+    choose,
+    setEvil,
     tomas,
     typeAsTomas,
     srMessage,
@@ -125,6 +173,10 @@ window.Game = window.Game || {};
       onPlayer = fn;
       if (input) { input.readOnly = false; input.focus(); }
     },
+    // Abre la ventana (o la trae al frente) y la devuelve.
+    show() { if (win) Game.os.focusWindow(win); else open(); return win; },
+    // true si la ventana está abierta, delante y sin minimizar.
+    get isActive() { return !!(win && !win.min && win.el.classList.contains('active')); },
   };
 
   Game.os.addApp({

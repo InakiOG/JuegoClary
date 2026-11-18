@@ -224,55 +224,7 @@ body.locked #blocker { display: block; }
   100% { transform: none; }
 }
 
-/* ---------- Mapa ---------- */
-.mapa { background: #020807; }
-.map-hud {
-  flex: none;
-  display: flex;
-  justify-content: space-between;
-  padding: 0.35em 0.8em;
-  font-size: 0.6em;
-  letter-spacing: 0.15em;
-  border-bottom: 1px solid var(--os-line);
-  color: var(--os-accent);
-}
-.map-blink { color: #ff3b4f; animation: blink 1.2s steps(1) infinite; }
-.map-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; color: var(--os-line-hi); }
-.map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.map-svg path, .map-svg rect { vector-effect: non-scaling-stroke; }
-.map-streets path { stroke: var(--os-line-hi); stroke-width: 2px; fill: none; opacity: 0.7; }
-.map-parcels rect { fill: rgba(95, 224, 200, 0.07); stroke: var(--os-line-hi); stroke-width: 1px; stroke-dasharray: 3 2; }
-.map-river { fill: none; stroke: #2d6fff; stroke-width: 5px; opacity: 0.55; }
-.map-dc { fill: rgba(255, 59, 79, 0.12); stroke: #ff3b4f; stroke-width: 1.5px; }
-.map-dc-fence { fill: none; stroke: #ff3b4f; stroke-width: 1px; stroke-dasharray: 6 4; opacity: 0.7; }
-.map-dc-rows path { stroke: #ff3b4f; stroke-width: 1px; opacity: 0.5; }
-.map-pins { position: absolute; inset: 0; }
-.map-pin {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2em;
-}
-.map-pin i {
-  width: 0.9em; height: 0.9em; border-radius: 50%;
-  border: 2px solid var(--os-accent);
-  background: rgba(95, 224, 200, 0.25);
-  animation: pin 1.8s ease-out infinite;
-}
-.map-pin span { font-size: 0.55em; white-space: nowrap; color: var(--os-text); background: rgba(2, 8, 7, 0.8); padding: 0 0.3em; }
-.map-pin:hover i, .map-pin.on i { background: var(--os-accent); }
-.map-pin.on span { color: #000; background: var(--os-accent); text-shadow: none; }
-@keyframes pin { 0% { box-shadow: 0 0 0 0 rgba(95, 224, 200, 0.6); } 100% { box-shadow: 0 0 0 0.9em rgba(95, 224, 200, 0); } }
-.map-info {
-  flex: none;
-  padding: 0.5em 0.8em;
-  border-top: 1px solid var(--os-line);
-  font-size: 0.7em;
-  min-height: 3.6em;
-}
-.map-info p { margin: 0.3em 0 0; color: var(--os-muted); }
+/* (el mapa tiene sus estilos en actos.css) */
 .glitch-open { animation: screen-glitch 0.4s steps(1) 3; }
 
 /* ---------- Notificación suave (menos glitch) y clicable ---------- */

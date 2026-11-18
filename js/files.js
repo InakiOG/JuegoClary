@@ -197,6 +197,11 @@ window.Game = window.Game || {};
       const i = items.indexOf(item);
       if (i >= 0) items.splice(i, 1);
     },
+    // Añade un archivo (si no existe ya uno con ese id).
+    add(item) {
+      if (!items.some((i) => i.id === item.id)) items.push(item);
+      return items.find((i) => i.id === item.id);
+    },
   };
 
   // ---------- Iconos ----------
@@ -242,6 +247,16 @@ window.Game = window.Game || {};
       '<rect x="5" y="9" width="38" height="30"/>' +
       '<circle cx="16" cy="19" r="3.5"/>' +
       `<path d="M5 34l12-10 8 7 7-6 11 9" stroke="${D}"/>`),
+    // Post-it: hoja amarilla con la esquina doblada.
+    postit: () =>
+      '<svg viewBox="0 0 48 48" fill="none" stroke="#ffd84d" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">' +
+      '<path d="M8 8h32v22L30 40H8z" fill="#ffd84d" fill-opacity=".14"/><path d="M40 30H30v10"/>' +
+      '<path d="M14 17h20M14 23h16" stroke-opacity=".6"/></svg>',
+    // SR: canal cifrado (un ojo rojo dentro de un rombo).
+    sr: () =>
+      '<svg viewBox="0 0 48 48" fill="none" stroke="#ff3b4f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">' +
+      '<path d="M24 4l20 20-20 20L4 24z"/><path d="M12 24c4-6 20-6 24 0-4 6-20 6-24 0z"/>' +
+      '<circle cx="24" cy="24" r="3" fill="#ff3b4f"/></svg>',
     notes: () => svg(
       '<rect x="10" y="6" width="28" height="37"/>' +
       '<path d="M10 12h28"/>' +
