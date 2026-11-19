@@ -97,7 +97,55 @@ window.Game = window.Game || {};
       click({ freq: 1800, q: 0.7, dur: 0.12, gain: 0.35 });
       setTimeout(() => click({ freq: 900, q: 0.7, dur: 0.08, gain: 0.25 }), 180);
     },
+    // "Oof" de muerte estilo Roblox, sintetizado: voz grave que cae, filtrada como una vocal "u".
+    // rate > 1 lo hace más agudo y corto (para varios a la vez).
+    oof(rate = 1) {
+      const c = ensure();
+      if (!c) return;
+      const t = c.currentTime;
+      const dur = 0.32 / rate;
+      const o = c.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(210 * rate, t);
+      o.frequency.exponentialRampToValueAtTime(120 * rate, t + dur);
+      const f1 = c.createBiquadFilter();
+      f1.type = 'bandpass'; f1.frequency.value = 520 * rate; f1.Q.value = 4;
+      const f2 = c.createBiquadFilter();
+      f2.type = 'bandpass'; f2.frequency.value = 950 * rate; f2.Q.value = 6;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.9, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(f1).connect(g);
+      o.connect(f2).connect(g);
+      g.connect(master);
+      o.start(t);
+      o.stop(t + dur + 0.03);
+    },
+    // Música de arcade (bucle chiptune) para las pantallas de GAME OVER.
+    arcade(on) {
+      clearInterval(arcadeTimer);
+      arcadeTimer = 0;
+      if (!on) return;
+      const MEL = [659, 0, 587, 0, 523, 494, 440, 0, 392, 440, 494, 0, 330, 0, 0, 0];
+      const BAJO = [110, 110, 165, 110, 98, 98, 147, 98, 87, 87, 131, 87, 82, 82, 123, 82];
+      let i = 0;
+      const step = () => {
+        const k = i++ % MEL.length;
+        if (MEL[k]) tone(MEL[k], 0, 0.13, 0.09, 'square');
+        tone(BAJO[k], 0, 0.11, 0.07, 'triangle');
+        if (k % 4 === 0) click({ freq: 300, q: 0.8, dur: 0.05, gain: 0.25 });
+      };
+      step();
+      arcadeTimer = setInterval(step, 150);
+    },
+    // La pausa detiene todo el audio sintetizado.
+    suspend(on) {
+      if (!ctx) return;
+      if (on) ctx.suspend(); else ctx.resume();
+    },
   };
+  let arcadeTimer = 0;
 
   function tone(freq, delay, dur, gain, type) {
     const c = ensure();

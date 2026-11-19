@@ -1,0 +1,35 @@
+/* estilos del minijuego pesca ("Ribera de Chapala", estilo Ice Fishing).
+   Dentro de .mj-pesca-stage, 1em = 1 píxel interno del lienzo (320×192). */
+.mj-pesca-root{position:absolute;inset:0;overflow:hidden;background:#07060a;user-select:none;-webkit-user-select:none;}
+.mj-pesca-stage{position:absolute;left:0;top:0;overflow:hidden;font-family:"Lucida Console",Consolas,monospace;color:#e8e4cc;}
+.mj-pesca-canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;image-rendering:crisp-edges;image-rendering:pixelated;}
+
+/* HUD */
+.mj-pesca-hud{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;padding:1.5em 3em;box-sizing:border-box;pointer-events:none;font-size:5.2em;line-height:1;}
+.mj-pesca-box{background:rgba(10,6,16,.78);border:.12em solid #3a2a4a;box-shadow:inset .12em .12em 0 #5a4470,inset -.12em -.12em 0 #140c1c;padding:.3em .5em;display:flex;align-items:center;gap:.45em;white-space:nowrap;}
+.mj-pesca-lbl{color:#9a86b0;font-size:.8em;letter-spacing:.08em;}
+.mj-pesca-score{color:#c8ff5a;text-shadow:.1em .1em 0 #1a3a00;letter-spacing:.06em;}
+.mj-pesca-fish{display:inline-block;width:2.2em;height:1.2em;background-size:100% 100%;image-rendering:pixelated;opacity:.22;filter:grayscale(1);}
+.mj-pesca-fish.on{opacity:1;filter:drop-shadow(0 0 .25em #ffd45a);}
+.mj-pesca-x{display:inline-block;width:1.15em;height:1.15em;line-height:1.15em;text-align:center;border:.1em solid #4a2a3a;color:transparent;font-size:.9em;}
+.mj-pesca-x.on{color:#ff3b4f;border-color:#ff3b4f;background:#3a0a14;text-shadow:0 0 .3em #ff3b4f;}
+
+/* avisos de Tomás */
+.mj-pesca-msg{position:absolute;left:10%;right:10%;top:13%;text-align:center;font-size:6.4em;font-style:italic;color:#ff3b4f;background:rgba(6,2,8,.78);border:.08em solid #5a1020;padding:.35em .6em;box-sizing:border-box;text-shadow:.1em .1em 0 #000;pointer-events:none;transition:opacity .25s;opacity:0;}
+.mj-pesca-msg.on{opacity:1;}
+.mj-pesca-msg.ok{color:#ffd45a;border-color:#6a4a00;}
+.mj-pesca-flash{position:absolute;inset:0;pointer-events:none;background:#ff1030;opacity:0;transition:opacity .35s;}
+.mj-pesca-flash.on{opacity:.28;transition:none;}
+
+/* portada y victoria */
+.mj-pesca-ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(8,4,12,.8);padding:0 12%;box-sizing:border-box;}
+.mj-pesca-title{font-size:13em;letter-spacing:.12em;color:#c8ff5a;text-shadow:.08em .08em 0 #3a0a4a,0 0 .4em rgba(160,255,80,.35);margin-bottom:.5em;}
+.mj-pesca-ins{font-size:6em;line-height:1.5;max-width:100%;}
+.mj-pesca-ins b{color:#ffd45a;font-weight:normal;}
+.mj-pesca-ins i{color:#7dff4a;font-style:normal;}
+.mj-pesca-go{font-size:6.4em;margin-top:1.6em;color:#ff5ad0;animation:mj-pesca-blink 1.1s steps(2,start) infinite;}
+.mj-pesca-win{font-size:12em;color:#ffd45a;text-shadow:.08em .08em 0 #5a3a00,0 0 .4em rgba(255,212,90,.5);animation:mj-pesca-pop .35s ease-out;}
+.mj-pesca-winsub{font-size:6.4em;color:#c8ff5a;margin-top:.8em;}
+.mj-pesca-ov[hidden],.mj-pesca-hud[hidden]{display:none!important;}
+@keyframes mj-pesca-blink{to{visibility:hidden;}}
+@keyframes mj-pesca-pop{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}

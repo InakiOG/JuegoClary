@@ -1,0 +1,63 @@
+/* estilos del minijuego maquila (Silicon Valley / Juego Pipí). 1em = 1 píxel interno. */
+.mj-maq-root { position: absolute; inset: 0; overflow: hidden; background: #07040a; user-select: none; -webkit-user-select: none; }
+.mj-maq-stage { position: absolute; left: 0; top: 0; overflow: hidden; font-family: "Lucida Console", Consolas, "Courier New", monospace; color: #e8e0c8; }
+.mj-maq-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; image-rendering: crisp-edges; image-rendering: pixelated; }
+
+/* HUD: paneles hundidos estilo Win 3.1 en negro y morado */
+.mj-maq-timer, .mj-maq-inv, .mj-maq-score {
+  position: absolute; top: 2em; pointer-events: none;
+  background: #0c0712;
+  border: 1em solid; border-color: #070409 #5a3a6e #5a3a6e #070409;
+  box-shadow: 0 0 0 1em #000;
+}
+.mj-maq-stage .mj-maq-timer {
+  left: 50%; transform: translateX(-50%); line-height: 1;
+  font-size: 9em; padding: .05em .45em; border-width: .08em; box-shadow: 0 0 0 .08em #000;
+  color: #b8ff5a; text-shadow: 0 0 .25em rgba(150, 255, 70, .55); letter-spacing: .06em;
+}
+.mj-maq-stage .mj-maq-timer.mj-maq-urge { color: #ff3a7a; text-shadow: 0 0 .3em rgba(255, 40, 110, .7); animation: mj-maq-blink .5s steps(2, start) infinite; }
+
+.mj-maq-inv, .mj-maq-score {
+  font-size: 6em; padding: .25em .5em; border-width: .17em; box-shadow: 0 0 0 .17em #000;
+  display: flex; align-items: center; gap: .4em;
+}
+.mj-maq-inv { left: 3em; }
+.mj-maq-score { right: 3em; }
+.mj-maq-lbl { color: #b898c8; letter-spacing: .05em; }
+.mj-maq-score b { color: #e6d23a; font-weight: normal; min-width: 3.5em; text-align: right; }
+
+.mj-maq-bot { position: relative; display: inline-block; width: .55em; height: 1.05em; margin-top: .25em;
+  background: #241a2c; border-radius: .16em .16em .06em .06em; box-shadow: inset 0 0 0 .1em #4a3a58; }
+.mj-maq-bot::before { content: ""; position: absolute; left: .12em; top: -.28em; width: .31em; height: .28em; background: #6a607a; }
+.mj-maq-bot.mj-maq-full { background: #e6d23a; box-shadow: inset -.12em 0 0 rgba(0, 0, 0, .25), 0 0 .3em rgba(230, 210, 58, .5); }
+.mj-maq-bot.mj-maq-full::before { background: #d0c8d8; }
+
+.mj-maq-hint {
+  position: absolute; top: 22em; left: 50%; transform: translateX(-50%);
+  font-size: 6em; padding: .3em .7em; white-space: nowrap; pointer-events: none;
+  background: rgba(60, 4, 30, .92); color: #ffd0e4; border: .17em solid #ff3a7a; box-shadow: 0 0 0 .17em #000;
+}
+
+/* puntos que flotan sobre los puestos */
+.mj-maq-float {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap;
+  font-size: 7em; font-weight: bold; text-shadow: .1em .1em 0 #000; animation: mj-maq-up .9s linear forwards;
+}
+.mj-maq-fpee { color: #e6d23a; }
+.mj-maq-fsed { color: #9cff6a; }
+.mj-maq-fbad { color: #ff3a7a; font-size: 10em; }
+@keyframes mj-maq-up { from { margin-top: 0; opacity: 1; } to { margin-top: -1.6em; opacity: 0; } }
+
+/* pantallas de inicio y final: ventana Win 3.1 gótica */
+.mj-maq-ov { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 2, 10, .72); }
+.mj-maq-box {
+  max-width: 270em; padding: 10em 14em; text-align: center; box-sizing: border-box;
+  background: #0e0814; border: 2em solid; border-color: #8a5aa8 #241430 #241430 #8a5aa8; box-shadow: 0 0 0 1em #000, 0 0 30em rgba(150, 255, 70, .12);
+}
+.mj-maq-box h1 { margin: 0 0 .45em; font-size: 17em; font-weight: bold; color: #b8ff5a; letter-spacing: .1em; text-shadow: .07em .07em 0 #4a1a5a; }
+.mj-maq-box p { margin: 0 0 1.1em; font-size: 6.5em; line-height: 1.55; color: #e8e0c8; }
+.mj-maq-box .mj-maq-big { font-size: 10em; line-height: 1.4; color: #e6d23a; }
+.mj-maq-box .mj-maq-sub { font-size: 8em; color: #b8ff5a; margin: 0; }
+.mj-maq-cta { font-size: 7.5em; color: #ff5aa8; animation: mj-maq-blink 1s steps(2, start) infinite; }
+@keyframes mj-maq-blink { to { visibility: hidden; } }
+[class^="mj-maq-"][hidden], [class*=" mj-maq-"][hidden] { display: none !important; }

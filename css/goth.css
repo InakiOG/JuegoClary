@@ -1,0 +1,497 @@
+/* Estética "goth divine machinery": la pantalla de la computadora ocupa toda la ventana (sin habitación,
+   manos ni escritorio), con textura de CRT y un sistema tipo Windows 9x en paleta goth ácida.
+   Este archivo va al final y sobrescribe estilos de style.css, os.css, story.css y actos.css. */
+
+:root {
+  --g-gris: #b9b4bf;          /* gris de ventana, un poco lila */
+  --g-gris-hi: #f2eef7;
+  --g-gris-lo: #6c6575;
+  --g-negro: #0a070d;
+  --g-titulo-a: #2b0638;      /* barra de título activa: morado profundo → magenta ácido */
+  --g-titulo-b: #8c1f74;
+  --g-acido: #9dff3a;         /* verde ácido */
+  --g-magenta: #d9259a;
+  --g-amarillo: #e3d34a;
+  --g-chrome-font: Tahoma, "MS Sans Serif", "Microsoft Sans Serif", Verdana, sans-serif;
+  --g-pixel-font: "Lucida Console", "Courier New", monospace;
+
+  --os-bg: #0b0710;
+  --os-panel: #120b18;
+  --os-panel-2: #1b1024;
+  --os-line: #4a3557;
+  --os-line-hi: #8a62a3;
+  --os-text: #dff5c8;
+  --os-bright: #ffffff;
+  --os-muted: #9a86a8;
+  --os-accent: #9dff3a;
+  --os-accent-soft: rgba(157, 255, 58, 0.16);
+}
+
+/* ---------- Pantalla completa: solo la pantalla de la computadora ---------- */
+#walls, #roomglow, #desk, #halftone, #monitor .tape, #monitor .patch, #led { display: none !important; }
+#room { background: #000; }
+#monitor {
+  inset: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: #000;
+  box-shadow: none;
+}
+#monitor::before { display: none; }
+#screen { border-radius: 0; box-shadow: none; background: #000; }
+/* textura de CRT: rejilla de apertura (franjas RGB verticales) + líneas de barrido */
+#screen::before {
+  background:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255, 0, 60, 0.05) 0 1px, rgba(0, 255, 90, 0.05) 1px 2px, rgba(40, 80, 255, 0.05) 2px 3px);
+}
+#screen::after {
+  border-radius: 0;
+  background:
+    radial-gradient(ellipse 52% 30% at 30% 10%, rgba(255, 255, 255, 0.05), transparent 70%),
+    radial-gradient(ellipse 80% 80% at 50% 50%, transparent 62%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0.55) 100%);
+  box-shadow: inset 0 0 3vmin rgba(0, 0, 0, 0.45);
+}
+.crt-roll { background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.035), transparent); }
+#cursor { filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.6)); }
+#cursor svg path { fill: #ffffff; stroke: #000; }
+
+/* ---------- Escritorio ---------- */
+#os { text-shadow: none; }
+#wallpaper { background: #d21fd0 url("../img/fondo_escritorio.jpg") center / cover no-repeat; image-rendering: pixelated; }
+#wallpaper svg { display: none; }
+
+.icon { border: 1px dotted transparent; }
+.icon-img svg { image-rendering: pixelated; shape-rendering: crispEdges; }
+#desktop .icon-label {
+  font-family: var(--g-chrome-font);
+  color: #fff;
+  text-shadow: 1px 1px 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
+  padding: 0 0.15em;
+}
+.icon:hover { background: transparent; border-color: transparent; }
+.icon.selected { background: transparent; border-color: #fff; }
+.icon.selected .icon-label { background: var(--g-titulo-b); color: #fff; text-shadow: none; }
+.icon.selected .icon-img { filter: drop-shadow(0 0 0 var(--g-titulo-b)) brightness(0.8) sepia(1) hue-rotate(250deg) saturate(3); }
+
+/* ---------- Ventanas tipo Windows 9x ---------- */
+.win {
+  background: var(--g-gris);
+  border: none;
+  padding: 0.18em;
+  box-shadow:
+    inset -1px -1px 0 #000, inset 1px 1px 0 var(--g-gris-hi),
+    inset -2px -2px 0 var(--g-gris-lo), inset 2px 2px 0 #fff,
+    0.3em 0.3em 0 rgba(0, 0, 0, 0.35);
+  font-family: var(--g-chrome-font);
+}
+.win.active { box-shadow:
+    inset -1px -1px 0 #000, inset 1px 1px 0 var(--g-gris-hi),
+    inset -2px -2px 0 var(--g-gris-lo), inset 2px 2px 0 #fff,
+    0.3em 0.3em 0 rgba(0, 0, 0, 0.45); }
+.win.maximized { padding: 0; box-shadow: none; }
+.titlebar {
+  background: linear-gradient(90deg, #6f6878, #a8a1b0);
+  border: none;
+  height: 1.45em;
+  padding: 0 0.15em 0 0.3em;
+}
+.win.active .titlebar { background: linear-gradient(90deg, var(--g-titulo-a), var(--g-titulo-b) 70%, #b3418f); }
+.ttext { font-family: var(--g-chrome-font); font-weight: 700; font-size: 0.72em; color: #d8d3dd; letter-spacing: 0.02em; text-shadow: none; }
+.win.active .ttext { color: #fff; }
+.tbtns { gap: 0.12em; align-items: center; }
+.tb {
+  width: 1.1em;
+  height: 0.95em;
+  color: #000;
+  background: var(--g-gris);
+  box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 var(--g-gris-lo);
+  border: none;
+}
+.tb:hover { background: var(--g-gris); }
+.tb:active { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff; }
+.tb-close { margin-left: 0.12em; }
+.tb-close:hover { background: var(--g-magenta); color: #fff; }
+.tb svg { width: 0.62em; height: 0.62em; stroke-width: 1.6; }
+.wbody { background: var(--os-bg); box-shadow: inset 1px 1px 0 var(--g-gris-lo), inset -1px -1px 0 #fff; }
+.win.maximized .wbody { box-shadow: none; }
+
+.btn {
+  font-family: var(--g-chrome-font);
+  color: #000;
+  background: var(--g-gris);
+  border: none;
+  box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 var(--g-gris-lo);
+  text-shadow: none;
+}
+.btn:hover { background: #cbc6d1; }
+.btn:active { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff; background: var(--g-gris); }
+.btn.text { border: none; background: var(--g-gris); color: #000; }
+.btn.text:hover { background: #cbc6d1; color: #000; }
+.btn.danger { color: #8c0b3a; }
+.statusbar { background: var(--g-gris); color: #000; font-family: var(--g-chrome-font); border-top: 1px solid var(--g-gris-lo); text-shadow: none; }
+.menubar { background: var(--g-gris); color: #000; text-shadow: none; font-family: var(--g-chrome-font); }
+.ex-toolbar { background: var(--g-gris); color: #000; text-shadow: none; }
+.ex-path { background: #fff; color: #000; box-shadow: inset 1px 1px 0 var(--g-gris-lo); text-shadow: none; }
+.ex-path::before { color: var(--g-titulo-b); }
+
+#os ::-webkit-scrollbar { width: 0.8em; height: 0.8em; }
+#os ::-webkit-scrollbar-track { background: repeating-conic-gradient(#d8d3dd 0 25%, #fff 0 50%) 0 0 / 2px 2px; }
+#os ::-webkit-scrollbar-thumb { background: var(--g-gris); box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff; }
+#os * { scrollbar-color: var(--g-gris) #d8d3dd; }
+
+/* ---------- Barra de tareas ---------- */
+#taskbar {
+  background: var(--g-gris);
+  border-top: none;
+  box-shadow: inset 0 1px 0 var(--g-gris-hi), inset 0 2px 0 #fff;
+  font-family: var(--g-chrome-font);
+  color: #000;
+  text-shadow: none;
+}
+#start-btn {
+  color: #000;
+  font-weight: 700;
+  background: var(--g-gris);
+  border: none;
+  box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 var(--g-gris-lo);
+}
+#start-btn:hover { background: var(--g-gris); color: #000; border: none; }
+#start-btn.open { box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff; color: #000; }
+#start-btn .logo {
+  background:
+    linear-gradient(90deg, var(--g-magenta) 0 50%, var(--g-acido) 50%) top / 100% 50% no-repeat,
+    linear-gradient(90deg, #5a2bd6 0 50%, var(--g-amarillo) 50%) bottom / 100% 50% no-repeat;
+  border-radius: 0;
+  box-shadow: none;
+  transform: skewY(-8deg);
+}
+.task {
+  color: #000;
+  background: var(--g-gris);
+  border: none;
+  box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 var(--g-gris-lo);
+}
+.task:hover { background: #cbc6d1; }
+.task.active {
+  color: #000;
+  font-weight: 700;
+  border: none;
+  background: repeating-conic-gradient(#d8d3dd 0 25%, #fff 0 50%) 0 0 / 2px 2px;
+  box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff;
+}
+#tray { box-shadow: inset 1px 1px 0 var(--g-gris-lo), inset -1px -1px 0 #fff; margin-right: 0.2em; height: 75%; display: flex; align-items: center; }
+#clock { color: #000; text-shadow: none; font-family: var(--g-chrome-font); }
+#start-menu {
+  background: var(--g-gris);
+  color: #000;
+  border: none;
+  box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 var(--g-gris-lo), 0.2em 0.2em 0 rgba(0, 0, 0, 0.4);
+  font-family: var(--g-chrome-font);
+  text-shadow: none;
+}
+.start-user { background: linear-gradient(180deg, var(--g-titulo-a), var(--g-titulo-b)); color: #fff; }
+.start-item { color: #000; }
+.start-item:hover { background: var(--g-titulo-b); color: #fff; }
+
+/* ---------- Barra de atención (solo en minijuegos) ---------- */
+#atencion {
+  top: 0.8vmin;
+  padding: 0.6vmin 1.2vmin;
+  font: 700 1.5vmin/1 var(--g-pixel-font);
+  color: var(--g-acido);
+  text-shadow: 1px 1px 0 #000;
+  background: rgba(10, 7, 13, 0.82);
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--g-titulo-b);
+  z-index: 10005;
+}
+#atencion .at-bar { border: 2px solid #000; box-shadow: 0 0 0 1px var(--g-acido); height: 1.6vmin; image-rendering: pixelated; }
+#atencion .at-fill {
+  background: repeating-linear-gradient(90deg, var(--g-acido) 0 0.8vmin, #4f9a12 0.8vmin 1vmin);
+  transition: width 0.35s steps(6);
+}
+#atencion.baja { color: #ff4a6e; animation: at-pulso 0.95s steps(2) infinite; }
+#atencion.baja .at-fill { background: repeating-linear-gradient(90deg, #ff4a6e 0 0.8vmin, #8c1236 0.8vmin 1vmin); }
+@keyframes at-pulso { 50% { box-shadow: 0 0 0 2px #000, 0 0 0 4px #ff4a6e; } }
+
+/* ---------- Subtítulos de la voz en off ---------- */
+#subtitulos {
+  z-index: 10006;
+  bottom: 4.5vmin;
+  font: 700 2vmin/1.45 var(--g-pixel-font);
+  background: rgba(10, 7, 13, 0.88);
+  border-left: none;
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--g-titulo-b);
+  color: #f3ffe6;
+}
+#subtitulos small { color: var(--g-acido); }
+#subtitulos.voz-profunda { box-shadow: 0 0 0 2px #000, 0 0 0 4px #ff2a4a; color: #ffd6dc; }
+#subtitulos.voz-profunda small { color: #ff2a4a; }
+#subtitulos.glitch-sub { animation: sub-glitch 0.28s steps(2) 1; }
+@keyframes sub-glitch {
+  0% { transform: translateX(-50%) translateX(-3px); text-shadow: 2px 0 #ff2a8a, -2px 0 #2affc8; }
+  50% { transform: translateX(-50%) translateX(3px); text-shadow: -2px 0 #ff2a8a, 2px 0 #2affc8; }
+  100% { transform: translateX(-50%); text-shadow: none; }
+}
+
+/* ---------- Pensamientos de Tomás: nube pixel art abajo ---------- */
+.pensamiento {
+  position: absolute;
+  top: auto;
+  left: 50%;
+  bottom: 11%;
+  z-index: 10000;
+  max-width: none;
+  width: min(60%, 70vmin);
+  padding: 0;
+  transform: translate(-50%, 140%);
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-style: normal;
+  text-align: left;
+  transition: transform 0.4s steps(5);
+  pointer-events: none;
+}
+.pensamiento::before { display: none; }
+.pensamiento.in { transform: translate(-50%, 0); }
+.pz-nube {
+  position: relative;
+  padding: 1.8vmin 7vmin 2vmin 3vmin;
+  background: #fff;
+  color: #120818;
+  font: 700 2vmin/1.45 var(--g-pixel-font);
+  /* borde pixelado con esquinas escalonadas (nube pixel art) */
+  box-shadow:
+    0 -0.5vmin 0 0 #fff, 0 0.5vmin 0 0 #fff, -0.5vmin 0 0 0 #fff, 0.5vmin 0 0 0 #fff,
+    0 -1vmin 0 0 #000, 0 1vmin 0 0 #000, -1vmin 0 0 0 #000, 1vmin 0 0 0 #000,
+    -0.5vmin -0.5vmin 0 0 #000, 0.5vmin -0.5vmin 0 0 #000, -0.5vmin 0.5vmin 0 0 #000, 0.5vmin 0.5vmin 0 0 #000,
+    1.4vmin 1.4vmin 0 0 rgba(43, 6, 56, 0.55);
+}
+.pz-nube::before, .pz-nube::after {
+  /* "bultos" de la nube arriba */
+  content: '';
+  position: absolute;
+  top: -2.2vmin;
+  height: 1.7vmin;
+  background: #fff;
+  box-shadow: 0 -0.5vmin 0 0 #000, -0.5vmin 0 0 0 #000, 0.5vmin 0 0 0 #000;
+}
+.pz-nube::before { left: 12%; width: 22%; }
+.pz-nube::after { left: 52%; width: 30%; }
+.pz-nube small {
+  display: block;
+  margin-bottom: 0.5vmin;
+  font-size: 0.65em;
+  letter-spacing: 0.3em;
+  color: var(--g-titulo-b);
+}
+.pz-nube p { margin: 0; }
+.pensamiento i {
+  position: absolute;
+  background: #fff;
+  box-shadow: 0 0 0 0.45vmin #000;
+}
+.pensamiento .pz1 { width: 2.2vmin; height: 2.2vmin; left: 7%; bottom: -3.6vmin; }
+.pensamiento .pz2 { width: 1.3vmin; height: 1.3vmin; left: 4%; bottom: -5.8vmin; }
+
+/* ---------- Botón "siguiente" (▶) ---------- */
+.siguiente {
+  position: absolute;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  width: 4.4vmin;
+  height: 4.4vmin;
+  font: 700 2.2vmin/1 var(--g-pixel-font);
+  color: #000;
+  background: var(--g-acido);
+  box-shadow: inset -0.4vmin -0.4vmin 0 #4f9a12, inset 0.4vmin 0.4vmin 0 #e6ffc8, 0 0 0 0.35vmin #000;
+  animation: sig-blink 0.9s steps(1) infinite;
+}
+.siguiente:hover { background: #c4ff7d; }
+.siguiente-chat { right: 3vmin; bottom: 7vmin; }
+.siguiente-nube { left: calc(50% + min(30%, 35vmin) - 6.2vmin); bottom: calc(11% + 1.4vmin); }
+@keyframes sig-blink { 50% { transform: translateX(0.5vmin); } }
+
+/* ---------- GAME OVER → Perdiste toda tu atención → score ---------- */
+#gameover {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  font-family: var(--g-pixel-font);
+  cursor: default;
+}
+#gameover[hidden] { display: none; }
+#gameover * { cursor: default; }
+.go-titulo {
+  font: 900 clamp(48px, 15vmin, 190px)/0.95 Impact, "Arial Black", var(--g-pixel-font);
+  letter-spacing: 0.06em;
+  text-align: center;
+  white-space: pre-line;
+  background: repeating-linear-gradient(180deg, #e3d34a 0 0.12em, #c98a2a 0.12em 0.24em, #a8324a 0.24em 0.36em);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0.06em 0.06em 0 #2b0638);
+  animation: go-entra 0.6s steps(6) both;
+}
+@keyframes go-entra { from { transform: scale(3); opacity: 0; } }
+.go-leyenda {
+  font: 900 clamp(40px, 12vmin, 150px)/1 Impact, "Arial Black", sans-serif;
+  color: #ff4a6e;
+  text-shadow: 0.05em 0.05em 0 #2b0638;
+  animation: go-entra 0.5s steps(5) both;
+}
+.go-perdiste { display: flex; flex-direction: column; align-items: center; gap: 3vmin; }
+.go-perdiste canvas { width: min(70vmin, 80vw); image-rendering: pixelated; box-shadow: 0 0 0 0.6vmin #000, 0 0 0 1.2vmin var(--g-titulo-b); }
+.go-perdiste p { margin: 0; font: 700 clamp(20px, 4vmin, 48px)/1.2 var(--g-pixel-font); color: var(--g-amarillo); text-shadow: 0.08em 0.08em 0 #8c1236; text-transform: uppercase; }
+.go-score { text-align: center; color: #f3ffe6; }
+.go-score h2 { margin: 0 0 4vmin; font: 900 clamp(40px, 10vmin, 120px)/1 Impact, "Arial Black", sans-serif; color: var(--g-acido); text-shadow: 0.06em 0.06em 0 #2b0638; letter-spacing: 0.1em; }
+.go-score dl { display: grid; grid-template-columns: auto auto; gap: 1.5vmin 4vmin; margin: 0 auto 6vmin; font: 700 clamp(18px, 3.4vmin, 40px)/1.2 var(--g-pixel-font); }
+.go-score dt { color: var(--g-magenta); text-align: right; }
+.go-score dd { margin: 0; text-align: left; color: var(--g-amarillo); }
+.go-btns { display: flex; gap: 3vmin; justify-content: center; flex-wrap: wrap; }
+.go-btn, .g-btn {
+  padding: 1.4vmin 2.6vmin;
+  font: 700 clamp(13px, 2vmin, 22px)/1 var(--g-chrome-font);
+  color: #000;
+  background: var(--g-gris);
+  border: none;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #fff, inset -4px -4px 0 var(--g-gris-lo);
+  cursor: default;
+}
+.go-btn:hover, .g-btn:hover { background: #d6d0dc; }
+.go-btn:active, .g-btn:active { box-shadow: inset 2px 2px 0 #000, inset -2px -2px 0 #fff; }
+
+/* ---------- Pantalla de inicio (nombre de usuario) ---------- */
+#intro { background: #000; cursor: default; }
+#intro * { cursor: default; }
+#intro input { cursor: text; }
+.login {
+  width: min(64vmin, 92vw);
+  background: var(--g-gris);
+  font-family: var(--g-chrome-font);
+  color: #000;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #fff, inset -4px -4px 0 var(--g-gris-lo), 1vmin 1vmin 0 rgba(140, 31, 116, 0.6);
+  padding: 0.5vmin;
+}
+.login-bar { padding: 0.8vmin 1.2vmin; font-weight: 700; font-size: clamp(12px, 1.8vmin, 20px); color: #fff; background: linear-gradient(90deg, var(--g-titulo-a), var(--g-titulo-b)); }
+.login-body { display: flex; gap: 2.4vmin; padding: 3vmin; align-items: center; }
+.login-sello {
+  flex: none;
+  width: 12vmin;
+  height: 12vmin;
+  image-rendering: pixelated;
+}
+.login-form { flex: 1; display: flex; flex-direction: column; gap: 1.6vmin; font-size: clamp(12px, 1.8vmin, 20px); }
+.login-form p { margin: 0; }
+.login-form label { display: flex; align-items: center; gap: 1vmin; }
+.login-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6vmin 0.8vmin;
+  font: inherit;
+  background: #fff;
+  border: none;
+  box-shadow: inset 1px 1px 0 var(--g-gris-lo), inset 2px 2px 0 #000, inset -1px -1px 0 #fff;
+  outline: none;
+}
+.login-form .g-btn { align-self: flex-end; }
+.intro-start { color: var(--g-acido); }
+
+/* ---------- Pausa ---------- */
+#pausa-btn {
+  position: fixed;
+  top: 0.8vmin;
+  right: 0.8vmin;
+  z-index: 30000;
+  width: 4.2vmin;
+  height: 4.2vmin;
+  min-width: 26px;
+  min-height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font: 900 clamp(11px, 1.8vmin, 20px)/1 var(--g-chrome-font);
+  color: #000;
+  background: var(--g-gris);
+  border: none;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #fff, inset -3px -3px 0 var(--g-gris-lo);
+  cursor: default;
+}
+#pausa-btn[hidden] { display: none; }
+#pausa {
+  position: fixed;
+  inset: 0;
+  z-index: 29999;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 7, 13, 0.72);
+  cursor: default;
+}
+#pausa[hidden] { display: none; }
+#pausa * { cursor: default; }
+#pausa .login { text-align: center; }
+#pausa h1 { margin: 0 0 2vmin; font: 900 clamp(32px, 8vmin, 90px)/1 Impact, "Arial Black", sans-serif; letter-spacing: 0.15em; color: var(--g-titulo-b); }
+#pausa p { margin: 0 0 2.5vmin; font-size: clamp(11px, 1.6vmin, 18px); }
+
+/* ---------- Mapa: lectura a pantalla completa ---------- */
+.win.mp-lectura .titlebar { display: none; }
+
+/* ---------- Pantallas finales ---------- */
+#final { z-index: 15000; }
+#final .f-negro { font: 700 clamp(18px, 2.6vw, 36px)/1.5 var(--g-pixel-font); color: #f3ffe6; max-width: 60ch; }
+#final .f-btn { color: #000; background: var(--g-gris); border: none; box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #fff, inset -4px -4px 0 var(--g-gris-lo); font-family: var(--g-chrome-font); font-weight: 700; }
+#final .f-btn:hover { background: #d6d0dc; }
+#final.creditos { padding: 0; overflow: hidden; justify-content: flex-start; }
+.cr-fondo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; filter: saturate(1.3) contrast(1.1); }
+.cr-fondo-anim {
+  position: absolute;
+  inset: -70%;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(217, 37, 154, 0.5), transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(157, 255, 58, 0.35), transparent 45%),
+    repeating-conic-gradient(from 0deg, #2b0638 0 10deg, #0a070d 10deg 20deg);
+  animation: cr-gira 30s linear infinite;
+  opacity: 0.8;
+}
+@keyframes cr-gira { to { transform: rotate(360deg) scale(1.2); } }
+.cr-rodillo {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: min(90vw, 110vmin);
+  transform: translateX(-50%);
+  text-align: center;
+  font-family: Impact, "Bangers", "Arial Black", sans-serif;
+  color: #fff;
+  letter-spacing: 0.04em;
+  -webkit-text-stroke: 0.04em #000;
+  text-shadow: 0.08em 0.08em 0 #000, 0.12em 0.12em 0 var(--g-titulo-b);
+}
+.cr-rodillo h1 { margin: 0 0 6vmin; font-size: clamp(42px, 11vmin, 130px); color: var(--g-amarillo); transform: rotate(-3deg) skewX(-6deg); }
+.cr-rodillo h2 { margin: 0 0 3vmin; font-size: clamp(22px, 4.5vmin, 54px); }
+.cr-rodillo .cr-gracias { margin-bottom: 8vmin; color: var(--g-acido); }
+.cr-fila { margin: 0 0 5vmin; transform: skewX(-6deg); }
+.cr-fila dt { font-size: clamp(16px, 3vmin, 34px); color: var(--g-magenta); }
+.cr-fila dd { margin: 0.6vmin 0 0; font-size: clamp(22px, 4.6vmin, 56px); }
+.cr-jugador { margin-top: 10vmin; font-size: clamp(18px, 3.4vmin, 40px); color: var(--g-acido); }
+
+/* lectura de una ficha del mapa: sin barra de tareas, el mapa ocupa toda la pantalla */
+#os.lectura #taskbar { display: none; }
+#os.lectura #windows, #os.lectura #desktop { bottom: 0; }
+
+/* los botones ocultos de la barra de título (ventanas de minijuego) no se muestran */
+.tb[hidden] { display: none !important; }
+/* el botón de pausa vive arriba a la derecha: las ventanas maximizadas le dejan sitio */
+.win.maximized .tbtns { margin-right: max(5vmin, 34px); }

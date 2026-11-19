@@ -11,7 +11,7 @@ window.Game = window.Game || {};
 
 (function () {
   const G = Game.guion;
-  const { pensamiento, instruccion, zoomTo, glitch, shake } = Game.escena;
+  const { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, perder } = Game.escena;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const waitFor = (pred, every = 200) => new Promise((r) => {
     (function check() { if (pred()) r(); else setTimeout(check, every); })();
@@ -21,21 +21,41 @@ window.Game = window.Game || {};
   const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[¿?¡!.,]/g, ' ');
 
   // ---------- INICIO ----------
-  // Los navegadores no dejan sonar audio hasta el primer clic/tecla, así que la intro empieza
-  // con un clic. Desde ese momento cuentan los 4 segundos del guion.
+  // Pantalla de inicio: el jugador escribe su nombre de usuario (lo que quiera). Ese clic/tecla
+  // también desbloquea el audio del navegador.
+  function sello() {
+    // Sello pixel art: un ojo dentro de un triángulo con aureola (maquinaria divina).
+    const M = [
+      '......XXXXXX......', '....XX......XX....', '...X....YY....X...', '..X....YYYY....X..',
+      '.......YYYYYY.....', '......YY.MM.YY....', '.....YY.MMMM.YY...', '....YY..MOOM..YY..',
+      '...YY...MMMM...YY.', '..YY.....MM.....YY', '.YYYYYYYYYYYYYYYYY', '..................',
+    ];
+    const C = { X: '#e3d34a', Y: '#2b0638', M: '#8c1f74', O: '#9dff3a' };
+    let r = '';
+    M.forEach((row, y) => [...row].forEach((ch, x) => { if (C[ch]) r += `<rect x="${x}" y="${y + 3}" width="1" height="1" fill="${C[ch]}"/>`; }));
+    return `<svg class="login-sello" viewBox="0 0 18 18" shape-rendering="crispEdges">${r}</svg>`;
+  }
   function waitForStart() {
+    const L = G.login;
     return new Promise((resolve) => {
       intro.hidden = false;
       intro.classList.remove('fade');
-      intro.innerHTML = '<div class="intro-start">[ clic para empezar ]</div>';
-      const go = () => {
-        window.removeEventListener('mousedown', go, true);
-        window.removeEventListener('keydown', go, true);
+      intro.innerHTML =
+        `<form class="login" autocomplete="off"><div class="login-bar">${L.titulo}</div>` +
+        `<div class="login-body">${sello()}<div class="login-form"><p>${L.texto}</p>` +
+        `<label>${L.usuario}<input type="text" maxlength="18" spellcheck="false"></label>` +
+        `<button class="g-btn" type="submit">${L.boton}</button></div></div></form>`;
+      const form = intro.querySelector('form');
+      const input = form.querySelector('input');
+      setTimeout(() => input.focus(), 50);
+      intro.addEventListener('mousedown', () => Game.sound.unlock());
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
         Game.sound.unlock();
+        Game.jugador.nombre = input.value.trim() || 'Anónimo';
+        Game.sound.message(true);
         resolve();
-      };
-      window.addEventListener('mousedown', go, true);
-      window.addEventListener('keydown', go, true);
+      });
     });
   }
 
@@ -47,24 +67,53 @@ window.Game = window.Game || {};
     }
   }
 
+  // La primera leyenda se escribe y se lee en voz en off; queda en pantalla al menos 10 s.
   async function runIntro() {
     intro.innerHTML = '<div class="intro-text"><p></p><p></p></div>';
     const [p1, p2] = intro.querySelectorAll('p');
-    await wait(4000);
-    await typewriter(p1, G.intro[0]);
-    await wait(2200);
-    await typewriter(p2, G.intro[1]);
-    await wait(3200);
-    intro.classList.add('fade');            // la pantalla real se vuelve visible
-    Game.atencion.show();                   // con la barra de atención al 100
+    await wait(2500);
+    const voz = Game.voz.say(G.intro.join('. '), { titulo: 'AÑO 2040' });
+    await typewriter(p1, G.intro[0], 40);
+    await wait(1200);
+    await typewriter(p2, G.intro[1], 40);
+    await Promise.all([voz, wait(10000)]);
+    intro.classList.add('fade');            // la pantalla de la computadora se vuelve visible
     await wait(1600);
     intro.hidden = true;
   }
 
+  // ---------- Pausa ----------
+  // Botón arriba a la derecha (o Esc). Congela minijuegos, temporizadores, música y voz.
+  const pausaBtn = document.createElement('button');
+  pausaBtn.id = 'pausa-btn';
+  pausaBtn.title = 'Pausa (Esc)';
+  pausaBtn.textContent = '❚❚';
+  pausaBtn.hidden = true;
+  document.body.appendChild(pausaBtn);
+  const pausaEl = document.createElement('div');
+  pausaEl.id = 'pausa';
+  pausaEl.hidden = true;
+  pausaEl.innerHTML =
+    `<div class="login"><div class="login-bar">${G.pausa.titulo}</div><div class="login-body" style="flex-direction:column">` +
+    `<h1>${G.pausa.titulo}</h1><p>${G.pausa.ayuda}</p><button class="g-btn">${G.pausa.continuar}</button></div></div>`;
+  document.body.appendChild(pausaEl);
+  pausaBtn.addEventListener('mousedown', (e) => e.stopPropagation(), true);
+  pausaBtn.addEventListener('click', () => Game.pausa.toggle());
+  pausaEl.querySelector('button').addEventListener('click', () => Game.pausa.set(false));
+  pausaEl.addEventListener('mousedown', (e) => e.stopPropagation());
+  Game.pausa.on((on) => { pausaEl.hidden = !on; pausaBtn.textContent = on ? '▶' : '❚❚'; });
+  window.addEventListener('keydown', (e) => {
+    if (pausaBtn.hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); Game.pausa.toggle(); return; }
+    if (Game.pausa.activa) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  window.addEventListener('keyup', (e) => { if (Game.pausa.activa) e.stopImmediatePropagation(); }, true);
+  function mostrarPausa() { pausaBtn.hidden = false; }
+
   // ---------- Notificación con glitch (abajo a la derecha) ----------
   // duracion en ms; suave = menos glitches; onClick = qué pasa al pulsarla (el cursor se vuelve mano).
   // Devuelve una promesa que se cumple cuando la notificación desaparece (por tiempo o por clic).
-  function notify(text, { duracion = 5000, suave = false, onClick = null, largo = false } = {}) {
+  function notify(text, { duracion = 7000, suave = false, onClick = null, largo = false } = {}) {
     const n = document.createElement('div');
     n.className = 'notif glitch' + (suave ? ' soft' : '');
     if (largo) n.style.width = '24em';
@@ -138,6 +187,41 @@ window.Game = window.Game || {};
     return new Promise((resolve) => { nextReply = { text, resolve }; drain(); });
   }
 
+  // Conversación del guion. Cuando la IA (o SR) termina y le toca escribir a Tomás, aparece ▶
+  // y Tomás no empieza hasta que el jugador lo pulse.
+  async function dialogo(lineas, chat = Game.luciano) {
+    for (let i = 0; i < lineas.length; i++) {
+      const line = lineas[i];
+      if (line.quien === 'tomas') await chat.typeAsTomas(line.texto);
+      else await chat.say(line.texto);
+      const sig = lineas[i + 1];
+      if (line.quien !== 'tomas' && sig && sig.quien === 'tomas') { await wait(500); await siguiente(); }
+      else await wait(900);
+    }
+  }
+
+  // Lectura de una ficha del mapa: el mapa ocupa toda la pantalla y la cámara se acerca a la ficha
+  // mientras se lee en voz en off. parte: para la Ribera (1 o 2); false = no desbloquear nada.
+  async function leerFicha(sec, texto, titulo, parte) {
+    const W = Game.mapa.open();
+    const osEl = document.getElementById('os');
+    const eraMax = W.max;
+    maximize(W);
+    W.el.classList.add('mp-lectura');
+    osEl.classList.add('lectura');
+    await wait(80);
+    await Game.mapa.focus(sec, 1500, 0.03);
+    if (parte !== false) Game.mapa.unlock(sec, parte);
+    await wait(1300);
+    await Game.voz.say(texto, { titulo });
+    await wait(600);
+    osEl.classList.remove('lectura');
+    W.el.classList.remove('mp-lectura');
+    if (!eraMax) maximize.restore(W);
+    await wait(80);
+    await Game.mapa.focus(sec, 600, 0.1);
+  }
+
   // ---------- Control ----------
   // Tomás (la historia) toma las manos / se las devuelve al jugador.
   function pilot() { Game.input.lock(); setBusy(true); }
@@ -172,6 +256,9 @@ window.Game = window.Game || {};
   function maximize(W) {
     if (W && !W.max) W.el.querySelector('.titlebar').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
   }
+  maximize.restore = (W) => {
+    if (W && W.max) W.el.querySelector('.titlebar').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  };
 
   // Hace parpadear el icono de LucIAno (y su pestaña) hasta que el jugador lo abra.
   async function waitLucianoOpened() {
@@ -244,22 +331,31 @@ window.Game = window.Game || {};
   }
 
   // Abre un minijuego "en otra pestaña" (ventana maximizada sin botones) y espera a que termine.
+  // La atención es la vida: se llena al empezar cada intento y, si se vacía (o el minijuego
+  // termina en derrota), sale GAME OVER → "Perdiste toda tu atención" → score, y se puede reintentar.
   async function minijuego(nombre, titulo) {
-    const W = Game.os.createWindow({
-      key: `mj-${nombre}`, title: titulo, iconHtml: Game.icons.mapa(), w: 60, h: 40,
-      build(body) { body.classList.add('minijuego'); },
-    });
-    W.el.querySelectorAll('.tb-close, .tb-min, .tb-max').forEach((b) => { b.hidden = true; });
-    maximize(W);
-    W.el.querySelector('.titlebar').style.pointerEvents = 'none'; // no se puede restaurar ni mover
-    await glitch(500);
-    const game = Game.minijuegos[nombre](W.body);
-    free({ chat: false });
-    const result = await game.done;
-    pilot();
-    game.destroy();
-    Game.os.closeWindow(W);
-    return result;
+    for (;;) {
+      const W = Game.os.createWindow({
+        key: `mj-${nombre}`, title: titulo, iconHtml: Game.icons.mapa(), w: 60, h: 40,
+        build(body) { body.classList.add('minijuego'); },
+      });
+      W.el.querySelectorAll('.tb-close, .tb-min, .tb-max').forEach((b) => { b.hidden = true; });
+      maximize(W);
+      W.el.querySelector('.titlebar').style.pointerEvents = 'none'; // no se puede restaurar ni mover
+      await glitch(500);
+      Game.atencion.juego(true);
+      const game = Game.minijuegos[nombre](W.body);
+      free({ chat: false });
+      const gano = await Promise.race([game.done, Game.atencion.vacia().then(() => false)]);
+      pilot();
+      game.destroy();
+      Game.atencion.juego(false);
+      Game.os.closeWindow(W);
+      if (gano) return true;
+      // En la maquila suenan varias muertes de Roblox a la vez (los empleados).
+      const otra = await perder({ oofs: nombre === 'maquila' ? 9 : 1 });
+      if (!otra) { reiniciar(); return new Promise(() => {}); }
+    }
   }
 
   // ---------- ACTO 1 ----------
@@ -273,11 +369,7 @@ window.Game = window.Game || {};
     Game.luciano.open();
     await wait(900);
 
-    for (const line of G.acto1) {
-      if (line.quien === 'tomas') await Game.luciano.typeAsTomas(line.texto);
-      else await Game.luciano.say(line.texto);
-      await wait(700);
-    }
+    await dialogo(G.acto1);
 
     // Notificación de SR y, desde aquí, el jugador ya puede chatear.
     await wait(600);
@@ -315,11 +407,7 @@ window.Game = window.Game || {};
     await wait(2500);
     pilot();
     await goToLuciano();
-    for (const line of G.dialogoMapa) {
-      if (line.quien === 'tomas') await Game.luciano.typeAsTomas(line.texto);
-      else await Game.luciano.say(line.texto);
-      await wait(900);
-    }
+    await dialogo(G.dialogoMapa);
 
     // Tomás abre Mensajes y entra al chat de su mamá: mensajes no enviados.
     await wait(600);
@@ -356,27 +444,9 @@ window.Game = window.Game || {};
     Game.luciano.enableInput(onPlayer);
     free();
 
-    // Pensamiento: si el jugador no interactúa, vuelve a salir.
-    let asked = false;
-    let interacted = false;
-    const mark = () => { interacted = true; };
-    window.addEventListener('mousedown', mark);
-    window.addEventListener('keydown', mark);
-    const answered = scriptedReply(A.respuestaLink).then(() => { asked = true; });
-    (async () => {
-      do {
-        interacted = false;
-        await pensamiento(A.pensamiento1, { duracion: 10000 });
-      } while (!asked && !interacted);
-      // si interactuó pero aún no ha preguntado, se lo recordamos de vez en cuando
-      while (!asked) {
-        await wait(12000);
-        if (!asked) await pensamiento(A.pensamiento1, { duracion: 6000 });
-      }
-    })();
-    await answered;
-    window.removeEventListener('mousedown', mark);
-    window.removeEventListener('keydown', mark);
+    // Pensamiento: se queda en la nube hasta que el jugador le escriba a LucIAno.
+    const answered = scriptedReply(A.respuestaLink);
+    await pensamiento(A.pensamiento1, { esperar: answered });
 
     await wait(1200);
     pilot();
@@ -419,11 +489,7 @@ window.Game = window.Game || {};
     await pensamiento(A.pensamiento6);
 
     // Se abre la sección de Acatlán y su texto se lee en voz alta.
-    Game.mapa.open();
-    await Game.mapa.focus('acatlan', 1500);
-    Game.mapa.unlock('acatlan');
-    await wait(1300);
-    await Game.voz.say(G.mapa.secciones.acatlan.voz, { titulo: G.mapa.secciones.acatlan.nombre.toUpperCase() });
+    await leerFicha('acatlan', G.mapa.secciones.acatlan.voz, G.mapa.secciones.acatlan.nombre.toUpperCase());
     await pensamiento(A.pensamiento7);
 
     // El jugador va a preguntarle a LucIAno.
@@ -448,11 +514,7 @@ window.Game = window.Game || {};
     await minijuego('pesca', 'pesca.exe');
 
     // Se des-glitchea la primera parte del texto y se lee.
-    Game.mapa.open();
-    await Game.mapa.focus('ribera', 1200);
-    Game.mapa.unlock('ribera', 1);
-    await wait(1300);
-    await Game.voz.say(S.ribera.voz, { titulo: S.ribera.nombre.toUpperCase() });
+    await leerFicha('ribera', S.ribera.voz, S.ribera.nombre.toUpperCase(), 1);
     await pensamiento(A.pensamiento1);
 
     // Plan México parpadea → serpiente.
@@ -484,13 +546,10 @@ window.Game = window.Game || {};
     await pregunta(A.pregunta1);
     await pregunta(A.pregunta2);
     pilot();
-    for (const line of A.dialogo) {
-      if (line.quien === 'tomas') await Game.luciano.typeAsTomas(line.texto);
-      else await Game.luciano.say(line.texto);
-      await wait(900);
-    }
+    await dialogo(A.dialogo);
     await Game.luciano.say(A.virus, { extraHtml: `<a class="lu-virus">${A.virusLink}</a>` });
-    await wait(1200);
+    await wait(500);
+    await siguiente();
     await Game.luciano.typeAsTomas(A.noElimines);
     await wait(600);
     await Game.luciano.say(A.eliminado);
@@ -524,8 +583,7 @@ window.Game = window.Game || {};
 
     // Chihuahua parpadea; su texto se lee y la cámara recorre los hilos hasta Silicon Valley y Querétaro.
     await mapClick('chihuahua');
-    await Game.mapa.focus('chihuahua', 900, 0.1);
-    await Game.voz.say(S.chihuahua.voz, { titulo: S.chihuahua.nombre.toUpperCase() });
+    await leerFicha('chihuahua', S.chihuahua.voz, S.chihuahua.nombre.toUpperCase(), false);
     Game.mapa.thread('chihuahua', 'rqou3u1uylqk');
     await Game.mapa.focus(['chihuahua', 'silicon'], 1800, 0.04);
     await Game.mapa.focus('silicon', 1500, 0.1);
@@ -544,11 +602,7 @@ window.Game = window.Game || {};
     const S = G.mapa.secciones;
     await mapClick('silicon');
     await minijuego('maquila', 'silicon_valley.exe');
-    Game.mapa.open();
-    await Game.mapa.focus('silicon', 1200, 0.1);
-    Game.mapa.unlock('silicon');
-    await wait(1300);
-    await Game.voz.say(S.silicon.voz, { titulo: S.silicon.nombre.toUpperCase() });
+    await leerFicha('silicon', S.silicon.voz, S.silicon.nombre.toUpperCase());
 
     // Toda la pantalla se glitchea y se abre LucIAno: "Hola Tomás…" seis veces.
     screenEl.classList.add('glitching');
@@ -580,11 +634,7 @@ window.Game = window.Game || {};
     Game.sr.open();
     Game.sr.log(A.srHalcon.replace(/^SR:\s*/, ''));
     await wait(900);
-    for (const line of A.chatSR) {
-      if (line.quien === 'tomas') await Game.sr.typeAsTomas(line.texto);
-      else await Game.sr.say(line.texto);
-      await wait(700);
-    }
+    await dialogo(A.chatSR, Game.sr);
 
     // Glitch: LucIAno se mete. Tomás vuelve al chat de SR.
     await glitch(1200);
@@ -601,9 +651,11 @@ window.Game = window.Game || {};
     const W = Game.luciano.show();
     maximize(W);
     Game.luciano.setEvil(true);
+    // El último monólogo de LucIAno se escucha en voz profunda.
     for (const t of A.revelacion) {
-      await Game.luciano.say(t, { cls: 'flash' });
-      await wait(2500);
+      await Game.luciano.say(t, { cls: 'flash', typing: 600 });
+      await Game.voz.say(t, { titulo: 'LucIAno', estilo: 'profunda' });
+      await wait(600);
     }
 
     // SR pide el código (notificación abajo a la derecha; también queda en el chat de SR).
@@ -619,14 +671,13 @@ window.Game = window.Game || {};
     await glitch(900);
     const L = Game.luciano.show();
     maximize(L);
+    // Ahora con voz de loquendo. Al terminar el monólogo empieza el último minijuego.
     for (const t of A.reto) {
-      await Game.luciano.say(t, { cls: 'flash' });
-      await wait(1500);
+      await Game.luciano.say(t, { cls: 'flash', typing: 500 });
+      await Game.voz.say(t, { titulo: 'LucIAno', estilo: 'loquendo' });
+      await wait(300);
     }
     shake(false);
-    free({ chat: false });
-    await Game.luciano.choose(A.opcionesReto);   // todas las opciones son correctas
-    pilot();
     await wait(900);
     await act4();
   }
@@ -635,12 +686,9 @@ window.Game = window.Game || {};
   async function act4() {
     Game.musica.play('acto4');
     await glitch(600);
-    for (;;) {
-      const gano = await minijuego('pelea', 'ultimo_minijuego.exe');
-      if (gano) break;
-      const otra = await pantallaPierde();
-      if (!otra) return reiniciar();
-    }
+    // Si pierde, minijuego() muestra GAME OVER / "Perdiste toda tu atención" / score y deja reintentar.
+    await minijuego('pelea', 'shitgpt_fighter.exe');
+    await lucianoPierde();
     await ganaPelea();
   }
 
@@ -658,38 +706,27 @@ window.Game = window.Game || {};
     return new Promise((r) => b.addEventListener('click', () => r()));
   }
 
-  async function pantallaPierde() {
+  // Tomás gana: el enemigo ya se desintegró; pantalla en negro con la voz de loquendo.
+  async function lucianoPierde() {
     const A = G.acto4;
-    Game.voz.stop();
+    fin.className = 'cursor-on';
     fin.innerHTML = '';
     fin.hidden = false;
-    fin.classList.add('cursor-on');
-    await wait(3000);
-    fin.innerHTML = `<p class="f-pensamiento">“${A.pierdePensamiento}”</p>`;
-    await wait(3500);
+    await wait(1200);
     const p = document.createElement('p');
-    p.className = 'f-verde';
+    p.className = 'f-negro';
     fin.appendChild(p);
-    await typewriter(p, A.pierdeError);
-    await wait(800);
-    const choice = await Promise.race([
-      boton(A.reintentar, 'der').then(() => true),
-      boton(A.finalizar, 'izq').then(() => false),
-    ]);
+    await Promise.all([typewriter(p, A.ganaLuciano, 30), Game.voz.say(A.ganaLuciano, { titulo: 'LucIAno', estilo: 'loquendo' })]);
+    await wait(2500);
     fin.hidden = true;
     fin.innerHTML = '';
-    return choice;
   }
 
   async function ganaPelea() {
     const A = G.acto4;
     const S = G.mapa.secciones;
     // Se abre el mapa y se vuelve visible la última sección, CÓDIGO.
-    Game.mapa.open();
-    await Game.mapa.focus('codigo', 1500, 0.1);
-    Game.mapa.unlock('codigo');
-    await wait(1400);
-    await Game.voz.say(S.codigo.voz, { titulo: S.codigo.nombre });
+    await leerFicha('codigo', S.codigo.voz, S.codigo.nombre);
     await pensamiento(A.pensamientoCodigo);
 
     // SR pide el código; el jugador lo escribe en el chat de SR.
@@ -739,12 +776,31 @@ window.Game = window.Game || {};
     await creditos();
   }
 
+  // Créditos que suben, con la caída de Edgar de fondo y letra de cómic de acción.
   async function creditos() {
     const C = G.creditos;
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    fin.className = 'cursor-on creditos';
+    fin.hidden = false;
     fin.innerHTML =
-      `<div class="f-creditos"><h1>${C.fin}</h1><h2>${C.agradecimiento}</h2><h2>${C.titulo}</h2><dl>` +
-      C.lista.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('') + '</dl></div>';
-    await wait(2500);
+      '<div class="cr-fondo-anim"></div>' +
+      `<video class="cr-fondo" src="${C.video}" autoplay loop playsinline></video>` +
+      '<div class="cr-rodillo">' +
+      `<h1>${esc(C.fin)}</h1><h2 class="cr-gracias">${esc(C.agradecimiento)}</h2><h2>${esc(C.titulo)}</h2>` +
+      C.lista.map(([a, b]) => `<dl class="cr-fila"><dt>${esc(a)}</dt><dd>${esc(b)}</dd></dl>`).join('') +
+      `<div class="cr-jugador">${esc(Game.jugador.nombre)} — SCORE ${String(Game.score.value).padStart(6, '0')}</div>` +
+      '</div>';
+    const video = fin.querySelector('video');
+    video.addEventListener('error', () => video.remove());
+    video.play().catch(() => {});
+    Game.musica.play('acto1');
+    const rod = fin.querySelector('.cr-rodillo');
+    await wait(50);
+    // El rodillo sube a velocidad constante hasta salir por arriba (y vuelve a empezar).
+    const dist = window.innerHeight + rod.offsetHeight;
+    rod.animate([{ transform: 'translate(-50%, 0)' }, { transform: `translate(-50%, ${-dist}px)` }],
+      { duration: (dist / 70) * 1000, easing: 'linear', iterations: Infinity });
+    await wait(6000);
     await boton('Volver al inicio', 'izq');
     reiniciar();
   }
@@ -759,9 +815,15 @@ window.Game = window.Game || {};
   // ---------- Atajos para probar (?desde=…) ----------
   // Dejan el estado como estaría en ese punto de la historia.
   async function saltar(desde) {
-    Game.atencion.show();
     Game.luciano.enableInput(onPlayer);
     addMapFile();
+    // ?desde=mj-sopa (pesca, serpiente, maquila, pelea): solo ese minijuego, en bucle.
+    if (desde.startsWith('mj-')) {
+      for (;;) {
+        await minijuego(desde.slice(3), `${desde.slice(3)}.exe`);
+        await pensamiento(`Ganaste el minijuego. Score: ${Game.score.value}`);
+      }
+    }
     const orden = ['acto2', 'acto3', 'borrado', 'maquila', 'pelea', 'codigo'];
     const k = orden.indexOf(desde);
     if (k >= 1) Game.mapa.unlock('acatlan');
@@ -777,6 +839,7 @@ window.Game = window.Game || {};
     }
     if (desde === 'maquila') { Game.musica.play('acto3'); return maquila(); }
     if (desde === 'pelea') return act4();
+    if (desde === 'creditos') return creditos();
     if (desde === 'codigo') { Game.musica.play('acto4'); return ganaPelea(); }
     return act1();
   }
@@ -785,10 +848,18 @@ window.Game = window.Game || {};
     const q = new URLSearchParams(location.search);
     if (q.get('desde') === 'nada') { intro.hidden = true; return; } // escritorio libre, sin historia
     Game.input.lock();
+    // Los atajos de prueba (?desde=…) entran directo, sin pantalla de inicio.
+    if (q.has('desde')) {
+      Game.jugador.nombre = q.get('usuario') || 'PRUEBA';
+      intro.hidden = true;
+      mostrarPausa();
+      Game.sound.unlock();
+      return saltar(q.get('desde'));
+    }
     await waitForStart();
-    if (q.has('sin-intro') || q.has('desde')) { intro.hidden = true; Game.atencion.show(); }
+    mostrarPausa();
+    if (q.has('sin-intro')) intro.hidden = true;
     else await runIntro();
-    if (q.has('desde')) return saltar(q.get('desde'));
     await act1();
     await act2();
   }

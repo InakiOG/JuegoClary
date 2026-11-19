@@ -1,0 +1,140 @@
+/* Minijuego final: SHITGPT FIGHTER (js/minijuegos/pelea.js).
+   Todo dentro de .mjp-stage mide en "píxeles internos": 1em = 1 píxel del lienzo de 384×216. */
+
+.mjp-root { position: absolute; inset: 0; overflow: hidden; background: #000; user-select: none; -webkit-user-select: none; }
+.mjp-stage {
+  position: absolute; left: 0; top: 0; overflow: hidden;
+  font-family: "Lucida Console", "Courier New", monospace; color: #e8e4ee;
+}
+.mjp-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.mjp-hud { position: absolute; inset: 0; pointer-events: none; }
+.mjp-stage [hidden] { display: none !important; }
+
+/* ---------- Barras de vida ---------- */
+.mjp-side { position: absolute; top: 7em; width: 148em; }
+.mjp-side.l { left: 10em; }
+.mjp-side.r { right: 10em; text-align: right; }
+.mjp-name {
+  font-size: 7em; font-weight: 900; line-height: 1; letter-spacing: 0.1em; white-space: nowrap;
+  color: #9dff3a; text-shadow: 0.14em 0.14em 0 #000, -0.07em 0 0 #000, 0 -0.07em 0 #000;
+}
+.mjp-side.r .mjp-name { color: #ff4fbf; }
+.mjp-bar {
+  position: relative; height: 8em; margin-top: 2.5em; background: #07040b; overflow: hidden;
+  box-shadow: 0 0 0 1em #000, 0 0 0 2em #6c6575, 0 0 0 3em #000;
+}
+.mjp-bar b, .mjp-bar i { position: absolute; top: 0; bottom: 0; left: 0; display: block; }
+.mjp-side.r .mjp-bar b, .mjp-side.r .mjp-bar i { left: auto; right: 0; }
+.mjp-bar i { background: #e3d34a; }
+.mjp-bar b { background: repeating-linear-gradient(90deg, #9dff3a 0 5em, #4f9a12 5em 6em); box-shadow: inset 0 2em 0 rgba(255, 255, 255, 0.28), inset 0 -2em 0 rgba(0, 0, 0, 0.25); }
+.mjp-side.r .mjp-bar b { background: repeating-linear-gradient(270deg, #d9259a 0 5em, #6e0f4c 5em 6em); }
+.mjp-side.l.baja .mjp-bar b { background: repeating-linear-gradient(90deg, #ff4a6e 0 5em, #8c1236 5em 6em); animation: mjp-pulso 0.5s steps(2) infinite; }
+@keyframes mjp-pulso { 50% { opacity: 0.55; } }
+
+/* Nivel (centro, estilo Windows 3.1) */
+.mjp-lvl {
+  position: absolute; top: 15em; left: 50%; transform: translateX(-50%);
+  padding: 1.5em 4em; background: #b9b4bf; color: #0a070d; white-space: nowrap;
+  box-shadow: inset 1em 1em 0 #f2eef7, inset -1em -1em 0 #6c6575, 0 0 0 1em #000;
+}
+.mjp-lvl span { font-size: 6em; font-weight: 900; letter-spacing: 0.08em; }
+.mjp-lvl.boss { background: #2b0638; color: #e3d34a; box-shadow: inset 1em 1em 0 #8c1f74, inset -1em -1em 0 #12030f, 0 0 0 1em #000; }
+
+/* ---------- Ranuras de poder y pata del mameitor ---------- */
+.mjp-slots { position: absolute; left: 12em; top: 36em; display: flex; flex-direction: column; gap: 9em; }
+.mjp-slot {
+  position: relative; width: 24em; height: 24em; background: #1b1024;
+  box-shadow: inset 1em 1em 0 #4a3557, inset -1em -1em 0 #05030a, 0 0 0 1em #000;
+}
+.mjp-slot canvas { position: absolute; left: 4em; top: 4em; width: 16em; height: 16em; image-rendering: pixelated; }
+.mjp-slot.vacio canvas { opacity: 0.3; filter: grayscale(1); }
+.mjp-key {
+  position: absolute; left: -4em; top: -4em; z-index: 2; min-width: 7em; padding: 0.6em 1.2em; box-sizing: border-box;
+  background: #b9b4bf; color: #0a070d; text-align: center; line-height: 1;
+  box-shadow: inset 0.8em 0.8em 0 #f2eef7, inset -0.8em -0.8em 0 #6c6575, 0 0 0 0.8em #000;
+}
+.mjp-key span { font-size: 5em; font-weight: 900; }
+.mjp-count { position: absolute; right: 2em; bottom: 1em; z-index: 2; line-height: 1; }
+.mjp-count span { font-size: 6em; font-weight: 900; color: #9dff3a; text-shadow: 0.15em 0.15em 0 #000; }
+.mjp-cd { position: absolute; left: 1em; right: 1em; bottom: 1em; height: 0; background: rgba(8, 5, 12, 0.78); z-index: 1; }
+.mjp-secs { position: absolute; left: 0; right: 0; top: 8em; z-index: 2; text-align: center; line-height: 1; }
+.mjp-secs span { font-size: 8em; font-weight: 900; color: #fff; text-shadow: 0.12em 0.12em 0 #000, -0.06em 0 0 #000; }
+.mjp-lab { position: absolute; left: 30em; top: 9em; white-space: nowrap; line-height: 1; }
+.mjp-lab span { font-size: 4.2em; font-weight: 700; color: #b9b4bf; letter-spacing: 0.04em; text-shadow: 0.2em 0.2em 0 #000; }
+.mjp-slot.listo { background: #2a0a24; box-shadow: inset 1em 1em 0 #d9259a, inset -1em -1em 0 #4a0a36, 0 0 0 1em #000, 0 0 6em 1em rgba(217, 37, 154, 0.7); animation: mjp-listo 0.6s steps(2) infinite; }
+.mjp-slot.listo .mjp-lab span { color: #ff4fbf; }
+@keyframes mjp-listo { 50% { box-shadow: inset 1em 1em 0 #e3d34a, inset -1em -1em 0 #4a0a36, 0 0 0 1em #000, 0 0 9em 2em rgba(227, 211, 74, 0.6); } }
+.mjp-slot.flash { animation: mjp-flash 0.25s steps(2) 2; }
+@keyframes mjp-flash { 50% { background: #9dff3a; } }
+
+/* ---------- Textos grandes ---------- */
+.mjp-banner {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  font-size: 34em; font-weight: 900; font-style: italic; line-height: 1; white-space: nowrap; letter-spacing: 0.04em;
+  color: #e3d34a; -webkit-text-stroke: 0.03em #000;
+  text-shadow: 0.06em 0.06em 0 #000, 0.1em 0.1em 0 #8c1f74, -0.04em 0 0 rgba(42, 255, 208, 0.7);
+  animation: mjp-pop 0.28s steps(4) both;
+}
+.mjp-banner.ko { color: #ff4fbf; font-size: 40em; }
+.mjp-banner.gana { color: #9dff3a; font-size: 40em; text-shadow: 0.06em 0.06em 0 #000, 0.1em 0.1em 0 #2b0638, 0 0 0.3em rgba(157, 255, 58, 0.5); }
+.mjp-banner.pierde { color: #ff4a6e; font-size: 32em; font-style: normal; text-shadow: 0.06em 0.06em 0 #000, 0.09em 0.09em 0 #2b0638; animation: mjp-pop 0.28s steps(4) both, mjp-tiembla 0.18s steps(2) 0.3s infinite; }
+.mjp-banner.grito { font-size: 11em; top: 34%; color: #ff4fbf; text-shadow: 0.08em 0.08em 0 #000, 0.12em 0.12em 0 #e3d34a; }
+.mjp-banner.sale { animation: mjp-sale 0.6s steps(6) both; }
+@keyframes mjp-pop { from { transform: translate(-50%, -50%) scale(2.6) rotate(-4deg); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@keyframes mjp-sale { to { transform: translate(-50%, -50%) scale(1.4); opacity: 0; filter: blur(0.05em); } }
+@keyframes mjp-tiembla { 50% { transform: translate(-50.6%, -49.4%); } }
+
+.mjp-card {
+  position: absolute; left: 0; right: 0; top: 64em; padding: 12em 0 13em; text-align: center;
+  background: linear-gradient(180deg, rgba(43, 6, 56, 0) 0, rgba(43, 6, 56, 0.92) 18%, rgba(10, 7, 13, 0.95) 82%, rgba(10, 7, 13, 0) 100%);
+  animation: mjp-card 0.3s steps(5) both;
+}
+.mjp-card h2 { margin: 0; font-size: 30em; font-weight: 900; font-style: italic; line-height: 1; color: #e3d34a; letter-spacing: 0.06em; text-shadow: 0.07em 0.07em 0 #000, 0.11em 0.11em 0 #8c1f74; }
+.mjp-card.boss h2 { color: #ff4a6e; text-shadow: 0.07em 0.07em 0 #000, -0.05em 0 0 rgba(42, 255, 208, 0.8), 0.05em 0 0 rgba(255, 42, 138, 0.8); }
+.mjp-card p { margin: 0.9em 0 0; font-size: 7.5em; color: #e8e4ee; letter-spacing: 0.1em; }
+@keyframes mjp-card { from { clip-path: inset(50% 0 50% 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* ---------- Avisos ---------- */
+.mjp-tip {
+  position: absolute; left: 50%; top: 34em; transform: translateX(-50%); max-width: 236em; box-sizing: border-box;
+  padding: 2em 5em; background: rgba(10, 7, 13, 0.9); text-align: center;
+  box-shadow: 0 0 0 1em #000, 0 0 0 2em #9dff3a;
+}
+.mjp-tip span { font-size: 5.6em; line-height: 1.4; color: #dff5c8; }
+
+.mjp-glitch { position: absolute; transform: translateX(-50%); white-space: nowrap; line-height: 1; }
+.mjp-glitch span {
+  display: inline-block; font-size: 9em; font-weight: 900; letter-spacing: 0.12em; color: #fff;
+  text-shadow: 0.12em 0 0 #ff2a6a, -0.12em 0 0 #2affd0, 0 0.1em 0 #000;
+  animation: mjp-glitch-t 0.12s steps(2) infinite;
+}
+@keyframes mjp-glitch-t { 50% { transform: translateX(6%) skewX(-12deg); text-shadow: -0.14em 0 0 #ff2a6a, 0.14em 0 0 #2affd0; } }
+
+.mjp-pop { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; line-height: 1; animation: mjp-pop-up 0.9s linear both; }
+.mjp-pop span { font-size: 6em; font-weight: 900; color: #e3d34a; text-shadow: 0.15em 0.15em 0 #000; }
+.mjp-pop.bloq span { color: #b9b4bf; font-size: 5em; }
+.mjp-pop.verde span { color: #9dff3a; }
+.mjp-pop.rojo span { color: #ff4a6e; }
+@keyframes mjp-pop-up { 0% { transform: translate(-50%, -100%) translateY(3em); opacity: 0; } 15% { transform: translate(-50%, -100%); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-50%, -100%) translateY(-12em); opacity: 0; } }
+
+/* ---------- Pantalla inicial (ventana Win 3.1) ---------- */
+.mjp-intro { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5, 3, 8, 0.72); }
+.mjp-win { width: 236em; background: #b9b4bf; box-shadow: inset 1em 1em 0 #f2eef7, inset -1em -1em 0 #6c6575, 0 0 0 1em #000, 4em 4em 0 1em rgba(0, 0, 0, 0.6); padding: 2em; }
+.mjp-tb { display: flex; align-items: center; justify-content: space-between; height: 11em; padding: 0 3em; background: linear-gradient(90deg, #2b0638, #8c1f74); color: #fff; }
+.mjp-tb span { font-size: 5.5em; font-weight: 700; font-family: Tahoma, "MS Sans Serif", Verdana, sans-serif; letter-spacing: 0.04em; }
+.mjp-tb i { width: 7em; height: 6em; background: #b9b4bf; box-shadow: inset 0.8em 0.8em 0 #f2eef7, inset -0.8em -0.8em 0 #6c6575; }
+.mjp-wbody { margin-top: 2em; padding: 7em 8em 8em; background: #0a070d; text-align: center; box-shadow: inset 1em 1em 0 #6c6575, inset -1em -1em 0 #f2eef7; }
+.mjp-wbody h1 {
+  margin: 0; font-size: 22em; font-weight: 900; font-style: italic; line-height: 1; letter-spacing: 0.04em; color: #9dff3a;
+  text-shadow: 0.07em 0.07em 0 #2b0638, 0.11em 0.11em 0 #d9259a, -0.04em 0 0 rgba(42, 255, 208, 0.6);
+}
+.mjp-cont { margin: 3em 0 0; font-size: 6em; color: #e3d34a; }
+.mjp-keys { list-style: none; margin: 7em 0 0; padding: 0; text-align: left; display: inline-block; }
+.mjp-keys li { font-size: 5.6em; line-height: 1.75; color: #dff5c8; }
+.mjp-keys kbd {
+  display: inline-block; min-width: 1.5em; padding: 0 0.35em; margin-right: 0.3em; text-align: center; font: inherit; font-weight: 900;
+  background: #b9b4bf; color: #0a070d; line-height: 1.3;
+  box-shadow: inset 0.14em 0.14em 0 #f2eef7, inset -0.14em -0.14em 0 #6c6575, 0 0 0 0.14em #000;
+}
+.mjp-cta { margin-top: 1.2em; font-size: 6.4em; font-weight: 900; color: #ff4fbf; animation: mjp-blink 1s steps(2, start) infinite; }
+@keyframes mjp-blink { to { visibility: hidden; } }

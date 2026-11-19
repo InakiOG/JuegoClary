@@ -1,7 +1,7 @@
 # JuegoClary
 
 Juego de navegador en JavaScript puro (HTML + CSS + JS, sin compilación ni servicios externos).
-El jugador está sentado frente a un ordenador: ve el monitor, el teclado, el ratón y sus propias manos.
+El jugador ve la pantalla completa de una computadora vieja (sin habitación, manos ni escritorio).
 
 ## Cómo ejecutarlo
 
@@ -18,7 +18,16 @@ Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el cód
 
 **Personajes:** Tomás (14 años), su mamá, su papá Eduardo, la IA LucIAno y la Sociedad Revolucionaria (SR). El juego transcurre el **22 de noviembre de 2040**. La mamá es Jocelyn Sánchez Munoz.
 
-**INICIO:** "clic para empezar" (los navegadores no dejan sonar audio sin un clic); la pantalla real queda oscurecida y, a los 4 segundos, aparece el texto en verde neón. Luego la pantalla se aclara y aparece arriba la **barra de atención** al 100 %. El calendario del ordenador marca el **22 de noviembre de 2040**.
+**INICIO:** pantalla de inicio que pide el **nombre de usuario** (el jugador escribe lo que quiera; sale en el score). Luego la primera leyenda se escribe en verde neón y se lee en voz en off (queda al menos 10 s). El calendario del ordenador marca el **22 de noviembre de 2040**.
+
+**Reglas generales (correcciones):**
+- **Pausa:** botón arriba a la derecha o `Esc` (congela minijuegos, temporizadores, música y voz).
+- **Barra de atención = vida.** Solo se ve en los minijuegos (fuera de ellos aparece un momento cuando una respuesta a LucIAno la baja). Se llena al empezar cada minijuego; con poca atención suena la muerte de Roblox en repetición. Si se vacía (o el minijuego se pierde): **GAME OVER.** con música de arcade → "Perdiste toda tu atención" (voz de loquendo) → **score** con el nombre de usuario → "Volver a intentar el minijuego" / "Finalizar juego".
+- **Pensamientos de Tomás:** nube pixel art abajo; siguen con el botón ▶ (o Enter/Espacio), o se quedan hasta que el jugador haga lo que se pide.
+- **Chats largos:** cuando la IA (o SR) termina y le toca a Tomás, aparece ▶ (salvo al final, cuando LucIAno se vuelve malo).
+- **Groserías:** si el jugador insulta a LucIAno, contesta "no digas eso bro" o el "BOBI BU BU PAUM PAUM…".
+- **Ratón:** cuando la historia controla la computadora el ratón se puede mover (pero no hacer clic).
+- **Mapa:** cuando se lee una ficha, el mapa pasa a pantalla completa y la cámara se acerca a la ficha. "4T" se lee "la cuarta transformación".
 
 **ACTO I** (canción 1): Tomás abre LucIAno y teclea solo; notificación "SR: Capturaron a Eduardo"; el jugador ya puede chatear; mensaje de SR con link (el cursor se vuelve mano); LucIAno lo "fusiona" con el juego y se abre el **mapa** (el tablero "IA en México") y aparece el archivo **MAPA7382** en el escritorio. Tomás pregunta "Q es esto?", revisa Mensajes (tres mensajes a su mamá sin enviar) y llega "Dile la verdad a Tomás.".
 
@@ -26,34 +35,23 @@ Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el cód
 
 **ACTO III** (canción 3): Ribera de Chapala → minijuego de **pesca** (solo vale el pez dorado; los mutantes dan el aviso en rojo) → se des-glitchea la primera parte y se lee. Plan México → **serpiente** con la bandera de EE. UU. que se come los estados → se desbloquea la imagen de la CFE, la cámara sigue el hilo rojo hasta la segunda parte de la Ribera → contraseña **APAGÓN**. LucIAno se abre solo: dos preguntas con opciones (atención a 60 % y 50 %), conversación, "virus" y LucIAno **borra el mapa** (va a la Papelera; la cámara se acerca a la papelera parpadeante y el jugador lo recupera con doble clic). Chihuahua → voz en off y recorrido por los hilos hasta Silicon Valley y Querétaro. Silicon Valley → **maquila** (60 s, botellas de pipí y sed) → voz en off. LucIAno repite "Hola Tomás…" seis veces y lo dice dos veces con voz profunda; chat automático con **SR**; LucIAno se revela (rojo, pantalla completa); SR pide el código; la sección CÓDIGO parpadea; reto de LucIAno con tres opciones (todas valen).
 
-**ACTO IV** (canción 2): **pelea** arcade (flechas y ESPACIO; barra azul claro/verde neón). Si pierde: negro, pensamiento, "ERROR 102…" en verde y botones "Volver a intentar el último minijuego" / "Finalizar juego". Si gana: se ve la sección CÓDIGO (voz en off), "¡Claro!, el código es PTAL", el jugador lo escribe en el chat de SR (SR insiste cada 20 s), final en negro, "Finalizar juego" y **créditos**.
+El monólogo final de LucIAno se escucha en voz profunda y luego en voz de loquendo; al terminar empieza la pelea.
 
-**Voz en off:** síntesis de voz del navegador en español, con subtítulos abajo de la pantalla real (la música baja mientras habla).
-**Música:** `audio/acto1.mp3`, `acto2.mp3` (actos II y IV) y `acto3.mp3`, en bucle.
+**ACTO IV**: **ShitGPT Fighter** de tres niveles (ver `js/minijuegos/pelea.js`). Si pierde: "PERDISTE lol" y la secuencia de GAME OVER. Si gana: "GANASTE", el enemigo se desintegra y en negro LucIAno dice "Ta bueno, me ganaste…" (loquendo). Luego la sección CÓDIGO, "¡Claro!, el código es PTAL", el jugador lo escribe en el chat de SR, final en negro, "Finalizar juego" y **créditos** que suben con letra de cómic y la caída de Edgar de fondo (`video/caida_edgar.mp4`; si no está, un fondo animado).
+
+**Apps extra:** **Videos** (canal "DVD" con el logo que rebota, y videos locales de `video/` a x3) y **FAINT** (paint con varias brochas).
+
+**Voz en off:** síntesis de voz del navegador en español, con subtítulos (la música baja mientras habla). Estilos: `narrador` (robótica con glitches, para la intro y el mapa), `loquendo` y `profunda` (`Game.voz.say(texto, { estilo })`). El acento yucateco no se puede lograr con la voz del navegador: haría falta grabar los audios.
+**Música:** las tres canciones (`audio/acto1.mp3`, `acto2.mp3`, `acto3.mp3`) suenan en bucle una tras otra; cada acto empieza en la suya.
 **Mapa:** tablero de Fernando Calderón (imágenes en `img/mapa/`, posiciones e hilos del tablero original). Se mueve arrastrando y con la rueda. La sección **CÓDIGO** no estaba en el tablero: es provisional (acróstico P-T-A-L en `guion.js`).
 
-Para probar: `?sin-intro` salta la intro; `?desde=acto2` (también `acto3`, `borrado`, `maquila`, `pelea`, `codigo`) empieza en ese punto; `?desde=nada` deja el escritorio libre sin historia.
+Para probar: `?sin-intro` salta la intro; `?desde=acto2` (también `acto3`, `borrado`, `maquila`, `pelea`, `codigo`, `creditos`) empieza en ese punto; `?desde=mj-sopa` (o `mj-pesca`, `mj-serpiente`, `mj-maquila`, `mj-pelea`) abre solo ese minijuego en bucle; `?desde=nada` deja el escritorio libre sin historia. Con `?desde=` se puede pasar `&usuario=Nombre`.
 
-## Dirección de arte: maquinaria divina
+## Dirección de arte: goth divine machinery
 
-Tecnología vieja y reparada mezclada con escultura sagrada, con un aire cyberpunk de anime de finales de los 90.
+Estética tipo Windows 3.1/98 con paleta goth ácida (negros y morados profundos, magenta, verde ácido, amarillo enfermo, poco saturados), referencias a Habbo y Evangelion. Pantalla con textura de CRT (rejilla RGB y líneas de barrido), fondo de escritorio glitcheado (`img/fondo_escritorio.jpg`), ventanas grises biseladas con barra de título morado-magenta e iconos pixel art de 32×32 en paleta VGA. Los estilos están en `css/goth.css` (va al final y sobrescribe a los demás).
 
-- **Habitación de día**: pared blanca percudida (amarillenta, con manchas, chorretones y grietas oscuras), escritorio de madera vieja, cables gruesos colgando del techo y amontonados en el escritorio, algunos metiéndose en las grietas.
-- **Estampa de una santa** colgada en la pared, a la izquierda del monitor: velo, aureola y manos juntas, pero **sin rostro** (un óvalo liso). Cuelga de un cable, tiene el cristal agrietado y una lucecita roja de vela debajo.
-- **Luz**: entra un poco de sol por una ventana con persiana fuera de cuadro, a la derecha: franjas de luz cálida sobre la pared izquierda y la estampa, rayos tenues en el aire y un reflejo en el cristal del monitor. La pantalla añade un brillo cian suave. Sombras de trama roja (puntos) en las esquinas.
-- **Monitor CRT** gris y rozado, con cinta adhesiva y una pieza de repuesto; cristal abombado (esquinas curvas, viñeta y reflejo), líneas de barrido, una banda de luz que baja y un parpadeo ocasional que también oscurece la habitación. La curvatura es un efecto visual: la imagen no se deforma, así los clics caen donde apuntas.
-- **Teclado** gris apagado con teclas de repuesto que no combinan, un trozo de cinta y cuatro teclas que faltan (3, J, F7 y punto: se ve el interruptor, que se hunde al pulsar); el cable del ratón sigue al ratón y se pierde detrás del monitor.
-- **Sistema operativo** de fósforo: fondo negro con grano, texto verde-cian con brillo, letra monoespaciada, ventanas cuadradas con bordes finos.
-
-## Qué hay por ahora (escena base)
-
-- **Monitor CRT** centrado, en proporción 4:3, que escala con la ventana.
-- **Cursor virtual** dentro de la pantalla: el cursor real se oculta y el del juego sigue al ratón (se queda en el borde si el ratón sale de la pantalla). Al cargar, el cursor aparece centrado hasta que mueves el ratón.
-- **Escritorio** en la franja inferior con teclado, alfombrilla, ratón y las dos manos. El teclado se coloca justo debajo de la parte del escritorio que tapa el monitor, así nunca queda oculto.
-- **Ratón real → ratón del juego**: al mover el ratón, el ratón del escritorio y la mano derecha se desplazan en proporción. Los clics iluminan el botón correspondiente y el dedo se flexiona.
-- **Teclado real → teclado del juego**: cada tecla pulsada se hunde e ilumina. La mano izquierda se mueve para poner el dedo correcto sobre la tecla (mecanografía clásica); con las teclas de la derecha, la mano derecha deja el ratón, pulsa y vuelve al ratón al poco rato o en cuanto mueves el ratón.
-- Teclado completo sin bloque numérico: **fila de funciones** (Esc y F1–F12 en grupos de cuatro, teclas más bajas), bloque principal y, a la derecha, **Ins/Inicio/RePág/Supr/Fin/AvPág** y las **flechas en T invertida** (las pulsa la mano derecha). Las teclas F no bloquean la acción del navegador (F5 recarga, F12 abre las herramientas).
-- Distribución de teclado **ISO española** por defecto (Ñ, Ç, Enter alto). Si el navegador lo permite (`navigator.keyboard.getLayoutMap`, Chrome/Edge), las etiquetas se adaptan a la distribución real del usuario.
+La habitación, el teclado y las manos siguen en el código (`room.js`, `keyboard.js`, `hands.js`) porque la historia "teclea" con ellas, pero ya no se muestran.
 
 ## Ordenador del juego (pantalla)
 
@@ -84,12 +82,19 @@ js/mapa.js        Mapa de corcho (contenido del link de SR): secciones, hilos, c
 js/mensajes.js    App de mensajes (chat de la mamá con mensajes no enviados)
 js/sr.js          Chat cifrado con SR
 js/postit.js      Post-it para apuntar
-js/escena.js      Música, voz en off con subtítulos, barra de atención, pensamientos, zoom y sacudidas
-js/minijuegos/    sopa, pesca, serpiente, maquila y pelea (cada uno: Game.minijuegos.x(host) → { done, destroy })
+js/pausa.js       Pausa global (se carga primero: congela tiempo, temporizadores y audio)
+js/escena.js      Jugador y score, música, voz en off, barra de atención/vida, pensamientos, ▶ y pantallas de GAME OVER
+js/apps/          Apps extra: videos.js (Reproductor de Videos) y faint.js (FAINT)
+js/minijuegos/    sopa, pesca, serpiente, maquila y pelea (cada uno: Game.minijuegos.x(host) → { done: Promise<bool>, destroy });
+                  la vida es Game.atencion (danar/curar) y el puntaje Game.score.add
 js/story.js       Toda la historia (intro, actos I–IV, finales y créditos)
 css/story.css     Estilos de la intro, el chat, la notificación y los glitches
-css/actos.css     Estilos del mapa, HUD, opciones, SR, post-it, sopa y pantallas finales
+css/actos.css     Estilos del mapa, HUD, opciones, SR, post-it y pantallas finales
+css/minijuegos/   Estilos de cada minijuego
+css/apps.css      Estilos de Videos y FAINT
+css/goth.css      Estética goth divine machinery (pantalla completa, Windows 9x ácido, nube, GAME OVER, pausa, créditos)
 audio/            Música de cada acto
+video/            Videos locales (caída de Edgar para los créditos y el Reproductor de Videos; ver video/README.txt)
 img/mapa/         Recortes del tablero "IA en México"
 ```
 

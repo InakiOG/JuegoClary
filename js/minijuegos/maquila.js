@@ -1,58 +1,47 @@
-// Minijuego "Silicon Valley": el jugador es el jefe de una maquila húmeda y oxidada.
-// 20 trabajadores teclean sin parar; hay que atender sus necesidades (gota amarilla = baño,
-// gota azul = sed) durante 60 s sin que nadie se desmaye.
+// Minijuego "Silicon Valley" (Juego Pipí): la maquila húmeda y oxidada, con los escritorios
+// acomodados en un laberinto tipo Pac-Man. El jugador (el jefe) se mueve con flechas/WASD:
+// recoge las botellas de pipí de quien levanta la gota amarilla y se las da como "agua" a quien
+// levanta la gota azul. Cada pedido tiene paciencia; si se agota, se pierde atención (la vida).
+// Sobrevivir 60 s = ganar. Las peticiones salen más rápido y más lejos conforme avanza el turno.
 // Contrato: Game.minijuegos.maquila(host) -> { done: Promise<boolean>, destroy() }.
-// done solo se resuelve (con true) al sobrevivir el minuto; al perder se reintenta dentro del juego.
+// done se resuelve con true al sobrevivir el minuto; si la atención llega a 0, el host lo destruye.
 (function () {
   window.Game = window.Game || {};
   Game.minijuegos = Game.minijuegos || {};
 
-  const W = 320, H = 180;          // resolución interna (pixel art)
+  // --- laberinto ---
+  const TS = 16;                   // tamaño de casilla (píxeles internos)
+  const COLS = 24, ROWS = 13;
+  const TOP = 24;                  // franja de pared arriba
+  const W = COLS * TS, H = TOP + ROWS * TS;  // 384 × 232 (resolución interna, pixel art)
+  // Bandas de escritorios (2 filas de alto). 'S-' = puesto de trabajo (2×2 casillas),
+  // '#' = garrafón vacío (1×2), '.' = pasillo. Las filas 0, 3, 6, 9 y 12 son pasillo.
+  const BANDS = [
+    [1, '.S-S-S-.S-S-.#.S-S-S-.S-'],
+    [4, '..S-S-.S-S-S-S-.S-S-.#..'],
+    [7, 'S-.S-S-S-.#.S-S-.S-S-S-.'],
+    [10, '.S-S-.S-S-S-..S-S-S-.S-.'],
+  ];
+
+  // --- reglas ---
   const DURACION = 60;             // segundos del turno
-  const PEE_TIME = 6;              // segundos para atender la gota amarilla
-  const THIRST_TIME = 7;           // segundos para atender la gota azul
-  const SOLO_PIS = 5;              // primeros segundos: solo gotas amarillas
+  const CAPACIDAD = 3;             // botellas que caben en las manos
+  const VEL = 82;                  // píxeles internos por segundo (~5 casillas/s)
+  const ALCANCE = 14;              // distancia (px) del jefe al puesto para atenderlo
+  const DANO_PIS = 10;              // atención perdida si alguien se orina esperando
+  const DANO_SED = 14;             // atención perdida si alguien se desmaya de sed
+  const CURA_DAR = 3, CURA_RECOGER = 1;
 
   const DEFAULTS = {
     titulo: 'SILICON VALLEY',
-    instrucciones: 'Eres el jefe. Mantén a todos trabajando durante 1 minuto. Si alguien necesita ir al baño (gota amarilla), haz clic para darle una botella. Si alguien tiene sed (gota azul), haz clic para darle una botella llena. Nadie se levanta del escritorio.',
-    desmayo: 'Un trabajador se desmayó por deshidratación.',
-    reintentar: '[ clic para volver a intentar ]',
-    gana: 'Turno terminado. Todos siguen despiertos.',
-    inventario: 'Botellas llenas',
-    empezar: '[ clic para empezar ]',
-    sinBotellas: 'No tienes botellas llenas',
+    instrucciones: 'Eres el jefe. Muévete con las flechas o WASD por el laberinto de escritorios. Pasa junto a quien tenga la gota amarilla para recoger su botella de pipí y llévasela a quien tenga la gota azul (sed). Nadie se levanta del escritorio. Aguanta 1 minuto.',
+    empezar: '[ pulsa una flecha para empezar ]',
+    gana: 'Turno terminado. Todos siguen trabajando.',
+    inventario: 'Botellas',
+    puntos: 'Puntos',
+    lleno: 'Ya no te caben más botellas',
+    sinBotellas: 'No traes botellas de pipí',
   };
-
-  const CSS = `
-.mj-maq-root{position:absolute;inset:0;overflow:hidden;background:#0b0a08;user-select:none;-webkit-user-select:none;}
-.mj-maq-stage{position:absolute;left:0;top:0;overflow:hidden;font-family:"Lucida Console",Consolas,monospace;color:#e8e0c8;}
-.mj-maq-canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;image-rendering:crisp-edges;image-rendering:pixelated;}
-.mj-maq-timer{position:absolute;top:0.6%;left:50%;transform:translateX(-50%);font-size:11em;color:#ffdf6b;text-shadow:0 0 .25em #000,.08em .08em 0 #000;pointer-events:none;letter-spacing:.05em;}
-.mj-maq-timer.mj-maq-urge{color:#ff6b5a;}
-.mj-maq-inv{position:absolute;top:2%;left:1.5%;font-size:5.5em;background:rgba(0,0,0,.6);padding:.25em .55em;display:flex;align-items:center;gap:.5em;pointer-events:none;border:1px solid rgba(242,212,58,.35);}
-.mj-maq-bot{position:relative;display:inline-block;width:.55em;height:1.05em;background:#f2d43a;border-radius:.18em .18em .08em .08em;box-shadow:inset -.12em 0 0 rgba(0,0,0,.25);margin-top:.2em;}
-.mj-maq-bot::before{content:"";position:absolute;left:.12em;top:-.3em;width:.31em;height:.3em;background:#d8d8d8;}
-.mj-maq-inv b{color:#f2d43a;font-weight:normal;}
-.mj-maq-inv.mj-maq-pop{border-color:#f2d43a;}
-.mj-maq-hint{position:absolute;top:13%;left:50%;transform:translateX(-50%);font-size:6em;background:rgba(110,10,10,.88);color:#fff;padding:.3em .7em;white-space:nowrap;pointer-events:none;border:1px solid #ff8a7a;}
-.mj-maq-ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(6,6,3,.8);padding:0 9%;box-sizing:border-box;}
-.mj-maq-ov h1{margin:0 0 .5em;font-size:17em;font-weight:bold;color:#c9d86a;letter-spacing:.08em;text-shadow:.07em .07em 0 #3a2a10;}
-.mj-maq-ov p{margin:0 0 1.2em;font-size:6em;line-height:1.55;color:#e8e0c8;}
-.mj-maq-ov .mj-maq-big{font-size:9em;line-height:1.4;color:#ffdf6b;}
-.mj-maq-ov .mj-maq-bad{color:#ff7a6a;}
-.mj-maq-cta{font-size:7em;color:#9fe0a0;animation:mj-maq-blink 1s steps(2,start) infinite;}
-@keyframes mj-maq-blink{to{visibility:hidden;}}
-[class^="mj-maq-"][hidden]{display:none!important;}
-`;
-
-  function injectCSS() {
-    if (document.getElementById('mj-maq-style')) return;
-    const s = document.createElement('style');
-    s.id = 'mj-maq-style';
-    s.textContent = CSS;
-    document.head.appendChild(s);
-  }
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
@@ -73,7 +62,7 @@
   const lerp = (a, b, k) => a + (b - a) * k;
   const rand = (a, b) => a + Math.random() * (b - a);
 
-  // --- sonidos mínimos (Web Audio, contexto perezoso) ---
+  // --- sonidos mínimos (Web Audio, contexto perezoso y compartido) ---
   let actx = null;
   function beep(freq, dur, type, vol, slideTo, delay) {
     try {
@@ -97,6 +86,9 @@
       o.stop(t + dur + 0.03);
     } catch (e) { /* sin audio */ }
   }
+  function oof() {
+    try { if (Game.sound && Game.sound.oof) Game.sound.oof(rand(0.95, 1.35)); } catch (e) { /* */ }
+  }
 
   // --- sprites (mapas de caracteres) ---
   const DROP = [
@@ -117,15 +109,51 @@
     '###',
   ];
   const ZMAP = ['####', '..#.', '.#..', '####'];
+  const PEE_PAL = { '#': '#e6d23a', 'o': '#9a8418', 'h': '#fff6b0' };
+  const SED_PAL = { '#': '#46b4e8', 'o': '#1d5a8a', 'h': '#d8f4ff' };
+  const BOT_PAL = { '#': '#e6d23a', 'h': '#fff2a0', 'c': '#c8c0d0' };
 
-  const SHIRTS = ['#8a3b3b', '#3b5a8a', '#4f7a3a', '#8a7a3a', '#6a3b7a', '#3a7a74', '#9a5a2a', '#5a5a5a', '#a04a6a', '#2f4a6a'];
-  const HAIRS = ['#1a1410', '#3a2414', '#5a3a1a', '#0e0e12', '#7a5a30', '#2a2420', '#8a8a80'];
+  const SHIRTS = ['#7a3048', '#3b4a7a', '#4f6a3a', '#7a6a2e', '#5e3270', '#2e6a66', '#8a4a2a', '#4a4650', '#943c62', '#2a3e5e'];
+  const HAIRS = ['#1a1410', '#3a2414', '#5a3a1a', '#0e0e12', '#7a5a30', '#2a2420', '#8a8a80', '#3a1a3a'];
   const SKINS = ['#c89a72', '#a87452', '#e0b48c', '#8a5a3a', '#d8a880'];
+
+  const DIRS = {
+    up: { dx: 0, dy: -1 }, down: { dx: 0, dy: 1 }, left: { dx: -1, dy: 0 }, right: { dx: 1, dy: 0 },
+  };
+  const KEYMAP = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right',
+  };
 
   Game.minijuegos.maquila = function (host) {
     const T = Object.assign({}, DEFAULTS,
       (Game.guion && Game.guion.minijuegos && Game.guion.minijuegos.maquila) || {});
-    injectCSS();
+
+    // --- mapa de colisiones y puestos ---
+    const solid = [];
+    for (let r = 0; r < ROWS; r++) solid.push(new Array(COLS).fill(false));
+    const workers = [];
+    const coolers = [];
+    for (const [r, row] of BANDS) {
+      for (let c = 0; c < COLS; c++) {
+        const ch = row[c];
+        if (ch === 'S' || ch === '-' || ch === '#') { solid[r][c] = true; solid[r + 1][c] = true; }
+        if (ch === '#') coolers.push({ c, r });
+        if (ch === 'S') {
+          workers.push({
+            c, r, x: c * TS, y: TOP + r * TS,
+            shirt: SHIRTS[(r * 3 + c * 7) % SHIRTS.length],
+            hair: HAIRS[Math.floor(Math.random() * HAIRS.length)],
+            skin: SKINS[Math.floor(Math.random() * SKINS.length)],
+            style: Math.floor(Math.random() * 3),
+            ph: Math.random() * 10,
+            need: null, needT: 0, needMax: 1, warned: false,
+            cool: 0, faint: 0, puddle: 0, fx: null, fxT: 0,
+          });
+        }
+      }
+    }
+    const isFree = (c, r) => c >= 0 && c < COLS && r >= 0 && r < ROWS && !solid[r][c];
 
     // --- DOM ---
     const root = el('div', 'mj-maq-root');
@@ -133,15 +161,21 @@
     const canvas = el('canvas', 'mj-maq-canvas');
     canvas.width = W; canvas.height = H;
     stage.appendChild(canvas);
+
     const timerEl = el('div', 'mj-maq-timer', '1:00');
     const invEl = el('div', 'mj-maq-inv');
-    const invBot = el('span', 'mj-maq-bot');
-    const invTxt = el('span');
-    invEl.appendChild(invBot); invEl.appendChild(invTxt);
-    const hintEl = el('div', 'mj-maq-hint', T.sinBotellas);
+    invEl.appendChild(el('span', 'mj-maq-lbl', T.inventario));
+    const slots = [];
+    for (let i = 0; i < CAPACIDAD; i++) { const s = el('span', 'mj-maq-bot'); invEl.appendChild(s); slots.push(s); }
+    const scoreEl = el('div', 'mj-maq-score');
+    scoreEl.appendChild(el('span', 'mj-maq-lbl', T.puntos));
+    const scoreNum = el('b', '', '0');
+    scoreEl.appendChild(scoreNum);
+    const hintEl = el('div', 'mj-maq-hint');
     hintEl.hidden = true;
     const ov = el('div', 'mj-maq-ov');
-    stage.appendChild(timerEl); stage.appendChild(invEl); stage.appendChild(hintEl); stage.appendChild(ov);
+    stage.appendChild(timerEl); stage.appendChild(invEl); stage.appendChild(scoreEl);
+    stage.appendChild(hintEl); stage.appendChild(ov);
     root.appendChild(stage);
     host.appendChild(root);
 
@@ -150,7 +184,9 @@
 
     function showOverlay(parts) {
       ov.innerHTML = '';
-      for (const p of parts) ov.appendChild(el(p[0], p[1] || '', p[2]));
+      const box = el('div', 'mj-maq-box');
+      for (const p of parts) box.appendChild(el(p[0], p[1] || '', p[2]));
+      ov.appendChild(box);
       ov.hidden = false;
     }
 
@@ -168,6 +204,7 @@
     }
     let ro = null;
     if (window.ResizeObserver) { ro = new ResizeObserver(fit); ro.observe(host); }
+    window.addEventListener('resize', fit);
     fit();
 
     // --- dibujo básico ---
@@ -189,7 +226,7 @@
       }
     }
 
-    // --- fondo estático (pre-renderizado) ---
+    // --- fondo estático (pre-renderizado): pared, suelo, charcos y garrafones ---
     const bg = document.createElement('canvas');
     bg.width = W; bg.height = H;
     (function buildBG() {
@@ -198,112 +235,91 @@
       const pick = (a) => a[Math.floor(rnd() * a.length)];
       const F = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, w | 0, h | 0); };
       // pared
-      F(0, 0, W, 31, '#4a4930');
-      for (let i = 0; i < 90; i++) F(rnd() * W, rnd() * 29, 3 + rnd() * 22, 1 + rnd() * 7, pick(['#3e3e26', '#55533a', '#43402a', '#5c5b3b', '#4a4228']));
-      // ventanuco con barrotes
-      F(58, 9, 28, 13, '#1e2420'); F(59, 10, 26, 11, '#4e5c50');
-      for (let x = 61; x < 85; x += 4) F(x, 10, 1, 11, '#262620');
-      F(212, 10, 22, 11, '#1e2420'); F(213, 11, 20, 9, '#47554a');
-      for (let x = 215; x < 233; x += 4) F(x, 11, 1, 9, '#262620');
-      // manchas de humedad grandes
-      for (let i = 0; i < 8; i++) {
+      F(0, 0, W, TOP - 2, '#403c2c');
+      for (let i = 0; i < 110; i++) F(rnd() * W, rnd() * (TOP - 4), 3 + rnd() * 22, 1 + rnd() * 6, pick(['#36321f', '#4a4632', '#3a3426', '#514c34', '#3e3424', '#3a2c34']));
+      // ventanucos con barrotes
+      for (const wx of [58, 212, 310]) {
+        F(wx, 8, 26, 11, '#1a1e1c'); F(wx + 1, 9, 24, 9, '#3e4c42');
+        for (let x = wx + 3; x < wx + 25; x += 4) F(x, 9, 1, 9, '#22221c');
+      }
+      // manchas de humedad
+      for (let i = 0; i < 10; i++) {
         const x = rnd() * W, w = 10 + rnd() * 30;
-        for (let k = 0; k < 6; k++) F(x + rnd() * w - w / 2, 5 + rnd() * 18, 4 + rnd() * 10, 2 + rnd() * 5, 'rgba(30,34,18,0.35)');
+        for (let k = 0; k < 6; k++) F(x + rnd() * w - w / 2, 5 + rnd() * 13, 4 + rnd() * 10, 2 + rnd() * 4, 'rgba(26,30,16,0.35)');
       }
       // tubería
       F(0, 2, W, 4, '#2c281e'); F(0, 2, W, 1, '#5a4630'); F(0, 5, W, 1, '#1a1812');
       for (let x = 20; x < W; x += 48) F(x, 1, 3, 6, '#3a2c1c');
       // chorretones de óxido
-      for (let i = 0; i < 18; i++) {
-        const x = Math.floor(rnd() * W), len = 6 + Math.floor(rnd() * 22);
+      for (let i = 0; i < 22; i++) {
+        const x = Math.floor(rnd() * W), len = 5 + Math.floor(rnd() * 14);
         for (let y = 0; y < len; y++) F(x + (rnd() < 0.12 ? 1 : 0), 6 + y, 1 + (y < len * 0.4 ? 1 : 0), 1, y < len * 0.5 ? '#7a3e1c' : '#5e3a20');
       }
       // zócalo
-      F(0, 28, W, 3, '#26221a'); F(0, 28, W, 1, '#3a3222');
-      // suelo
-      F(0, 31, W, H - 31, '#37332a');
-      for (let y = 31, row = 0; y < H; y += 12, row++) {
-        F(0, y, W, 1, '#2e2a22');
-        for (let x = (row % 2) * 10; x < W; x += 20) F(x, y, 1, 12, '#2e2a22');
+      F(0, TOP - 3, W, 3, '#221e18'); F(0, TOP - 3, W, 1, '#3a3222');
+      // suelo (las juntas coinciden con las casillas del laberinto)
+      F(0, TOP, W, H - TOP, '#332f28');
+      for (let r = 0; r < ROWS; r++) {
+        const y = TOP + r * TS;
+        F(0, y, W, 1, '#2a2620');
+        for (let x = (r % 2) * 8; x < W; x += TS) F(x, y, 1, TS, '#2a2620');
       }
-      for (let i = 0; i < 70; i++) F(rnd() * W, 32 + rnd() * (H - 32), 2 + rnd() * 14, 1 + rnd() * 4, pick(['#2c2922', '#302c24', '#3d3a30', '#33302a']));
+      for (let i = 0; i < 90; i++) F(rnd() * W, TOP + 1 + rnd() * (H - TOP - 2), 2 + rnd() * 14, 1 + rnd() * 4, pick(['#2a2720', '#2e2a22', '#3a372e', '#312d28', '#30283a']));
       // charcos
-      for (let i = 0; i < 7; i++) {
-        const x = rnd() * W, y = 40 + rnd() * (H - 45), w = 8 + rnd() * 18;
-        F(x, y, w, 3, '#2f3a3a'); F(x + 2, y - 1, w - 4, 1, '#2f3a3a'); F(x + 3, y + 1, w * 0.4, 1, '#48585a');
+      for (let i = 0; i < 9; i++) {
+        const x = rnd() * W, y = TOP + 8 + rnd() * (H - TOP - 12), w = 8 + rnd() * 16;
+        F(x, y, w, 3, '#2a3436'); F(x + 2, y - 1, w - 4, 1, '#2a3436'); F(x + 3, y + 1, w * 0.4, 1, '#44545a');
+      }
+      // garrafones vacíos (obstáculos)
+      for (const k of coolers) {
+        const x = k.c * TS, y = TOP + k.r * TS;
+        F(x + 2, y + 29, 12, 2, 'rgba(0,0,0,0.45)');
+        F(x + 3, y + 14, 10, 16, '#58546a'); F(x + 3, y + 14, 10, 1, '#78748a'); F(x + 11, y + 15, 2, 15, '#3e3a4c');
+        F(x + 5, y + 19, 6, 3, '#26222e'); F(x + 6, y + 20, 1, 1, '#c03a6a'); F(x + 9, y + 20, 1, 1, '#7ad04a');
+        F(x + 4, y + 2, 8, 12, '#3c4a46'); F(x + 5, y + 3, 6, 3, '#506660'); F(x + 5, y + 9, 6, 4, '#4a5a32');
+        F(x + 6, y + 1, 4, 2, '#24302c'); F(x + 5, y + 4, 1, 8, 'rgba(255,255,255,0.15)');
       }
       // viñeta
-      const vg = g.createRadialGradient(W * 0.5, H * 0.35, 40, W * 0.5, H * 0.5, 230);
+      const vg = g.createRadialGradient(W * 0.5, H * 0.4, 50, W * 0.5, H * 0.5, 260);
       vg.addColorStop(0, 'rgba(0,0,0,0)');
-      vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+      vg.addColorStop(1, 'rgba(10,0,14,0.55)');
       g.fillStyle = vg; g.fillRect(0, 0, W, H);
     })();
 
-    // --- trabajadores ---
-    const workers = [];
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 4; c++) {
-        workers.push({
-          x: 30 + c * 56, y: 40 + r * 27,
-          shirt: SHIRTS[(r * 4 + c * 3 + r) % SHIRTS.length],
-          hair: HAIRS[Math.floor(Math.random() * HAIRS.length)],
-          skin: SKINS[Math.floor(Math.random() * SKINS.length)],
-          style: Math.floor(Math.random() * 3),
-          ph: Math.random() * 10,
-          need: null, needT: 0, needMax: 1, warned: false,
-          away: 0, cool: 0, faint: false, fx: null, fxT: 0,
-        });
-      }
-    }
-
-    // --- estado de la partida ---
-    let state = 'intro';       // intro | play | lost | won | over
-    let elapsed = 0, inv = 0, peeTimer = 0, thirstTimer = 0, endT = 0, hintT = 0, popT = 0;
-    let lastSec = -1, lastInv = -1;
-    let clock = 0;             // tiempo para animaciones
+    // --- estado ---
+    let state = 'intro';       // intro | play | won | over
+    let elapsed = 0, inv = 0, score = 0, spawnT = 0.8, endT = 0, hintT = 0;
+    let lastSec = -1, lastInv = -1, lastScore = -1;
+    let clock = 0;
     let lamp = 1, lampTimer = 3, flickT = 0;
     const drips = [];
     let dripTimer = 0.5;
-
-    function resetRound() {
-      elapsed = 0; inv = 0; endT = 0; hintT = 0;
-      peeTimer = 0.8; thirstTimer = 1.2;
-      for (const w of workers) {
-        w.need = null; w.needT = 0; w.away = 0; w.cool = 0; w.faint = false; w.fx = null; w.fxT = 0; w.warned = false;
-      }
-      lastSec = -1; lastInv = -1;
-      hintEl.hidden = true;
-      updateHUD();
-    }
+    const floats = [];
+    // el jefe empieza en el centro del pasillo de en medio
+    const boss = { x: 11 * TS + TS / 2, y: TOP + 6 * TS + TS / 2, face: 'down', walk: 0, moving: false };
+    const held = [];           // direcciones pulsadas (la última manda)
+    const near = new Set();    // puestos al alcance en el cuadro anterior (para avisos)
 
     let resolveDone;
     let settled = false;
     const done = new Promise((res) => { resolveDone = res; });
-    function finish(v) {
-      if (settled) return;
-      settled = true;
-      resolveDone(v);
-    }
+    function finish(v) { if (!settled) { settled = true; resolveDone(v); } }
+
+    const at = () => (Game.atencion || null);
 
     function startRound() {
-      resetRound();
       state = 'play';
       ov.hidden = true;
       beep(440, 0.08, 'square', 0.05, 660);
     }
 
-    function lose() {
-      state = 'lost';
-      endT = 0;
-      beep(320, 0.7, 'sawtooth', 0.06, 50);
-      showOverlay([['p', 'mj-maq-big mj-maq-bad', T.desmayo], ['div', 'mj-maq-cta', T.reintentar]]);
-    }
-
     function win() {
       state = 'won';
       endT = 0;
+      timerEl.classList.remove('mj-maq-urge');
+      for (const w of workers) { w.need = null; }
       [523, 659, 784, 1046].forEach((f, i) => beep(f, 0.14, 'square', 0.05, null, i * 0.11));
-      showOverlay([['p', 'mj-maq-big', T.gana]]);
+      showOverlay([['p', 'mj-maq-big', T.gana], ['p', 'mj-maq-sub', T.puntos + ': ' + score]]);
     }
 
     function updateHUD() {
@@ -316,31 +332,153 @@
       }
       if (inv !== lastInv) {
         lastInv = inv;
-        invTxt.innerHTML = '';
-        invTxt.appendChild(document.createTextNode(T.inventario + ': '));
-        invTxt.appendChild(el('b', '', String(inv)));
+        slots.forEach((s, i) => s.classList.toggle('mj-maq-full', i < inv));
       }
+      if (score !== lastScore) { lastScore = score; scoreNum.textContent = String(score); }
     }
 
-    function counts() {
+    function hint(text) {
+      hintEl.textContent = text;
+      hintEl.hidden = false;
+      hintT = 1.4;
+    }
+
+    function floatText(text, x, y, cls) {
+      const f = el('div', 'mj-maq-float ' + (cls || ''), text);
+      f.style.left = x + 'em';
+      f.style.top = y + 'em';
+      stage.appendChild(f);
+      floats.push({ el: f, t: 0 });
+    }
+
+    // --- distancias por el laberinto (BFS desde la casilla del jefe) ---
+    function bfs() {
+      const d = [];
+      for (let r = 0; r < ROWS; r++) d.push(new Array(COLS).fill(Infinity));
+      const c0 = Math.floor(boss.x / TS), r0 = Math.floor((boss.y - TOP) / TS);
+      if (!isFree(c0, r0)) return d;
+      const q = [[c0, r0]];
+      d[r0][c0] = 0;
+      for (let i = 0; i < q.length; i++) {
+        const [c, r] = q[i];
+        for (const k in DIRS) {
+          const nc = c + DIRS[k].dx, nr = r + DIRS[k].dy;
+          if (isFree(nc, nr) && d[nr][nc] === Infinity) { d[nr][nc] = d[r][c] + 1; q.push([nc, nr]); }
+        }
+      }
+      return d;
+    }
+    function workerDist(w, d) {
+      let best = Infinity;
+      const cells = [[w.c - 1, w.r], [w.c - 1, w.r + 1], [w.c + 2, w.r], [w.c + 2, w.r + 1],
+        [w.c, w.r - 1], [w.c + 1, w.r - 1], [w.c, w.r + 2], [w.c + 1, w.r + 2]];
+      for (const [c, r] of cells) if (isFree(c, r)) best = Math.min(best, d[r][c]);
+      return best;
+    }
+
+    function spawnNeed(p) {
       let pee = 0, thirst = 0;
+      for (const w of workers) { if (w.need === 'pee') pee++; else if (w.need === 'thirst') thirst++; }
+      // Justo: solo hay sed si las botellas en mano (o por recoger) superan a los sedientos.
+      // y nunca más pipí de la que cabe en las manos: si no, el jugador quedaría atascado.
+      const canThirst = elapsed > 4 && inv + pee > thirst;
+      const mustThirst = inv + pee >= CAPACIDAD + thirst;
+      const kind = mustThirst || (canThirst && Math.random() < 0.5) ? 'thirst' : 'pee';
+      const d = bfs();
+      const free = [];
       for (const w of workers) {
-        if (w.need === 'pee') pee++;
-        else if (w.need === 'thirst') thirst++;
+        if (w.need || w.cool > 0 || w.faint > 0) continue;
+        const dist = workerDist(w, d);
+        if (dist < Infinity) free.push({ w, dist });
       }
-      return { pee, thirst };
-    }
-
-    function spawnNeed(kind) {
-      const free = workers.filter((w) => !w.need && w.away <= 0 && !w.faint && w.cool <= 0);
       if (!free.length) return false;
-      const w = free[Math.floor(Math.random() * free.length)];
+      // cada vez más lejos del jefe
+      const minD = lerp(2, 15, p);
+      let cand = free.filter((o) => o.dist >= minD);
+      if (!cand.length) {
+        free.sort((a, b) => b.dist - a.dist);
+        cand = free.slice(0, Math.max(1, Math.ceil(free.length / 4)));
+      }
+      const { w, dist } = cand[Math.floor(Math.random() * cand.length)];
       w.need = kind;
-      w.needMax = kind === 'pee' ? PEE_TIME : THIRST_TIME;
+      // paciencia base + tiempo de ir caminando (0.2 s/casilla); la sed da un poco más
+      w.needMax = lerp(8.5, 6, p) + dist * 0.2 + (kind === 'thirst' ? 2.5 : 0);
       w.needT = w.needMax;
       w.warned = false;
       beep(kind === 'pee' ? 880 : 620, 0.05, 'sine', 0.04, kind === 'pee' ? 1100 : 820);
       return true;
+    }
+
+    // --- movimiento por casillas con giros asistidos ---
+    function tryMove(dir, step) {
+      const D = DIRS[dir];
+      const tc = Math.floor(boss.x / TS), tr = Math.floor((boss.y - TOP) / TS);
+      const cx = tc * TS + TS / 2, cy = TOP + tr * TS + TS / 2;
+      if (D.dx) {
+        const ahead = isFree(tc + D.dx, tr);
+        if (!ahead && (cx - boss.x) * D.dx <= 0.01) return false;
+        const off = cy - boss.y;
+        if (Math.abs(off) > 0.01) boss.y += Math.sign(off) * Math.min(Math.abs(off), step);
+        let nx = boss.x + D.dx * step;
+        if (!ahead && (nx - cx) * D.dx > 0) nx = cx;
+        boss.x = Math.max(TS / 2, Math.min(W - TS / 2, nx));
+      } else {
+        const ahead = isFree(tc, tr + D.dy);
+        if (!ahead && (cy - boss.y) * D.dy <= 0.01) return false;
+        const off = cx - boss.x;
+        if (Math.abs(off) > 0.01) boss.x += Math.sign(off) * Math.min(Math.abs(off), step);
+        let ny = boss.y + D.dy * step;
+        if (!ahead && (ny - cy) * D.dy > 0) ny = cy;
+        boss.y = Math.max(TOP + TS / 2, Math.min(H - TS / 2, ny));
+      }
+      boss.face = dir;
+      return true;
+    }
+
+    function inReach(w) {
+      const nx = Math.max(w.x, Math.min(w.x + 2 * TS, boss.x));
+      const ny = Math.max(w.y, Math.min(w.y + 2 * TS, boss.y));
+      return Math.hypot(boss.x - nx, boss.y - ny) <= ALCANCE;
+    }
+
+    function serve(w) {
+      const frac = Math.max(0, w.needT / w.needMax);
+      if (w.need === 'pee') {
+        if (inv >= CAPACIDAD) { if (!near.has(w)) { hint(T.lleno); beep(140, 0.15, 'sawtooth', 0.05); } return; }
+        inv++;
+        const pts = 50 + Math.round(frac * 50);
+        score += pts;
+        w.need = null; w.cool = 2;
+        w.fx = 'take'; w.fxT = 0.8;
+        if (Game.score && Game.score.add) Game.score.add(pts);
+        if (at()) at().curar(CURA_RECOGER);
+        floatText('+' + pts, w.x + 16, w.y - 4, 'mj-maq-fpee');
+        beep(660, 0.08, 'square', 0.05, 990);
+      } else if (w.need === 'thirst') {
+        if (inv <= 0) { if (!near.has(w)) { hint(T.sinBotellas); beep(140, 0.15, 'sawtooth', 0.05); } return; }
+        inv--;
+        const pts = 100 + Math.round(frac * 100);
+        score += pts;
+        w.need = null; w.cool = 2.5;
+        w.fx = 'drink'; w.fxT = 1;
+        if (Game.score && Game.score.add) Game.score.add(pts);
+        if (at()) at().curar(CURA_DAR);
+        floatText('+' + pts, w.x + 16, w.y - 4, 'mj-maq-fsed');
+        beep(520, 0.12, 'triangle', 0.07, 800);
+      }
+    }
+
+    function expire(w) {
+      if (w.need === 'pee') {
+        w.puddle = 6; w.cool = 3.5;
+        if (at()) at().danar(DANO_PIS);
+      } else {
+        w.faint = 4; w.cool = 5;
+        if (at()) at().danar(DANO_SED);
+      }
+      w.need = null;
+      oof();
+      floatText('×', w.x + 16, w.y - 4, 'mj-maq-fbad');
     }
 
     function update(dt) {
@@ -360,52 +498,59 @@
       dripTimer -= dt;
       if (dripTimer <= 0) {
         dripTimer = rand(0.3, 1.1);
-        drips.push({ x: Math.floor(rand(4, W - 4)), y: 6, vy: 10, ty: rand(36, H - 4), splash: 0 });
+        drips.push({ x: Math.floor(rand(4, W - 4)), y: 6, vy: 10, ty: rand(TOP + 4, H - 4), splash: 0 });
       }
       for (let i = drips.length - 1; i >= 0; i--) {
         const d = drips[i];
-        if (d.splash > 0) {
-          d.splash -= dt;
-          if (d.splash <= 0) drips.splice(i, 1);
-          continue;
-        }
+        if (d.splash > 0) { d.splash -= dt; if (d.splash <= 0) drips.splice(i, 1); continue; }
         d.vy += 260 * dt;
         d.y += d.vy * dt;
         if (d.y >= d.ty) { d.y = d.ty; d.splash = 0.18; }
       }
 
+      for (let i = floats.length - 1; i >= 0; i--) {
+        floats[i].t += dt;
+        if (floats[i].t > 0.9) { floats[i].el.remove(); floats.splice(i, 1); }
+      }
       for (const w of workers) {
         if (w.fxT > 0) { w.fxT -= dt; if (w.fxT <= 0) w.fx = null; }
+        if (w.faint > 0) w.faint -= dt;
+        if (w.puddle > 0) w.puddle -= dt;
+        if (w.cool > 0) w.cool -= dt;
       }
       if (hintT > 0) { hintT -= dt; if (hintT <= 0) hintEl.hidden = true; }
-      if (popT > 0) { popT -= dt; if (popT <= 0) invEl.classList.remove('mj-maq-pop'); }
 
       if (state === 'play') {
         elapsed += dt;
         const p = Math.min(1, elapsed / DURACION);
 
+        // jefe
+        boss.moving = false;
+        const step = VEL * dt;
+        for (let i = held.length - 1; i >= 0; i--) {
+          if (tryMove(held[i], step)) { boss.moving = true; break; }
+        }
+        if (boss.moving) boss.walk += dt;
+
+        // atender a los que están al alcance
+        const nowNear = new Set();
         for (const w of workers) {
-          if (w.cool > 0) w.cool -= dt;
-          if (w.away > 0) w.away -= dt;
+          if (!inReach(w)) continue;
+          if (w.need) serve(w);
+          nowNear.add(w);
+        }
+        near.clear();
+        nowNear.forEach((w) => near.add(w));
+
+        // paciencia
+        for (const w of workers) {
           if (!w.need) continue;
           w.needT -= dt;
           if (!w.warned && w.needT < w.needMax * 0.3) {
             w.warned = true;
-            if (w.need === 'thirst') beep(300, 0.08, 'square', 0.035);
+            beep(w.need === 'thirst' ? 300 : 420, 0.08, 'square', 0.035);
           }
-          if (w.needT <= 0) {
-            if (w.need === 'pee') {
-              // se levanta y se va un rato: oportunidad perdida
-              w.need = null;
-              w.away = rand(3, 4.5);
-              w.cool = w.away + 1;
-            } else {
-              w.need = null;
-              w.faint = true;
-              lose();
-              return;
-            }
-          }
+          if (w.needT <= 0) expire(w);
         }
 
         if (elapsed >= DURACION) {
@@ -415,88 +560,73 @@
           return;
         }
 
-        const c = counts();
-        const maxPee = Math.round(lerp(3, 6, p));
-        const maxThirst = Math.round(lerp(2, 4, p));
-
-        peeTimer -= dt;
-        if (peeTimer <= 0) {
-          if (c.pee < maxPee && spawnNeed('pee')) { peeTimer = rand(lerp(2.4, 1.2, p), lerp(3.4, 1.9, p)); c.pee++; }
-          else peeTimer = 0.3;
-        }
-        if (elapsed >= SOLO_PIS) {
-          thirstTimer -= dt;
-          if (thirstTimer <= 0) {
-            // Justo: solo hay sed si las botellas disponibles (o por conseguir) superan a los sedientos.
-            if (c.thirst < maxThirst && inv + c.pee > c.thirst && spawnNeed('thirst')) {
-              thirstTimer = rand(lerp(3.6, 1.8, p), lerp(4.8, 2.7, p));
-            } else thirstTimer = 0.4;
-          }
+        // nuevas peticiones: cada vez más seguido y más a la vez
+        let active = 0;
+        for (const w of workers) if (w.need) active++;
+        spawnT -= dt;
+        if (spawnT <= 0) {
+          const maxActive = Math.round(lerp(2, 6, p));
+          if (active < maxActive && spawnNeed(p)) spawnT = lerp(2.4, 1.15, p) * rand(0.8, 1.2);
+          else spawnT = 0.3;
         }
         updateHUD();
-      } else if (state === 'lost') {
-        endT += dt;
       } else if (state === 'won') {
         endT += dt;
-        if (endT >= 2) { state = 'over'; finish(true); }
+        if (endT >= 2.2) { state = 'over'; finish(true); }
       }
     }
 
     // --- render ---
+    // Puesto de trabajo (32×32): escritorio con monitor arriba, trabajador de espaldas abajo.
     function drawWorker(w) {
-      const x = w.x, y = w.y, t = clock;
-      // sombra
-      R(x + 10, y + 26, 24, 1, 'rgba(0,0,0,0.35)');
+      const t = clock;
+      const x = w.x - 6, y = w.y + 3;          // mismo dibujo del set original, más compacto
+      const sx = w.x, sy = w.y;
+      R(sx + 4, sy + 30, 24, 1, 'rgba(0,0,0,0.4)');
+      if (w.puddle > 0) {
+        const a = Math.min(1, w.puddle / 2) * 0.8;
+        R(sx + 6, sy + 29, 20, 3, 'rgba(214,196,52,' + a.toFixed(2) + ')');
+        R(sx + 9, sy + 30, 6, 1, 'rgba(255,246,170,' + a.toFixed(2) + ')');
+      }
       // mesa
-      R(x + 4, y + 8, 36, 6, '#5b4a33');
-      R(x + 4, y + 8, 36, 1, '#6e5a40');
-      R(x + 4, y + 13, 36, 1, '#3a2f20');
-      R(x + 5, y + 14, 2, 9, '#2a2218');
-      R(x + 37, y + 14, 2, 9, '#2a2218');
-      R(x + 33, y + 9, 3, 2, '#7a3e1c'); // mancha de óxido
+      R(sx + 1, y + 8, 30, 6, '#57462f');
+      R(sx + 1, y + 8, 30, 1, '#6e5a40');
+      R(sx + 1, y + 13, 30, 1, '#3a2f20');
+      R(sx + 2, y + 14, 2, 9, '#2a2218');
+      R(sx + 28, y + 14, 2, 9, '#2a2218');
+      R(sx + 25, y + 9, 3, 2, '#7a3e1c');
       // monitor
-      R(x + 13, y - 1, 18, 10, '#6d6a5c');
-      R(x + 13, y - 1, 18, 1, '#828070');
-      R(x + 13, y + 8, 18, 1, '#4a483e');
-      R(x + 20, y + 9, 4, 1, '#4a483e');
-      const on = !w.faint;
+      R(x + 13, y - 1, 18, 10, '#6a6660');
+      R(x + 13, y - 1, 18, 1, '#827e78');
+      R(x + 13, y + 8, 18, 1, '#48443e');
+      R(x + 20, y + 9, 4, 1, '#48443e');
+      const on = !(w.faint > 0);
       const glowA = 0.85 + 0.15 * Math.sin(t * 9 + w.ph);
-      R(x + 15, y + 1, 14, 6, on ? 'rgba(110,224,196,' + glowA.toFixed(2) + ')' : '#24423e');
-      if (on && w.away <= 0) {
+      R(x + 15, y + 1, 14, 6, on ? 'rgba(146,232,132,' + glowA.toFixed(2) + ')' : '#22322a');
+      if (on) {
         for (let i = 0; i < 3; i++) {
           const len = 2 + (Math.floor(t * 5 + w.ph * 3 + i * 3) % 9);
-          R(x + 16, y + 2 + i * 2, len, 1, '#2d7a68');
+          R(x + 16, y + 2 + i * 2, len, 1, '#2e6a34');
         }
       }
-      R(x + 11, y + 9, 22, 2, 'rgba(120,230,200,0.12)');
+      R(x + 11, y + 9, 22, 2, 'rgba(150,232,130,0.12)');
       // teclado
       R(x + 15, y + 10, 14, 2, '#9a978a');
       R(x + 15, y + 11, 14, 1, '#6b685d');
 
-      if (w.away > 0) {
-        // silla vacía
-        R(x + 15, y + 19, 14, 6, '#2b2b2e');
-        R(x + 15, y + 19, 14, 1, '#3e3e44');
-        R(x + 16, y + 25, 2, 1, '#1a1a1c'); R(x + 26, y + 25, 2, 1, '#1a1a1c');
-        return;
-      }
-
-      if (w.faint) {
+      if (w.faint > 0) {
         // desplomado sobre la mesa
         R(x + 15, y + 13, 14, 9, w.shirt);
         R(x + 10, y + 9, 9, 2, w.shirt);
         R(x + 25, y + 9, 9, 2, w.shirt);
-        R(x + 9, y + 9, 2, 2, w.skin); R(x + 33, y + 9, 2, 2, w.skin);
         R(x + 17, y + 5, 10, 3, w.hair);
         R(x + 17, y + 8, 10, 4, w.skin);
         R(x + 17, y + 8, 2, 4, w.hair);
         sprite(['#.#', '.#.', '#.#'], x + 21, y + 8, { '#': '#1a0a0a' });
-        R(x + 25, y + 11, 2, 1, '#6a2a2a');
         R(x + 15, y + 20, 14, 5, '#2b2b2e');
         R(x + 15, y + 20, 14, 1, '#3e3e44');
         const zy = (t * 7) % 12;
         sprite(ZMAP, x + 30, y + 2 - zy, { '#': 'rgba(200,220,255,' + (1 - zy / 12).toFixed(2) + ')' });
-        sprite(ZMAP, x + 35, y - 3 - ((zy + 6) % 12) * 0.8, { '#': 'rgba(200,220,255,0.6)' });
         return;
       }
 
@@ -504,17 +634,14 @@
       if (w.need === 'pee') dx = Math.sin(t * 22 + w.ph) > 0 ? 1 : 0; // se retuerce
       const thirsty = w.need === 'thirst';
       const a = Math.sin(t * (thirsty ? 3 : 15) + w.ph) > 0;
-      // brazos y manos sobre el teclado
       R(x + 14 + dx, y + 12 + (a ? 0 : 1), 3, 6, w.shirt);
       R(x + 15 + dx, y + 11 + (a ? 0 : 1), 2, 1, w.skin);
       R(x + 27 + dx, y + 12 + (a ? 1 : 0), 3, 6, w.shirt);
       R(x + 27 + dx, y + 11 + (a ? 1 : 0), 2, 1, w.skin);
-      // torso
       R(x + 15 + dx, y + 16, 14, 9, w.shirt);
       R(x + 27 + dx, y + 17, 2, 8, 'rgba(0,0,0,0.25)');
       R(x + 15 + dx, y + 16, 14, 1, 'rgba(255,255,255,0.12)');
-      if (thirsty) R(x + 18 + dx, y + 18, 3, 3, 'rgba(0,0,0,0.18)'); // sudor
-      // cuello y cabeza (de espaldas)
+      if (thirsty) R(x + 18 + dx, y + 18, 3, 3, 'rgba(0,0,0,0.18)');
       const hy = y + 10 + (thirsty ? 1 : 0);
       R(x + 20 + dx, y + 15, 4, 2, w.skin);
       R(x + 17 + dx, hy + 2, 1, 2, w.skin);
@@ -522,19 +649,19 @@
       R(x + 18 + dx, hy, 8, 6, w.hair);
       R(x + 17 + dx, hy + 1, 10, 2, w.hair);
       R(x + 19 + dx, hy, 3, 1, 'rgba(255,255,255,0.12)');
-      if (w.style === 1) R(x + 21 + dx, hy + 6, 2, 4, w.hair);          // coleta
-      else if (w.style === 2) R(x + 20 + dx, hy + 1, 4, 2, w.skin);     // coronilla
+      if (w.style === 1) R(x + 21 + dx, hy + 6, 2, 4, w.hair);
+      else if (w.style === 2) R(x + 20 + dx, hy + 1, 4, 2, w.skin);
       // silla
       R(x + 15, y + 21, 14, 5, '#2b2b2e');
       R(x + 15, y + 21, 14, 1, '#3e3e44');
     }
 
     function drawNeed(w) {
-      const cx = w.x + 38, frac = Math.max(0, w.needT / w.needMax);
+      const cx = w.x + 26, frac = Math.max(0, w.needT / w.needMax);
       const urgent = frac < 0.3;
-      const cy = w.y - 3 + (urgent && Math.sin(clock * 20) > 0 ? -1 : 0);
-      disc(cx, cy, 7, 'rgba(0,0,0,0.65)');
-      const ringC = urgent ? (Math.sin(clock * 16) > 0 ? '#ff4a3a' : '#ffb0a0') : '#f4f0e0';
+      const cy = w.y + 1 + (urgent && Math.sin(clock * 20) > 0 ? -1 : 0);
+      disc(cx, cy, 7, 'rgba(8,0,12,0.72)');
+      const ringC = urgent ? (Math.sin(clock * 16) > 0 ? '#ff3a6a' : '#ffb0c8') : (w.need === 'pee' ? '#e6d23a' : '#7ad8ff');
       ctx.fillStyle = ringC;
       const N = 56;
       for (let k = 0; k < N; k++) {
@@ -542,50 +669,60 @@
         const ang = -Math.PI / 2 + (k / N) * Math.PI * 2;
         ctx.fillRect(Math.round(cx + Math.cos(ang) * 7), Math.round(cy + Math.sin(ang) * 7), 1, 1);
       }
-      const pal = w.need === 'pee'
-        ? { '#': '#f2d43a', 'o': '#a8861a', 'h': '#fff6c0' }
-        : { '#': '#4aa8ff', 'o': '#1f5a9a', 'h': '#d8f0ff' };
-      sprite(DROP, cx - 2, cy - 3, pal);
+      sprite(DROP, cx - 2, cy - 3, w.need === 'pee' ? PEE_PAL : SED_PAL);
     }
 
     function drawFx(w) {
-      const k = 1 - w.fxT / (w.fx === 'give' ? 0.8 : 1);
+      const k = 1 - w.fxT / (w.fx === 'take' ? 0.8 : 1);
       ctx.globalAlpha = Math.max(0, 1 - k);
-      const pal = { '#': '#f2d43a', 'h': '#fff2a0', 'c': '#d8d8d8' };
-      if (w.fx === 'give') {
-        sprite(BOTTLE, w.x + 36, w.y - 4 - k * 12, pal);
+      if (w.fx === 'take') {
+        sprite(BOTTLE, w.x + 24, w.y - 2 - k * 10, BOT_PAL);
       } else {
-        sprite(BOTTLE, w.x + 21, w.y + 2 - k * 6, pal);
-        sprite(['.#.', '###', '.#.'], w.x + 27, w.y - 2 - k * 8, { '#': '#7aff8a' });
+        sprite(BOTTLE, w.x + 15, w.y + 4 - k * 6, BOT_PAL);
+        sprite(['.#.', '###', '.#.'], w.x + 21, w.y - k * 8, { '#': '#9cff6a' });
       }
       ctx.globalAlpha = 1;
     }
 
+    // El jefe (Tomás): abrigo largo, sombrero y ojos rojos; pies en (x, y + 6).
     function drawBoss() {
-      const bx = 284, fy = 172, t = clock;
-      const br = Math.sin(t * 2) > 0 ? 1 : 0;
-      R(bx - 11, fy, 22, 2, 'rgba(0,0,0,0.5)');
+      const bx = Math.round(boss.x), fy = Math.round(boss.y) + 7;
+      const step = boss.moving ? (Math.floor(boss.walk * 10) % 2) : 0;
+      const bob = boss.moving ? step : (Math.sin(clock * 2) > 0 ? 1 : 0);
+      const face = boss.face;
+      // aro bajo los pies (estilo Habbo) para encontrarlo rápido
+      ctx.fillStyle = 'rgba(160,255,80,' + (0.45 + 0.2 * Math.sin(clock * 6)).toFixed(2) + ')';
+      ctx.fillRect(bx - 4, fy - 1, 8, 1); ctx.fillRect(bx - 4, fy + 2, 8, 1);
+      ctx.fillRect(bx - 6, fy, 2, 2); ctx.fillRect(bx + 4, fy, 2, 2);
+      R(bx - 4, fy, 8, 2, 'rgba(0,0,0,0.55)');
       // piernas
-      R(bx - 5, fy - 12, 4, 12, '#0e0b0e'); R(bx + 1, fy - 12, 4, 12, '#0e0b0e');
-      R(bx - 6, fy - 1, 5, 1, '#000'); R(bx + 1, fy - 1, 6, 1, '#000');
-      // abrigo largo
-      for (let i = 0; i < 34; i++) {
-        const w2 = Math.round(lerp(14, 19, i / 33));
-        R(bx - Math.floor(w2 / 2), fy - 44 + br + i, w2, 1, i % 9 === 0 ? '#1c161e' : '#151017');
+      R(bx - 3, fy - 5 - (step ? 1 : 0), 2, 5 + (step ? 1 : 0) - 0, '#0e0b0e');
+      R(bx + 1, fy - 5 - (step ? 0 : 1), 2, 5 + (step ? 0 : 1), '#0e0b0e');
+      // abrigo
+      for (let i = 0; i < 12; i++) {
+        const w2 = Math.round(lerp(7, 10, i / 11));
+        R(bx - Math.floor(w2 / 2), fy - 16 + bob + i, w2, 1, i % 5 === 0 ? '#1e1622' : '#160f1a');
       }
-      R(bx - 1, fy - 44 + br, 2, 30, '#0c090d');
-      // brazos cruzados
-      R(bx - 8, fy - 34 + br, 16, 4, '#1e1820');
-      R(bx - 8, fy - 34 + br, 16, 1, '#2a222c');
+      R(bx - 5, fy - 5 + bob, 1, 1, '#9a2a6a'); R(bx + 4, fy - 5 + bob, 1, 1, '#9a2a6a'); // forro magenta
+      if (face !== 'up') R(bx, fy - 16 + bob, 1, 11, '#0c080e');
+      // botellas en la mano
+      if (inv > 0) {
+        const hx = face === 'left' ? bx - 7 : bx + 5;
+        sprite(['c', '#', '#'], hx, fy - 9 + bob, BOT_PAL);
+        if (inv > 1) sprite(['c', '#', '#'], hx + (face === 'left' ? -2 : 2), fy - 8 + bob, BOT_PAL);
+        if (inv > 2) sprite(['c', '#', '#'], hx + (face === 'left' ? -4 : 4), fy - 9 + bob, BOT_PAL);
+      }
       // cabeza y sombrero
-      R(bx - 3, fy - 47 + br, 6, 3, '#1a141a');
-      R(bx - 4, fy - 55 + br, 8, 8, '#1c161c');
-      R(bx - 7, fy - 56 + br, 14, 2, '#0a080a');
-      R(bx - 5, fy - 63 + br, 10, 7, '#0a080a');
-      R(bx - 5, fy - 58 + br, 10, 1, '#3a1a1a');
-      // ojos que vigilan
-      const blink = (t % 4) < 0.12;
-      if (!blink) { R(bx - 4, fy - 52 + br, 2, 1, '#c83a2a'); R(bx, fy - 52 + br, 2, 1, '#c83a2a'); }
+      R(bx - 3, fy - 21 + bob, 6, 5, '#1c161c');
+      R(bx - 5, fy - 22 + bob, 10, 1, '#0a080a');
+      R(bx - 3, fy - 27 + bob, 6, 5, '#0a080a');
+      R(bx - 3, fy - 23 + bob, 6, 1, '#6a1a3a');
+      const blink = (clock % 4) < 0.12;
+      if (!blink && face !== 'up') {
+        if (face === 'left') R(bx - 3, fy - 19 + bob, 2, 1, '#e03a3a');
+        else if (face === 'right') R(bx + 1, fy - 19 + bob, 2, 1, '#e03a3a');
+        else { R(bx - 2, fy - 19 + bob, 1, 1, '#e03a3a'); R(bx + 1, fy - 19 + bob, 1, 1, '#e03a3a'); }
+      }
     }
 
     function draw() {
@@ -593,20 +730,25 @@
       ctx.drawImage(bg, 0, 0);
 
       // lámpara
-      R(159, 0, 1, 9, '#151512');
-      R(154, 9, 11, 3, '#2c2a24'); R(155, 9, 9, 1, '#46423a');
-      R(158, 12, 3, 2, lamp > 0.6 ? '#fff4c0' : '#6a6450');
+      const lx = W / 2;
+      R(lx, 0, 1, 9, '#151512');
+      R(lx - 5, 9, 11, 3, '#2c2a24'); R(lx - 4, 9, 9, 1, '#46423a');
+      R(lx - 1, 12, 3, 2, lamp > 0.6 ? '#fff4c0' : '#6a6450');
       if (lamp > 0.6) {
-        ctx.globalAlpha = 0.07 * lamp;
+        ctx.globalAlpha = 0.06 * lamp;
         ctx.fillStyle = '#ffe9a0';
-        for (let i = 0; i < 60; i++) ctx.fillRect(159 - i * 1.6, 14 + i * 2.7, i * 3.2 + 3, 3);
+        for (let i = 0; i < 72; i++) ctx.fillRect(lx - i * 1.9, 14 + i * 3, i * 3.8 + 3, 3);
         ctx.globalAlpha = 1;
       }
 
-      for (const w of workers) drawWorker(w);
-      drawBoss();
+      // puestos ordenados por altura; el jefe se dibuja delante de los de su fila y de arriba
+      let bossDrawn = false;
+      for (const w of workers) {
+        if (!bossDrawn && w.y > boss.y) { drawBoss(); bossDrawn = true; }
+        drawWorker(w);
+      }
+      if (!bossDrawn) drawBoss();
 
-      // goteras
       for (const d of drips) {
         if (d.splash > 0) {
           R(d.x - 2, d.y, 1, 1, '#8aa8b0'); R(d.x + 2, d.y, 1, 1, '#8aa8b0'); R(d.x - 1, d.y - 1, 1, 1, '#8aa8b0'); R(d.x + 1, d.y - 1, 1, 1, '#8aa8b0');
@@ -615,9 +757,8 @@
         }
       }
 
-      // oscuridad según la lámpara
       const dark = (1 - lamp) * 0.5 + 0.05;
-      R(0, 0, W, H, 'rgba(0,0,0,' + dark.toFixed(3) + ')');
+      R(0, 0, W, H, 'rgba(6,0,10,' + dark.toFixed(3) + ')');
 
       for (const w of workers) {
         if (w.need) drawNeed(w);
@@ -637,73 +778,38 @@
     }
     raf = requestAnimationFrame(frame);
 
-    // --- ratón ---
-    function toInternal(e) {
-      const r = stage.getBoundingClientRect();
-      if (!r.width || !r.height) return null;
-      return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+    // --- entrada ---
+    function onKeyDown(e) {
+      const dir = KEYMAP[e.code] || KEYMAP[e.key];
+      if (state === 'intro' && (dir || e.code === 'Space' || e.code === 'Enter')) { startRound(); }
+      if (!dir) return;
+      if (e.key && e.key.startsWith('Arrow')) e.preventDefault();
+      const i = held.indexOf(dir);
+      if (i >= 0) held.splice(i, 1);
+      held.push(dir);
     }
-    function workerAt(px, py) {
-      let best = null, bd = Infinity;
-      for (const w of workers) {
-        if (px >= w.x + 2 && px <= w.x + 47 && py >= w.y - 11 && py <= w.y + 26) {
-          const d = (px - (w.x + 24)) ** 2 + (py - (w.y + 10)) ** 2 - (w.need ? 900 : 0);
-          if (d < bd) { bd = d; best = w; }
-        }
-      }
-      return best;
+    function onKeyUp(e) {
+      const dir = KEYMAP[e.code] || KEYMAP[e.key];
+      if (!dir) return;
+      const i = held.indexOf(dir);
+      if (i >= 0) held.splice(i, 1);
     }
-
+    function onBlur() { held.length = 0; }
     function onDown(e) {
       if (e.button !== 0) return;
-      if (state === 'intro') { startRound(); return; }
-      if (state === 'lost') { if (endT > 0.8) startRound(); return; }
-      if (state !== 'play') return;
-      const p = toInternal(e);
-      if (!p) return;
-      const w = workerAt(p.x, p.y);
-      if (!w || !w.need) return;
-      if (w.need === 'pee') {
-        w.need = null; w.cool = 1.5;
-        w.fx = 'give'; w.fxT = 0.8;
-        inv++;
-        invEl.classList.add('mj-maq-pop'); popT = 0.25;
-        beep(660, 0.08, 'square', 0.05, 990);
-      } else if (w.need === 'thirst') {
-        if (inv > 0) {
-          inv--;
-          w.need = null; w.cool = 2;
-          w.fx = 'drink'; w.fxT = 1;
-          beep(520, 0.12, 'triangle', 0.07, 800);
-        } else {
-          hintEl.hidden = false; hintT = 1.3;
-          beep(140, 0.15, 'sawtooth', 0.05);
-        }
-      }
-      updateHUD();
+      if (state === 'intro') startRound();
     }
-
-    let hand = false;
-    function setHand(v) {
-      if (v === hand) return;
-      hand = v;
-      if (v) stage.setAttribute('data-cursor', 'hand'); else stage.removeAttribute('data-cursor');
-    }
-    function onMove(e) {
-      if (state === 'intro' || state === 'lost') { setHand(true); return; }
-      if (state !== 'play') { setHand(false); return; }
-      const p = toInternal(e);
-      const w = p && workerAt(p.x, p.y);
-      setHand(!!(w && w.need));
-    }
-
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
     stage.addEventListener('mousedown', onDown);
-    stage.addEventListener('mousemove', onMove);
+
+    // estado para pruebas automáticas (sin variables globales)
+    root._maq = { workers, boss, solid, get inv() { return inv; }, get state() { return state; }, TS, TOP };
 
     // pantalla inicial
-    resetRound();
+    updateHUD();
     showOverlay([['h1', '', T.titulo], ['p', '', T.instrucciones], ['div', 'mj-maq-cta', T.empezar]]);
-    setHand(true);
 
     return {
       done,
@@ -712,8 +818,11 @@
         destroyed = true;
         cancelAnimationFrame(raf);
         if (ro) ro.disconnect();
+        window.removeEventListener('resize', fit);
+        window.removeEventListener('keydown', onKeyDown);
+        window.removeEventListener('keyup', onKeyUp);
+        window.removeEventListener('blur', onBlur);
         stage.removeEventListener('mousedown', onDown);
-        stage.removeEventListener('mousemove', onMove);
         root.remove();
       },
     };

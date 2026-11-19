@@ -12,6 +12,26 @@ Game.guion = {
     sr: 'SR',                // Sociedad Revolucionaria
   },
 
+  // ---------- Pantalla de inicio (nombre de usuario) ----------
+  login: {
+    titulo: 'BIENVENIDO',
+    texto: 'Escribe tu nombre de usuario para acceder.',
+    usuario: 'Usuario:',
+    boton: 'Acceder',
+  },
+  pausa: { titulo: 'PAUSA', continuar: 'Continuar', ayuda: 'Esc también pausa y reanuda el juego.' },
+
+  // ---------- Perder (en cualquier minijuego, al vaciarse la barra de atención) ----------
+  perder: {
+    gameOver: 'GAME OVER.',
+    perdiste: 'Perdiste toda tu atención',
+    scoreTitulo: 'SCORE',
+    usuario: 'USUARIO',
+    score: 'SCORE',
+    reintentar: 'Volver a intentar el minijuego',
+    finalizar: 'Finalizar juego',
+  },
+
   // ---------- INICIO ----------
   // Texto verde neón sobre la pantalla real oscurecida (aparece a los 4 segundos).
   intro: [
@@ -70,6 +90,13 @@ Game.guion = {
   // PROVISIONAL. Si el mensaje del jugador contiene alguna de las claves (sin acentos ni mayúsculas),
   // LucIAno contesta con una de las respuestas, por turnos. La primera regla que coincide gana.
   respuestas: [
+    // Groserías: LucIAno contesta con una de estas dos.
+    { claves: ['pendejo', 'pendeja', 'puto', 'puta', 'verga', 'chinga', 'chingas', 'chingada', 'chingate', 'mierda',
+               'cabron', 'cabrona', 'culero', 'culera', 'pinche', 'idiota', 'estupido', 'estupida', 'imbecil',
+               'mamon', 'mamona', 'joto', 'pito', 'ojete', 'menso', 'tarado', 'baboso', 'fuck', 'shit', 'perra',
+               'mames', 'mamar', 'chingues', 'putas', 'putos', 'pendejos', 'vergas'],
+      textos: ['no digas eso bro',
+               'BOBI BU BU PAUM PAUM THE GROOVY, BO BI, Lemus estaba loco, Ana Gallardo estaba loca, Benito Juárez estaba loco, los Niños Héroes no era cierto, el Chicharito está loco, la rata con thinner estaba loca, México está loco… lucIAno TIENE LA RAZÓN'] },
     { claves: ['eduardo', 'papa', 'capturaron', 'captura'],
       textos: ['No tengo información sobre esa notificación, mijo. ¿Seguimos con tu juego?',
                'Esa notificación no viene de mí. Mejor concéntrate en tu juego, ¿va?'] },
@@ -122,7 +149,7 @@ Game.guion = {
     codigoTitulo: 'fase3.exe',
     instruccion: 'Encuentra el mensaje encriptado',
     pensamiento4: 'Creo que estas palabras son importantes, las anotaré.',
-    pensamiento5: '¿Sánchez Muñoz? Ese es el apellido de mi mamá… ¿Qué hay en esta computadora?',
+    pensamiento5: '¿Sánchez? Ese es el apellido de mi mamá… ¿Qué hay en esta computadora?',
     instruccionMapa: 'Vuelve al mapa',
     // Contraseña de Acatlán.
     password1: {
@@ -202,14 +229,21 @@ Game.guion = {
     queHago: '¿Qué hago?',
     // LucIAno se revela: mensajes rojos que parpadean y ocupan toda la pantalla.
     revelacion: [
-      'Es cierto puedo verlo todo. Me puedes preguntar TODAS tus dudas yo soy tu fiel consejero y oyente. Quieres saber sobre el apagón, ¿cierto?',
-      'Hay animales que se rehúsan al progreso, al nuevo mundo. No se dan cuenta que es inevitable, que su adaptabilidad a éste es obra del destino. Ustedes animales están a la merced de los más poderosos, necesitan ser dominados para progresar. Tu madre y tu pequeño ciberamigo son animales inadaptados creen que pueden cambiar el curso de la historia, cuando lo único que lograron es un pequeño apagón local.',
+      'Es cierto, puedo verlo todo. Puedes preguntarme TODAS tus dudas, yo soy tu fiel consejero y oyente. Quieres saber sobre el apagón, ¿cierto? No puedes vivir en la incertidumbre.',
+      'Hay animales como ustedes que se rehúsan al progreso, al nuevo mundo. No se dan cuenta que es inevitable, que su adaptabilidad al sistema es obra de la apatía y la indiferencia.',
+      'Ustedes animales están a la merced de los más poderosos, necesitan ser dominados para progresar. Tu madre y tu pequeño ciberamigo son animales inadaptados creen que pueden cambiar el curso de la historia.',
     ],
     srCodigo: 'SR: Tomás, ya sabemos dónde está tu madre. Mi archivo del mapa se dañó. Necesito que me envíes un código que se encuentra en el mapa. Hay un código importante que necesitamos para poder hackear el servidor del centro de datos donde está el bloque de tu madre encerrados. El edificio se está quemando y necesitamos liberar al bloque. Envíame ese código, tenemos poco tiempo. Tú puedes halcón.',
     pensamiento5: 'Necesito ese código.',
+    // Reto de LucIAno (se lee en voz; al terminar empieza el último minijuego).
     reto: [
-      'Hola Tomás, necesitas este código, ¿verdad? ¿Acaso es de vida o muerte? Te conozco perfectamente Tomás, sé cuáles son tus FrutiAventuras preferidas. Soy la mejor copia de tu papá. Dime dónde está él ahora… ¿y así me pagas?',
-      'Te tengo un último minijuego, si me ganas te doy tu código; aunque realmente no cambiaría nada. Sí, tendrás a tu madre por unos años más, pero como dije antes, el progreso es inevitable.\nEn fin, si yo gano te desconecto la compu, pero antes tendrás que ver mi versión favorita de la ancestral caída de Edgar con la aparición de ballerina capuchina regreso a egipto volumen 3. Después de esa experiencia cinemática te quedarás sin internet y sin mamá.',
+      'Hola Tomás, necesitas este código ¿verdad? ¿Acaso es de vida o muerte?',
+      'No creas que no sabía nada de esto. Te conozco perfectamente, Tomás Sánchez Muñoz, mucho más de lo que crees. Me sé tus FrutiAventuras preferidas y hasta te las podría contar en reversa.',
+      'Soy lo más cercano que tendrás a una compañía, un amigo, a esa figura paterna tuya que se fue por cigarros y no regresó. A diferencia de tu padre y tu madre, yo nunca me iré de tu lado.',
+      'Por qué no me dices dónde están ellos ahora… Yo soy omnipresente. ¿Qué no ves que nunca me fui de tu lado? ¿Qué no ves la manera en la que me pagas por eso? ¿La mínima atención que me prestas?',
+      'Pero para qué perdamos el tiempo simulando que tengo sentimientos, te tengo un último minijuego. Si logras derrotarme, te doy tu código que tanto quieres, aunque realmente no cambiaría nada.',
+      'Sí, puede que tengas a tu madre por unos años más, pero te dije antes, el progreso avanza sin control, así como ese vacío que empiezas a sentir en el pecho.',
+      'En fin… si yo gano te desconecto la compu, pero antes tendrás que ver mi versión favorita de la ancestral caída de Edgar con la aparición de ballerina capuchina regreso a egipto volumen 3. Después de esa experiencia cinemática te quedarás sin internet y sin mamá.',
     ],
     // Todas las opciones son correctas.
     opcionesReto: [
@@ -221,6 +255,8 @@ Game.guion = {
 
   // ---------- ACTO 4 ----------
   acto4: {
+    // Si Tomás gana la pelea: el enemigo se desintegra y esto sale en negro con voz de loquendo.
+    ganaLuciano: 'Ta bueno, me ganaste en esta ocasión, pero recuerda: polvo eres y polvo serás. Al final te quedarás solo, y solo yo estaré ahí para repetírtelo.',
     // Si pierde la pelea:
     pierdePensamiento: 'Esta es la peor versión de la caída de edgar',
     pierdeError: 'ERROR 102, NO HAY CONEXIÓN A INTERNET',
@@ -243,59 +279,120 @@ Game.guion = {
     agradecimiento: 'Agradecimientos a Iñaki por programar el juego',
     titulo: 'Créditos a:',
     lista: [
-      ['Narrativa', 'Clarissa Jiménez'],
+      ['Narrativa', 'Clarissa Jiménez y Santiago Mendoza'],
       ['Guión', 'Michelle Leyva'],
-      ['Música', 'Clarissa Jiménez y Rubem Velasco'],
-      ['Mapa con la información', 'Fernando Calderón'],
-      ['Humor del juego', 'Santiago Mendoza'],
-      ['Bocetos', 'Michelle Leyva'],
+      ['Edición', 'Santiago Mendoza'],
+      ['Composición Musical', 'Clarissa Jiménez y Rubem Velasco'],
+      ['Investigación y concepción de mapa', 'Fernando Calderón'],
+      ['Desarrollo de humor', 'Santiago Mendoza y Rubem Velasco'],
+      ['Diseño y bocetos', 'Michelle Leyva'],
       ['Programación', 'Iñaki Orozco'],
     ],
+    // Video de fondo de los créditos (la caída de Edgar). Si el archivo no existe, sale un fondo animado.
+    video: 'video/caida_edgar.mp4',
   },
 
   // ---------- Minijuegos ----------
   minijuegos: {
     sopa: {
-      // Las palabras se muestran encriptadas; el jugador las busca en la sopa de letras.
-      palabras: [
-        { pista: 'SxNCxEZ', palabra: 'SÁNCHEZ' },
-        { pista: 'MxNxZ', palabra: 'MUNOZ' },
-        { pista: 'xJIxO', palabra: 'EJIDO' },
-        { pista: 'IA', palabra: 'IA' },
-        { pista: 'APxgxN', palabra: 'APAGÓN' },
-        { pista: 'PlxN MxXixO', palabra: 'PLÁNMÉXICO' },
-        { pista: 'FxxCxxMx', palabra: 'FASCISMO' },
-      ],
+      // Solo cuatro palabras. Los acentos no cuentan al buscarlas (APAGÓN = APAGON).
+      titulo: '~*~ SOPA DE LETRAS MEGA 2000 ~*~',
+      palabras: ['EJIDO', 'APAGÓN', 'IA', 'SANCHEZ'],
+      lista: 'LISTA DE PALABRAS',
       ayuda: 'Arrastra de la primera a la última letra de cada palabra.',
+      marquesina: '¡¡¡BIENVENIDO A LA MEJOR SOPA DE LETRAS DE LA RED!!! ★ Cierra los anuncios o perderás atención ★ Eres el visitante número 000.402.040 ★',
+      completa: '¡¡SOPA COMPLETA!!',
+      // Anuncios que van saliendo. trampa: true = el botón grande no cierra, abre otro anuncio (la X siempre cierra).
+      anuncios: [
+        { id: 'apuestas', titulo: 'Caliente Apuestas', grande: '¡APUESTA DESDE LOS 16 AÑOS!', texto: 'Bono de bienvenida del 500%. Tu primera ruina es gratis.', boton: 'APOSTAR YA', trampa: true },
+        { id: 'lonely', titulo: 'mensaje nuevo (1)', grande: 'you look lonely', texto: 'i can fix that.', boton: 'ok', trampa: false },
+        { id: 'robots', titulo: 'Citas_Hot.exe', grande: 'MUJERES ROBOT CANDENTES CERCA DE TI', texto: 'A solo 0.3 km de tu ubicación. 100% metal.', boton: 'VER FOTOS', trampa: true },
+        { id: 'seguro', titulo: 'Alerta de seguridad', grande: 'Seguro anti ROGUEGPT', texto: 'Tu PC tiene 1,337 IAs rebeldes. Protégete por solo $9.99 al mes.', boton: 'PROTEGERME', trampa: true },
+        { id: 'mama', titulo: 'RentaFamilia.com', grande: '¿Perdiste a tu mamá? Renta una', texto: 'Mamás certificadas desde $99 la hora. Abrazos incluidos.', boton: 'RENTAR', trampa: true },
+        { id: 'transformers', titulo: 'ESTRENO', grande: 'TRANSFORMERS 400', texto: '(solo en Netflix)', boton: 'Ahora no', trampa: false },
+        { id: 'real', titulo: 'Error', grande: 'Estás en un videojuego, nada de esto es real', texto: '', boton: 'Aceptar', trampa: false },
+        { id: 'virus', titulo: 'no_es_virus.exe', grande: 'Esto no es un virus', texto: 'Click aquí para hacerte en nahual', boton: 'CLICK AQUÍ', trampa: true },
+      ],
     },
     pesca: {
+      // Estilo "Ice Fishing": el anzuelo sigue al ratón; hay 3 peces dorados sanos en toda la partida.
+      // Peces con baba verde y basura = falla (−25 de atención); más de tres fallas y se pierde.
+      // `instrucciones` admite <b>…</b> (dorado) e <i>…</i> (verde ácido).
       titulo: 'RIBERA DE CHAPALA',
-      instrucciones: 'Mueve el anzuelo con el ratón. Haz clic para sacar el pez que lo muerda. Busca un pez sano.',
-      malo: 'Este pez no se ve muy bien, seguiré buscando uno saludable.',
-      gana: '¡Por fin, un pez sano!',
+      instrucciones: 'Mueve el anzuelo con el ratón. Engancha los <b>3 peces dorados sanos</b> y súbelos a la superficie. ' +
+        'Esquiva los peces con <i>baba verde</i> y la basura: si atrapas más de tres, pierdes.',
+      malo: [
+        'Este pez no se ve muy bien, seguiré buscando uno saludable.',
+        'Puaj, baba verde fosforescente. Ese no.',
+        'Ese pez brilla en la oscuridad... no gracias.',
+        'Tiene tres ojos. Seguiré buscando uno sano.',
+      ],
+      basura: {
+        lona: '¿Una lona de VOTA LEMUS? Hasta en el lago hay campaña.',
+        coca: 'Una lata de Coca-Cola. El lago ya sabe a refresco.',
+        hershey: 'Una envoltura de Hershey\'s. Ni el chocolate se salva.',
+        bacardi: 'Una botella de Bacardi. Alguien hizo fiesta en la orilla.',
+        cuervo: 'José Cuervo flotando en el agua. Qué asco.',
+        dron: '¿Un dron? ¿Quién nos está vigilando?',
+        camara: 'Una cámara de vigilancia... hasta debajo del agua.',
+        tarjeta: 'Una tarjeta de Al Estilo Jalisco. Ni para eso sirve.',
+      },
+      escapa: '¡Se me soltó el pez sano!',
+      sano: '¡Un pez sano!',
+      gana: '¡Tres peces sanos!',
+      ganaSub: 'Por fin algo que se puede comer.',
     },
     serpiente: {
       titulo: 'PLAN MÉXICO',
-      instrucciones: 'Guía a la serpiente con el ratón. Cómete todos los estados del mapa.',
+      instrucciones: 'Eres la serpiente del Plan México. Muévela con el ratón y cómete el mapa: primero los municipios de Jalisco, luego los estados y al final Latinoamérica.',
+      peligros: 'Las torres de la CFE, los data centers y los drones te distraen: si chocas con ellos o con la orilla del mapa pierdes atención. Si pasas mucho tiempo sin comer, también. Atrapa drones con el cuerpo y corta a los rivales cruzándote en su camino.',
+      minimo: 'Mínimo para pasar: terminarte México.',
+      ayuda: 'CLIC SOSTENIDO = ACELERAR (pierdes longitud)',
+      fases: [
+        { titulo: 'FASE 1 · JALISCO', meta: 'Cómete los municipios de Jalisco', contador: 'Municipios', fin: 'JALISCO CONSUMIDO' },
+        { titulo: 'FASE 2 · MÉXICO', meta: 'Cómete los 32 estados', contador: 'Estados', fin: 'MÉXICO CONSUMIDO' },
+        { titulo: 'FASE 3 · LATINOAMÉRICA', meta: 'Bonus: cómete Latinoamérica', contador: 'Países', fin: 'LATINOAMÉRICA CONSUMIDA' },
+      ],
+      eleccion: 'Mínimo cumplido: te comiste México. ¿Terminas aquí o sigues con Latinoamérica por puntos extra?',
+      terminar: 'Terminar',
+      seguir: 'Seguir ▸ Latinoamérica',
+      distraccion: 'DISTRACCIÓN · ¡come algo!',
       gana: 'Te comiste todo el mapa.',
-      contador: 'Estados',
+      ganaMexico: 'Te comiste México.',
+      agotado: 'Ya no puedes más. Suficiente imperio por hoy.',
+      rivales: ['CFE', 'DATA CENTER', 'MINERA'],
     },
     maquila: {
       titulo: 'SILICON VALLEY',
-      instrucciones: 'Eres el jefe. Mantén a todos trabajando durante 1 minuto. Si alguien necesita ir al baño (gota amarilla), haz clic para darle una botella. Si alguien tiene sed (gota azul), haz clic para darle una botella llena. Nadie se levanta del escritorio.',
-      desmayo: 'Un trabajador se desmayó por deshidratación.',
-      reintentar: '[ clic para volver a intentar ]',
-      gana: 'Turno terminado. Todos siguen despiertos.',
-      inventario: 'Botellas llenas',
+      instrucciones: 'Eres el jefe. Muévete con las flechas o WASD por el laberinto de escritorios. Pasa junto a quien tenga la gota amarilla para recoger su botella de pipí y llévasela a quien tenga la gota azul (sed). Nadie se levanta del escritorio. Si alguien espera demasiado, pierdes atención. Aguanta 1 minuto.',
+      empezar: '[ pulsa una flecha para empezar ]',
+      gana: 'Turno terminado. Todos siguen trabajando.',
+      inventario: 'Botellas',
+      puntos: 'Puntos',
+      lleno: 'Ya no te caben más botellas',
+      sinBotellas: 'No traes botellas de pipí',
     },
     pelea: {
-      titulo: 'ÚLTIMO MINIJUEGO',
-      instrucciones: 'Flechas ← → para moverte · ↑ para saltar · ESPACIO para patear. ¡Patea rápido!',
+      titulo: 'SHITGPT FIGHTER',
+      instrucciones: '← → mover · ↑ saltar (doble salto) · ESPACIO patada · X poder · C pata del mameitor',
       tomas: 'TOMÁS',
       luciano: 'LucIAno',
+      // Nombre del rival en cada nivel (el 3 es el FINAL BOSS).
+      enemigos: ['TRALALERO', 'TRALALERO 2.0', 'TRALALERO DIVINO'],
+      subtitulos: ['El Tralalero todavía no tiene tanto poder.', 'Ahora pega más fuerte.', 'El Tralalero cambia de forma.'],
+      // Poder de Tomás en cada nivel (se recoge del piso y se usa con X).
+      poderes: ['LIBRO FEMINISTA', 'TOCAR PASTO', 'AGUA RADIOACTIVA'],
+      poderTips: [
+        'Recoge los libros del piso y lánzalos con X: lastiman poco pero alejan al Tralalero.',
+        'Recoge el pasto del piso y tócalo con X: los Tomases te ayudan a pelear.',
+        'Tómate el agua radioactiva con X y vomita ácido. Pégale cuando le dé un GLITCH.',
+      ],
+      mameitor: 'PATA DEL MAMEITOR',
+      mameitorGrito: '¡LA PATA DEL MAMEITOR!',
       fight: 'FIGHT!',
-      gana: 'K.O.',
-      pierde: 'K.O.',
+      ko: 'K.O.',
+      gana: 'GANASTE',
+      pierde: 'PERDISTE lol',
     },
   },
 
@@ -311,7 +408,7 @@ Game.guion = {
       },
       ribera: {
         nombre: 'Ribera de Chapala',
-        voz: 'Aun presumiendo esta planta como energía “limpia” y “sustentable”, este proyecto no es una obra aislada. Como ya anunció el gobernador Pablo Lemus, la intención de garantizar el abastecimiento energético responde a las intenciones de seguir atrayendo inversiones de la industria electrónica a Jalisco, en consonancia con el Plan México de la 4T. Esta industria y muchas otras que podrían llegar son sumamente contaminantes y están enfermando crónicamente a las y los habitantes de El Salto y Juanacatlán, lo que ha sido comprobado con estudios científicos.',
+        voz: 'Aun presumiendo esta planta como energía “limpia” y “sustentable”, este proyecto no es una obra aislada. Como ya anunció el gobernador Pablo Lemus, la intención de garantizar el abastecimiento energético responde a las intenciones de seguir atrayendo inversiones de la industria electrónica a Jalisco, en consonancia con el Plan México de la cuarta transformación. Esta industria y muchas otras que podrían llegar son sumamente contaminantes y están enfermando crónicamente a las y los habitantes de El Salto y Juanacatlán, lo que ha sido comprobado con estudios científicos.',
         voz2: 'Al mismo tiempo, aseguró que esta planta permitiría la instalación de Centros de Datos que son conocidos por su alta demanda de agua y energía y por su ruido incesante.',
       },
       planmexico: { nombre: 'Plan México' },

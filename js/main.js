@@ -21,6 +21,7 @@
   let pointer = { nx: 0.5, ny: 0.5 };   // posición normalizada sobre la pantalla
   let mousePos = { x: 0, y: 0 };
   let locked = false;                   // true = la historia controla las manos
+  let animating = false;                // true mientras la historia mueve el cursor
 
   // ---------- Cursor virtual (flecha, o mano sobre lo que se puede pulsar) ----------
   cursor.innerHTML =
@@ -117,7 +118,9 @@
 
   window.addEventListener('mousemove', (e) => {
     client = { x: e.clientX, y: e.clientY };
-    if (locked) return;
+    // Con la entrada bloqueada el ratón sigue moviendo el cursor (no puede hacer clic),
+    // salvo mientras la historia lo está moviendo.
+    if (locked) { if (!animating) applyPointer(); return; }
     if (rightOnKeyboard && Math.hypot(e.movementX || 0, e.movementY || 0) > 2) {
       clearTimeout(rightReturnTimer);
       rightToMouse();
@@ -177,6 +180,8 @@
 
   window.addEventListener('keydown', (e) => {
     const code = e.code;
+    // Las pantallas fuera de la computadora (inicio, pausa, game over) usan el teclado normal.
+    if (e.target && e.target.closest && e.target.closest('#intro, #pausa, #gameover')) return;
     // Evita scroll/atajos, salvo al escribir en un campo de texto del juego (ahí solo se bloquea Tab).
     const typing = !locked && e.target.closest && e.target.closest('textarea, input');
     if (typing ? code === 'Tab' : (!e.ctrlKey && !e.metaKey && !/^F\d+$/.test(code))) e.preventDefault();
@@ -263,6 +268,7 @@
       const to = { nx: (r.left + r.width / 2 - s.left) / s.width, ny: (r.top + r.height / 2 - s.top) / s.height };
       const from = { ...pointer };
       const t0 = performance.now();
+      animating = true;
       await new Promise((done) => {
         function step() {
           const t = Math.min(1, (performance.now() - t0) / ms);
@@ -272,6 +278,7 @@
         }
         step();
       });
+      animating = false;
     },
     async click() {
       mouseButtonVisual(0, true);
