@@ -293,7 +293,7 @@ Game.guion = {
       ['Investigación y concepto', 'Fernando Calderón'],
       ['Desarrollo de humor', 'Santiago Mendoza, Rubem Velasco, Fernando Calderón'],
       ['Diseño y bocetos', 'Michelle Leyva'],
-      ['Programación', 'Iñaki Orozco'],
+      ['Programación', 'Iñaki Orozco @inaki_og'],
     ],
     // Video de fondo de los créditos (la caída de Edgar). Si el archivo no existe, sale un fondo animado.
     // Fondo: la caída de Edgar desde YouTube; sin conexión, el archivo local; si tampoco, un fondo animado.
