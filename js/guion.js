@@ -13,6 +13,13 @@ Game.guion = {
   },
 
   // ---------- Pantalla de inicio (nombre de usuario) ----------
+  // ---------- Pantalla de título (lo primero que se ve, con letra de arcade) ----------
+  portada: {
+    lineas: ['LAS CRÓNICAS DE', 'TOMÁS VS SHIT GPT,', 'EL SÉPTIMO APAGÓN.'],
+    empezar: 'PRESIONA START',
+    ayuda: 'clic o cualquier tecla',
+  },
+
   login: {
     titulo: 'BIENVENIDO',
     texto: 'Escribe tu nombre de usuario para acceder.',
@@ -276,15 +283,15 @@ Game.guion = {
   // ---------- Créditos ----------
   creditos: {
     fin: 'FIN DEL JUEGO',
-    agradecimiento: 'Agradecimientos a Iñaki por programar el juego',
+    agradecimiento: 'Agradecimientos especiales a Iñaki por la programación del juego.',
     titulo: 'Créditos a:',
     lista: [
-      ['Narrativa', 'Clarissa Jiménez y Santiago Mendoza'],
-      ['Guión', 'Michelle Leyva'],
+      ['Narrativa', 'Clarissa Jiménez, Santiago Mendoza, Michelle Leyva'],
+      ['Guión', 'Michelle Leyva, Santiago Mendoza y Clarissa Jiménez'],
       ['Edición', 'Santiago Mendoza'],
       ['Composición Musical', 'Clarissa Jiménez y Rubem Velasco'],
-      ['Investigación y concepción de mapa', 'Fernando Calderón'],
-      ['Desarrollo de humor', 'Santiago Mendoza y Rubem Velasco'],
+      ['Investigación y concepto', 'Fernando Calderón'],
+      ['Desarrollo de humor', 'Santiago Mendoza, Rubem Velasco, Fernando Calderón'],
       ['Diseño y bocetos', 'Michelle Leyva'],
       ['Programación', 'Iñaki Orozco'],
     ],

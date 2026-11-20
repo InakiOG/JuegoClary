@@ -22,7 +22,7 @@ Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el cód
 
 **Personajes:** Tomás (14 años), su mamá, su papá Eduardo, la IA LucIAno y la Sociedad Revolucionaria (SR). El juego transcurre el **22 de noviembre de 2040**. La mamá es Jocelyn Sánchez Munoz.
 
-**INICIO:** pantalla de inicio que pide el **nombre de usuario** (el jugador escribe lo que quiera; sale en el score). Luego la primera leyenda se escribe en verde neón y se lee en voz en off (queda al menos 10 s). El calendario del ordenador marca el **22 de noviembre de 2040**.
+**INICIO:** primero la **pantalla de título** con letra de arcade (Press Start 2P, en `fonts/`): "LAS CRÓNICAS DE TOMÁS VS SHIT GPT, EL SÉPTIMO APAGÓN." (clic o cualquier tecla). Luego la pantalla que pide el **nombre de usuario** (el jugador escribe lo que quiera; sale en el score). Luego la primera leyenda se escribe en verde neón y se lee en voz en off (queda al menos 10 s). El calendario del ordenador marca el **22 de noviembre de 2040**.
 
 **Reglas generales (correcciones):**
 - **Pausa:** botón arriba a la derecha o `Esc` (congela minijuegos, temporizadores, música y voz). En la pantalla de pausa, en vez de la palabra PAUSA, el gato (`img/pausa_gato.jpg`) rebota dentro de un recuadro negro.

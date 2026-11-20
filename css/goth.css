@@ -547,3 +547,63 @@ body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidd
 .tb[hidden] { display: none !important; }
 /* el botón de pausa vive arriba a la derecha: las ventanas maximizadas le dejan sitio */
 .win.maximized .tbtns { margin-right: max(5vmin, 34px); }
+
+/* ---------- Pantalla de título (letra de arcade) ---------- */
+@font-face {
+  font-family: "Press Start 2P";
+  src: url("../fonts/press-start-2p.woff2") format("woff2");
+  font-display: block;
+}
+.portada {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4vmin;
+  padding: 4vmin;
+  text-align: center;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  /* fondo azul oscuro con cuadrícula de píxeles, como en la referencia */
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 2.2vmin 2.2vmin,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 2.2vmin 2.2vmin,
+    radial-gradient(ellipse at 50% 40%, #16207a, #0a0f45 60%, #05072a);
+  cursor: default;
+  overflow: hidden;
+}
+.portada-titulo { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2.4vmin; font-weight: 400; }
+/* Letras amarillo → naranja → rojo con sombra roja oscura en bloque (efecto 3D de arcade). */
+.pt-linea {
+  position: relative;
+  display: block;
+  line-height: 1.15;
+  color: #ffd21f;
+  background: linear-gradient(180deg, #fff27a 0%, #ffd21f 35%, #ff8a1a 62%, #e8341c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0.35vmin 0.35vmin 0 #7a0d0d) drop-shadow(0.35vmin 0.35vmin 0 #4a0505) drop-shadow(0 0 1.2vmin rgba(255, 120, 30, 0.35));
+  white-space: nowrap;
+}
+.pt-l1 { font-size: clamp(9px, min(3.4vmin, 5.4vw), 40px); }
+.pt-l2 { font-size: clamp(10px, min(6.6vmin, 4.9vw), 84px); transform: skewX(-6deg); }
+.pt-l3 { font-size: clamp(10px, min(4.6vmin, 4.9vw), 58px); transform: skewX(-6deg); }
+/* acento agudo en pixel art encima de la mayúscula */
+.pt-acento { position: relative; }
+.pt-acento::before {
+  content: "";
+  position: absolute;
+  left: 0.42em;
+  top: -0.32em;
+  width: 0.25em;
+  height: 0.25em;
+  background: #fff27a;
+  box-shadow: -0.125em 0.125em 0 #fff27a;
+}
+.portada-titulo { animation: portada-entra 0.9s steps(6) both; }
+@keyframes portada-entra { from { transform: scale(2.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.portada-start { margin: 3vmin 0 0; font-size: clamp(11px, 2.4vmin, 26px); color: #fff; text-shadow: 0.3vmin 0.3vmin 0 #e8341c; animation: portada-parpadeo 1s steps(1) infinite; }
+.portada-ayuda { margin: 0; font-size: clamp(8px, 1.3vmin, 14px); color: #8f9bff; }
+@keyframes portada-parpadeo { 50% { opacity: 0; } }

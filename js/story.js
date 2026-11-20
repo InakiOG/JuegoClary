@@ -35,6 +35,40 @@ window.Game = window.Game || {};
     M.forEach((row, y) => [...row].forEach((ch, x) => { if (C[ch]) r += `<rect x="${x}" y="${y + 3}" width="1" height="1" fill="${C[ch]}"/>`; }));
     return `<svg class="login-sello" viewBox="0 0 18 18" shape-rendering="crispEdges">${r}</svg>`;
   }
+  // La letra de arcade dibuja las mayúsculas con acento (Á, É, Ó…) en chiquito: se escribe la letra normal
+  // y el acento se pinta encima con un ::before (ver .pt-acento en goth.css).
+  function acentosArcade(texto) {
+    return [...texto].map((ch) => {
+      const base = ch.normalize('NFD');
+      if (base.length > 1 && /[́]/.test(base)) return `<span class="pt-acento">${base[0]}</span>`;
+      return ch === '<' ? '&lt;' : ch;
+    }).join('');
+  }
+
+  // Pantalla de título con letra de arcade. Sigue con un clic o cualquier tecla.
+  function pantallaTitulo() {
+    const P = G.portada;
+    return new Promise((resolve) => {
+      intro.hidden = false;
+      intro.classList.remove('fade');
+      intro.innerHTML =
+        '<div class="portada"><h1 class="portada-titulo">' +
+        P.lineas.map((l, i) => `<span class="pt-linea pt-l${i + 1}">${acentosArcade(l)}</span>`).join('') +
+        `</h1><p class="portada-start">${P.empezar}</p><p class="portada-ayuda">${P.ayuda}</p></div>`;
+      const seguir = (e) => {
+        if (e.type === 'keydown' && ['Shift', 'Control', 'Alt', 'Meta', 'Tab'].includes(e.key)) return;
+        e.preventDefault();
+        window.removeEventListener('keydown', seguir, true);
+        intro.removeEventListener('mousedown', seguir);
+        Game.sound.unlock();
+        Game.sound.message(true);
+        resolve();
+      };
+      window.addEventListener('keydown', seguir, true);
+      intro.addEventListener('mousedown', seguir);
+    });
+  }
+
   function waitForStart() {
     const L = G.login;
     return new Promise((resolve) => {
@@ -876,6 +910,7 @@ window.Game = window.Game || {};
       Game.sound.unlock();
       return saltar(q.get('desde'));
     }
+    await pantallaTitulo();
     await waitForStart();
     mostrarPausa();
     if (q.has('sin-intro')) intro.hidden = true;
