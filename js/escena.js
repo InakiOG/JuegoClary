@@ -269,6 +269,8 @@ window.Game = window.Game || {};
     },
     curar(n) { if (n > 0 && atVal > 0) setVal(atVal + n); },
     llenar() { setVal(100); },
+    // Vuelve a poner un valor sin efectos (al salir de un minijuego jugado desde la app Minijuegos).
+    restaurar(v) { setVal(v); },
     // Promesa que se cumple cuando la atención llega a 0.
     vacia() { return new Promise((r) => { if (atVal <= 0) r(); else vaciaWaiters.push(r); }); },
   };
@@ -376,6 +378,8 @@ window.Game = window.Game || {};
   document.body.appendChild(go);
 
   // Computadora en llamas con calavera, en pixel art (paleta goth ácida, poco saturada).
+  // Calavera en la computadora en llamas, animada: las llamas se mueven y la calaca se ríe
+  // (la mandíbula sube y baja, la cabeza rebota y salen "JA JA"). Se dibuja mientras esté en pantalla.
   function dibujoPerdiste() {
     const W = 64, H = 52, S = 6;
     const c = document.createElement('canvas');
@@ -384,32 +388,12 @@ window.Game = window.Game || {};
     const g = c.getContext('2d');
     const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x * S, y * S, S, S); };
     const rect = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x * S, y * S, w * S, h * S); };
-    // fondo: franjas diagonales apagadas
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const k = Math.floor((x + y) / 4) % 3;
-      px(x, y, ['#3a1030', '#6b5a1e', '#2a0f1f'][k]);
-    }
-    // llamas que suben (ruido determinista)
     let seed = 7;
     const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
-    for (let x = 0; x < W; x++) {
-      const h = 14 + Math.floor(rnd() * 16) + (x % 7 === 0 ? 6 : 0);
-      for (let y = H - 1; y > H - 1 - h; y--) {
-        const t = (H - 1 - y) / h;
-        px(x, y, t < 0.35 ? '#c9d64a' : t < 0.7 ? '#b8732a' : '#7a2340');
-      }
-    }
-    // monitor
-    rect(14, 6, 36, 28, '#0d0d12');
-    rect(15, 7, 34, 26, '#8d8f86');
-    rect(17, 9, 30, 20, '#101814');
-    rect(28, 34, 8, 3, '#8d8f86');
-    rect(20, 37, 24, 3, '#6d6f68');
-    // teclado
-    rect(12, 41, 40, 6, '#8d8f86');
-    for (let x = 13; x < 51; x += 2) for (let y = 42; y < 46; y += 2) px(x, y, '#3b3c38');
-    // calavera
-    const SK = [
+    const base = Array.from({ length: W }, (_, x) => 14 + Math.floor(rnd() * 16) + (x % 7 === 0 ? 6 : 0));
+    const fase = Array.from({ length: W }, () => rnd() * Math.PI * 2);
+    // calavera: cráneo (filas 0-8) y mandíbula (filas 9-10) por separado para que la boca se abra
+    const CRANEO = [
       '....XXXXXX....',
       '..XXXXXXXXXX..',
       '.XXXXXXXXXXXX.',
@@ -419,12 +403,65 @@ window.Game = window.Game || {};
       'XXXXXXXXXXXXXX',
       '.XXXXX..XXXXX.',
       '..XXXXXXXXXX..',
-      '...X.X.X.X.X..',
-      '...XXXXXXXXX..',
     ];
-    SK.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === 'X') px(25 + i, 11 + j, '#d9e6d0'); }));
-    // huesos cruzados
-    for (let i = 0; i < 12; i++) { px(20 + i * 2, 23 + Math.floor(i / 2), '#d9e6d0'); px(42 - i * 2, 23 + Math.floor(i / 2), '#d9e6d0'); }
+    // ojos entrecerrados de risa (^ ^)
+    const OJOS_RISA = ['XX.XXXXXXX.XXX', 'X.X.XXXXX.X.XX'];
+    const MANDIBULA = ['...X.X.X.X.X..', '...XXXXXXXXX..'];
+    const HUESO = '#d9e6d0';
+
+    function frame(t) {
+      // fondo: franjas diagonales que se deslizan
+      const off = Math.floor(t / 140);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const k = Math.floor((x + y + off) / 4) % 3;
+        px(x, y, ['#3a1030', '#6b5a1e', '#2a0f1f'][k]);
+      }
+      // llamas que suben y bailan
+      for (let x = 0; x < W; x++) {
+        const h = Math.max(4, Math.round(base[x] + Math.sin(t * 0.009 + fase[x]) * 4 + Math.sin(t * 0.021 + x * 1.7) * 2.5));
+        for (let y = H - 1; y > H - 1 - h; y--) {
+          const k = (H - 1 - y) / h + Math.sin(t * 0.03 + x + y) * 0.06;
+          px(x, y, k < 0.35 ? '#c9d64a' : k < 0.7 ? '#b8732a' : '#7a2340');
+        }
+        // chispas
+        if (Math.sin(t * 0.017 + fase[x] * 3) > 0.985) px(x, H - 2 - h - ((t / 40 + x) % 6 | 0), '#ffe98a');
+      }
+      // monitor
+      rect(14, 6, 36, 28, '#0d0d12');
+      rect(15, 7, 34, 26, '#8d8f86');
+      rect(17, 9, 30, 20, '#101814');
+      rect(28, 34, 8, 3, '#8d8f86');
+      rect(20, 37, 24, 3, '#6d6f68');
+      rect(12, 41, 40, 6, '#8d8f86');
+      for (let x = 13; x < 51; x += 2) for (let y = 42; y < 46; y += 2) px(x, y, '#3b3c38');
+      // risa: carcajadas en ráfagas; la boca se abre y cierra, la cabeza rebota
+      const ciclo = t % 2600;
+      const riendo = ciclo < 1900;
+      const golpe = riendo && Math.floor(t / 130) % 2 === 0;
+      const dy = golpe ? -1 : 0;
+      const boca = riendo ? (golpe ? 2 : 1) : 0;
+      CRANEO.forEach((row, j) => {
+        const fila = riendo && (j === 4 || j === 5) ? OJOS_RISA[j - 4] : row;
+        [...fila].forEach((ch, i) => { if (ch === 'X') px(25 + i, 11 + j + dy, HUESO); });
+      });
+      MANDIBULA.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === 'X') px(25 + i, 20 + j + dy + boca, HUESO); }));
+      // huesos cruzados
+      for (let i = 0; i < 12; i++) { px(20 + i * 2, 23 + Math.floor(i / 2), HUESO); px(42 - i * 2, 23 + Math.floor(i / 2), HUESO); }
+      // "JA JA"
+      if (riendo) {
+        g.font = `bold ${S * 4}px monospace`;
+        g.fillStyle = '#ff4ad8';
+        const a = Math.floor(t / 260) % 2;
+        g.fillText('JA', (a ? 17 : 41) * S, (a ? 12 : 10) * S);
+        g.fillText('JA', (a ? 42 : 18) * S, (a ? 27 : 29) * S);
+      }
+    }
+    (function loop(t) {
+      if (!c.isConnected && c.dataset.started) return;
+      c.dataset.started = '1';
+      frame(t || 0);
+      requestAnimationFrame(loop);
+    })();
     return c;
   }
 
@@ -486,5 +523,32 @@ window.Game = window.Game || {};
     return r;
   }
 
-  Game.escena = { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, wait, perder };
+  // ---------- Dificultad ----------
+  // Pestaña con tres opciones antes de empezar cada minijuego. Devuelve 'facil' | 'intermedio' | 'dificil'.
+  // ?dificultad=… en la URL la salta (para pruebas).
+  const DIFICULTADES = [['facil', 'Fácil'], ['intermedio', 'Intermedio'], ['dificil', 'Difícil']];
+  function elegirDificultad(titulo = 'Minijuego') {
+    const fija = new URLSearchParams(location.search).get('dificultad');
+    if (DIFICULTADES.some(([k]) => k === fija)) return Promise.resolve(fija);
+    return new Promise((resolve) => {
+      const capa = document.createElement('div');
+      capa.className = 'dif-capa';
+      capa.innerHTML =
+        `<div class="dif-ventana"><div class="dif-barra">${esc(titulo)}</div><div class="dif-cuerpo">` +
+        '<p>Elige la dificultad:</p><div class="dif-botones">' +
+        DIFICULTADES.map(([k, t]) => `<button class="g-btn dif-${k}" data-k="${k}">${t}</button>`).join('') +
+        '</div></div></div>';
+      document.body.appendChild(capa);
+      capa.addEventListener('mousedown', (e) => e.stopPropagation());
+      capa.querySelectorAll('button').forEach((b) => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (Game.pausa && Game.pausa.activa) return;
+        Game.sound.mouse(true);
+        capa.remove();
+        resolve(b.dataset.k);
+      }));
+    });
+  }
+
+  Game.escena = { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, wait, perder, elegirDificultad };
 })();

@@ -138,3 +138,41 @@
 }
 .mjp-cta { margin-top: 1.2em; font-size: 6.4em; font-weight: 900; color: #ff4fbf; animation: mjp-blink 1s steps(2, start) infinite; }
 @keyframes mjp-blink { to { visibility: hidden; } }
+
+/* ---------- GOLPE FUERTE, rayo SLOP, BATALLA DE AURA y SIX SEVEN ---------- */
+.mjp-warn { position: absolute; left: 50%; top: 62em; transform: translateX(-50%); white-space: nowrap; line-height: 1; }
+.mjp-warn span {
+  display: inline-block; font-size: 12em; font-weight: 900; font-style: italic; letter-spacing: 0.06em; color: #ff2a4a;
+  text-shadow: 0.1em 0.1em 0 #000, -0.06em 0 0 #000, 0 -0.06em 0 #000, 0 0 0.4em rgba(255, 42, 74, 0.7);
+  animation: mjp-warn 0.16s steps(2) infinite;
+}
+@keyframes mjp-warn { 50% { color: #ffffff; transform: scale(1.12); } }
+
+.mjp-slop { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; line-height: 1; }
+.mjp-slop span {
+  display: inline-block; font-size: 8em; font-weight: 900; letter-spacing: 0.14em; color: #9dff3a;
+  text-shadow: 0.1em 0.1em 0 #000, -0.06em 0 0 #000, 0.12em 0 0 #6b5a1e;
+  animation: mjp-glitch-t 0.14s steps(2) infinite;
+}
+.mjp-pop.slop span { color: #7fe6ff; font-size: 6em; letter-spacing: 0.08em; }
+
+.mjp-banner.aura {
+  font-size: 30em; font-style: italic; color: #e3d34a;
+  background: linear-gradient(90deg, #9dff3a, #e3d34a 35%, #ff4fbf 65%, #2affd0);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.035em #000;
+  text-shadow: none; filter: drop-shadow(0.06em 0.06em 0 #2b0638) drop-shadow(0 0 0.15em rgba(227, 211, 74, 0.8));
+  animation: mjp-pop 0.28s steps(4) both, mjp-aura 0.5s steps(4) 0.3s infinite;
+}
+@keyframes mjp-aura { 50% { transform: translate(-50%, -50%) scale(1.06) rotate(-1.5deg); } }
+
+.mjp-67 { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; line-height: 1; }
+.mjp-67 span {
+  display: inline-block; font-size: 10em; font-weight: 900; font-style: italic; letter-spacing: 0.04em; color: #e3d34a;
+  text-shadow: 0.08em 0.08em 0 #000, -0.05em 0 0 #000, 0 -0.05em 0 #000, 0.12em 0.12em 0 #8c1f74;
+}
+.mjp-67.rojo span { color: #ff2a4a; animation: mjp-warn 0.16s steps(2) infinite; }
+
+.mjp-root.aura .mjp-canvas { transform-origin: 50% 92%; }
+.mjp-slot.aura { box-shadow: inset 1em 1em 0 #e3d34a, inset -1em -1em 0 #4a3a0a, 0 0 0 1em #000, 0 0 7em 1em rgba(227, 211, 74, 0.7); }
+.mjp-slot.aura .mjp-lab span { color: #e3d34a; }

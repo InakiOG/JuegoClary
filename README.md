@@ -25,8 +25,10 @@ Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el cód
 **INICIO:** pantalla de inicio que pide el **nombre de usuario** (el jugador escribe lo que quiera; sale en el score). Luego la primera leyenda se escribe en verde neón y se lee en voz en off (queda al menos 10 s). El calendario del ordenador marca el **22 de noviembre de 2040**.
 
 **Reglas generales (correcciones):**
-- **Pausa:** botón arriba a la derecha o `Esc` (congela minijuegos, temporizadores, música y voz).
-- **Barra de atención = vida.** Solo se ve en los minijuegos (fuera de ellos aparece un momento cuando una respuesta a LucIAno la baja). Se llena al empezar cada minijuego; con poca atención suena la muerte de Roblox en repetición. Si se vacía (o el minijuego se pierde): **GAME OVER.** con música de arcade → "Perdiste toda tu atención" (voz de loquendo) → **score** con el nombre de usuario → "Volver a intentar el minijuego" / "Finalizar juego".
+- **Pausa:** botón arriba a la derecha o `Esc` (congela minijuegos, temporizadores, música y voz). En la pantalla de pausa, en vez de la palabra PAUSA, el gato (`img/pausa_gato.jpg`) rebota dentro de un recuadro negro.
+- **Clic para continuar:** cuando termina un texto, el juego espera un clic en cualquier parte de la pantalla (o Enter / Espacio); el ▶ parpadeante lo indica.
+- **Dificultad:** antes de cada minijuego sale una pestaña con **Fácil / Intermedio / Difícil** (en la historia y en la app Minijuegos). `?dificultad=facil|intermedio|dificil` en la URL la salta.
+- **Barra de atención = vida.** Solo se ve en los minijuegos (fuera de ellos aparece un momento cuando una respuesta a LucIAno la baja). Se llena al empezar cada minijuego; con poca atención suena la muerte de Roblox en repetición. Si se vacía (o el minijuego se pierde): **GAME OVER.** con música de arcade → "Perdiste toda tu atención" (voz de loquendo; las llamas se mueven y la calavera se ríe moviendo la mandíbula) → **score** con el nombre de usuario → "Volver a intentar el minijuego" / "Finalizar juego".
 - **Pensamientos de Tomás:** nube pixel art abajo; siguen con el botón ▶ (o Enter/Espacio), o se quedan hasta que el jugador haga lo que se pide.
 - **Chats largos:** cuando la IA (o SR) termina y le toca a Tomás, aparece ▶ (salvo al final, cuando LucIAno se vuelve malo).
 - **Groserías:** si el jugador insulta a LucIAno, contesta "no digas eso bro" o el "BOBI BU BU PAUM PAUM…".
@@ -43,7 +45,7 @@ El monólogo final de LucIAno se escucha en voz profunda y luego en voz de loque
 
 **ACTO IV**: **ShitGPT Fighter** de tres niveles (ver `js/minijuegos/pelea.js`). Si pierde: "PERDISTE lol" y la secuencia de GAME OVER. Si gana: "GANASTE", el enemigo se desintegra y en negro LucIAno dice "Ta bueno, me ganaste…" (loquendo). Luego la sección CÓDIGO, "¡Claro!, el código es PTAL", el jugador lo escribe en el chat de SR, final en negro, "Finalizar juego" y **créditos** que suben con letra de cómic y la caída de Edgar de fondo (desde YouTube, en silencio; sin conexión `video/caida_edgar.mp4` y, si no está, un fondo animado).
 
-**Apps extra:** **Videos** (canal "DVD" con el logo que rebota, y videos de YouTube a x3 —YouTube llega como máximo a x2— con los archivos de `video/` como respaldo) y **FAINT** (paint con varias brochas).
+**Apps extra:** **Videos** (canal "DVD" con el logo que rebota, y videos de YouTube a x3 —YouTube llega como máximo a x2— con los archivos de `video/` como respaldo) **FAINT** (paint con varias brochas; el documento se llama "proyecto SOLLOZO"), **Fotos** (solo la carpeta **PILINES.12** con las imágenes de `img/pilines/`, en orden; miniaturas y visor con ◀ ▶) y **Minijuegos** (todos los minijuegos, cada uno con su pestaña de dificultad; al terminar se vuelve a la lista y la atención de la historia queda como estaba).
 
 **Voz en off:** síntesis de voz del navegador, siempre en español (prefiere voces de México y las de mejor calidad; si el navegador no tiene ninguna voz en español, solo se muestra el subtítulo), con subtítulos (la música baja mientras habla). Estilos: `narrador` (robótica con glitches, para la intro y el mapa), `loquendo` y `profunda` (`Game.voz.say(texto, { estilo })`). El acento yucateco no se puede lograr con la voz del navegador: haría falta grabar los audios.
 **Música:** las tres canciones (`audio/acto1.mp3`, `acto2.mp3`, `acto3.mp3`) suenan en bucle una tras otra; cada acto empieza en la suya.
@@ -88,18 +90,21 @@ js/sr.js          Chat cifrado con SR
 js/postit.js      Post-it para apuntar
 js/pausa.js       Pausa global (se carga primero: congela tiempo, temporizadores y audio)
 js/escena.js      Jugador y score, música, voz en off, barra de atención/vida, pensamientos, ▶ y pantallas de GAME OVER
-js/apps/          Apps extra: videos.js (Reproductor de Videos) y faint.js (FAINT)
+js/apps/          Apps extra: videos.js (Reproductor de Videos), faint.js (FAINT), fotos.js (Fotos / PILINES.12), minijuegos.js (Minijuegos)
 js/minijuegos/    sopa, pesca, serpiente, maquila y pelea (cada uno: Game.minijuegos.x(host) → { done: Promise<bool>, destroy });
                   la vida es Game.atencion (danar/curar) y el puntaje Game.score.add
 js/story.js       Toda la historia (intro, actos I–IV, finales y créditos)
 css/story.css     Estilos de la intro, el chat, la notificación y los glitches
 css/actos.css     Estilos del mapa, HUD, opciones, SR, post-it y pantallas finales
 css/minijuegos/   Estilos de cada minijuego
-css/apps.css      Estilos de Videos y FAINT
+css/apps.css      Estilos de Videos, FAINT, Fotos y Minijuegos
 css/goth.css      Estética goth divine machinery (pantalla completa, Windows 9x ácido, nube, GAME OVER, pausa, créditos)
 audio/            Música de cada acto
 video/            Respaldo local de los videos de YouTube (ver video/README.txt)
 img/mapa/         Recortes del tablero "IA en México"
+img/pilines/      Imágenes de la carpeta PILINES.12 (app Fotos)
+img/minijuegos/   Mapa de México de la serpiente y el avatar dibujado de Tomás (pelea)
+img/pausa_gato.jpg  Gato de la pantalla de pausa
 ```
 
 Todo el escritorio se mide en "unidades de tecla" (1em del plano = una tecla), así que escala cambiando un solo `font-size`.

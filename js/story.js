@@ -11,7 +11,7 @@ window.Game = window.Game || {};
 
 (function () {
   const G = Game.guion;
-  const { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, perder } = Game.escena;
+  const { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, perder, elegirDificultad } = Game.escena;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const waitFor = (pred, every = 200) => new Promise((r) => {
     (function check() { if (pred()) r(); else setTimeout(check, every); })();
@@ -96,7 +96,9 @@ window.Game = window.Game || {};
   pausaEl.hidden = true;
   pausaEl.innerHTML =
     `<div class="login"><div class="login-bar">${G.pausa.titulo}</div><div class="login-body" style="flex-direction:column">` +
-    `<h1>${G.pausa.titulo}</h1><p>${G.pausa.ayuda}</p><button class="g-btn">${G.pausa.continuar}</button></div></div>`;
+    // En vez de la palabra PAUSA: el gato rebotando dentro de un recuadro negro (como el logo del DVD).
+    '<div class="pausa-recuadro"><div class="pausa-x"><img class="pausa-gato" src="img/pausa_gato.jpg" alt="PAUSA"></div></div>' +
+    `<p>${G.pausa.ayuda}</p><button class="g-btn">${G.pausa.continuar}</button></div></div>`;
   document.body.appendChild(pausaEl);
   pausaBtn.addEventListener('mousedown', (e) => e.stopPropagation(), true);
   pausaBtn.addEventListener('click', () => Game.pausa.toggle());
@@ -334,8 +336,12 @@ window.Game = window.Game || {};
   // Abre un minijuego "en otra pestaña" (ventana maximizada sin botones) y espera a que termine.
   // La atención es la vida: se llena al empezar cada intento y, si se vacía (o el minijuego
   // termina en derrota), sale GAME OVER → "Perdiste toda tu atención" → score, y se puede reintentar.
+  // Solo para pruebas automáticas (Game.story.forzarVictoria): gana el minijuego en curso.
+  let forzarVictoria = null;
   async function minijuego(nombre, titulo) {
     for (;;) {
+      // Antes de cada intento: pestaña con Fácil / Intermedio / Difícil.
+      const dificultad = await elegirDificultad(titulo);
       const W = Game.os.createWindow({
         key: `mj-${nombre}`, title: titulo, iconHtml: Game.icons.mapa(), w: 60, h: 40,
         build(body) { body.classList.add('minijuego'); },
@@ -345,9 +351,11 @@ window.Game = window.Game || {};
       W.el.querySelector('.titlebar').style.pointerEvents = 'none'; // no se puede restaurar ni mover
       await glitch(500);
       Game.atencion.juego(true);
-      const game = Game.minijuegos[nombre](W.body);
+      const game = Game.minijuegos[nombre](W.body, { dificultad });
       free({ chat: false });
-      const gano = await Promise.race([game.done, Game.atencion.vacia().then(() => false)]);
+      const gano = await Promise.race([game.done, Game.atencion.vacia().then(() => false),
+        new Promise((r) => { forzarVictoria = () => r(true); })]);
+      forzarVictoria = null;
       pilot();
       game.destroy();
       Game.atencion.juego(false);
@@ -822,7 +830,7 @@ window.Game = window.Game || {};
     location.href = location.pathname;
   }
 
-  Game.story = { notify };
+  Game.story = { notify, forzarVictoria: () => { if (forzarVictoria) forzarVictoria(); } };
 
   // ---------- Atajos para probar (?desde=…) ----------
   // Dejan el estado como estaría en ese punto de la historia.

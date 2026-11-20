@@ -3,7 +3,8 @@
 // recoge las botellas de pipí de quien levanta la gota amarilla y se las da como "agua" a quien
 // levanta la gota azul. Cada pedido tiene paciencia; si se agota, se pierde atención (la vida).
 // Sobrevivir 60 s = ganar. Las peticiones salen más rápido y más lejos conforme avanza el turno.
-// Contrato: Game.minijuegos.maquila(host) -> { done: Promise<boolean>, destroy() }.
+// Contrato: Game.minijuegos.maquila(host, opts) -> { done: Promise<boolean>, destroy() }.
+// opts.dificultad: 'facil' | 'intermedio' | 'dificil' (por defecto 'intermedio', la que usa la historia).
 // done se resuelve con true al sobrevivir el minuto; si la atención llega a 0, el host lo destruye.
 (function () {
   window.Game = window.Game || {};
@@ -24,13 +25,37 @@
   ];
 
   // --- reglas ---
-  const DURACION = 60;             // segundos del turno
   const CAPACIDAD = 3;             // botellas que caben en las manos
-  const VEL = 82;                  // píxeles internos por segundo (~5 casillas/s)
   const ALCANCE = 14;              // distancia (px) del jefe al puesto para atenderlo
-  const DANO_PIS = 10;              // atención perdida si alguien se orina esperando
-  const DANO_SED = 14;             // atención perdida si alguien se desmaya de sed
-  const CURA_DAR = 3, CURA_RECOGER = 1;
+
+  // --- dificultad ---
+  // 'intermedio' es el ajuste original (el de la historia): no cambiar sus valores.
+  // Los pares [a, b] van del inicio (a) al final (b) del turno.
+  //   duracion: s del turno · vel: px internos/s del jefe
+  //   spawn: s entre peticiones · maxActivas: peticiones a la vez
+  //   paciencia: s base de cada pedido (+0.2 s por casilla de distancia) · pacSed: s extra si es sed
+  //   lejos: distancia mínima (casillas) a la que salen las peticiones
+  //   danoPis / danoSed: atención perdida al agotarse un pedido · curaDar / curaRecoger: atención ganada
+  const DIFICULTAD = {
+    facil: {
+      duracion: 50, vel: 88, spawn: [2.7, 1.4], maxActivas: [2, 5], paciencia: [10, 7.5], pacSed: 3.5,
+      lejos: [2, 11], danoPis: 10, danoSed: 13, curaDar: 4, curaRecoger: 2,
+    },
+    intermedio: {
+      duracion: 60, vel: 82, spawn: [2.4, 1.15], maxActivas: [2, 6], paciencia: [8.5, 6], pacSed: 2.5,
+      lejos: [2, 15], danoPis: 10, danoSed: 14, curaDar: 3, curaRecoger: 1,
+    },
+    dificil: {
+      duracion: 75, vel: 82, spawn: [2.0, 0.95], maxActivas: [3, 7], paciencia: [7, 5], pacSed: 2,
+      lejos: [3, 16], danoPis: 14, danoSed: 18, curaDar: 2, curaRecoger: 1,
+    },
+  };
+  function textoDuracion(s) { // 45 -> "45 segundos", 60 -> "1 minuto", 75 -> "1 minuto y 15 segundos"
+    const m = Math.floor(s / 60), r = s % 60;
+    const ms = m ? m + (m === 1 ? ' minuto' : ' minutos') : '';
+    const rs = r ? r + ' segundos' : '';
+    return ms && rs ? ms + ' y ' + rs : ms || rs;
+  }
 
   const DEFAULTS = {
     titulo: 'SILICON VALLEY',
@@ -125,9 +150,14 @@
     KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right',
   };
 
-  Game.minijuegos.maquila = function (host) {
+  Game.minijuegos.maquila = function (host, opts) {
+    const dif = (opts && DIFICULTAD[opts.dificultad]) ? opts.dificultad : 'intermedio';
+    const D = DIFICULTAD[dif];
+    const DURACION = D.duracion, VEL = D.vel;
+    const DANO_PIS = D.danoPis, DANO_SED = D.danoSed, CURA_DAR = D.curaDar, CURA_RECOGER = D.curaRecoger;
     const T = Object.assign({}, DEFAULTS,
       (Game.guion && Game.guion.minijuegos && Game.guion.minijuegos.maquila) || {});
+    if (dif !== 'intermedio') T.instrucciones = T.instrucciones.replace(/Aguanta 1 minuto/, 'Aguanta ' + textoDuracion(DURACION));
 
     // --- mapa de colisiones y puestos ---
     const solid = [];
@@ -162,7 +192,7 @@
     canvas.width = W; canvas.height = H;
     stage.appendChild(canvas);
 
-    const timerEl = el('div', 'mj-maq-timer', '1:00');
+    const timerEl = el('div', 'mj-maq-timer', Math.floor(DURACION / 60) + ':' + String(DURACION % 60).padStart(2, '0'));
     const invEl = el('div', 'mj-maq-inv');
     invEl.appendChild(el('span', 'mj-maq-lbl', T.inventario));
     const slots = [];
@@ -393,7 +423,7 @@
       }
       if (!free.length) return false;
       // cada vez más lejos del jefe
-      const minD = lerp(2, 15, p);
+      const minD = lerp(D.lejos[0], D.lejos[1], p);
       let cand = free.filter((o) => o.dist >= minD);
       if (!cand.length) {
         free.sort((a, b) => b.dist - a.dist);
@@ -402,7 +432,7 @@
       const { w, dist } = cand[Math.floor(Math.random() * cand.length)];
       w.need = kind;
       // paciencia base + tiempo de ir caminando (0.2 s/casilla); la sed da un poco más
-      w.needMax = lerp(8.5, 6, p) + dist * 0.2 + (kind === 'thirst' ? 2.5 : 0);
+      w.needMax = lerp(D.paciencia[0], D.paciencia[1], p) + dist * 0.2 + (kind === 'thirst' ? D.pacSed : 0);
       w.needT = w.needMax;
       w.warned = false;
       beep(kind === 'pee' ? 880 : 620, 0.05, 'sine', 0.04, kind === 'pee' ? 1100 : 820);
@@ -565,8 +595,8 @@
         for (const w of workers) if (w.need) active++;
         spawnT -= dt;
         if (spawnT <= 0) {
-          const maxActive = Math.round(lerp(2, 6, p));
-          if (active < maxActive && spawnNeed(p)) spawnT = lerp(2.4, 1.15, p) * rand(0.8, 1.2);
+          const maxActive = Math.round(lerp(D.maxActivas[0], D.maxActivas[1], p));
+          if (active < maxActive && spawnNeed(p)) spawnT = lerp(D.spawn[0], D.spawn[1], p) * rand(0.8, 1.2);
           else spawnT = 0.3;
         }
         updateHUD();

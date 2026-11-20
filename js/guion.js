@@ -347,7 +347,7 @@ Game.guion = {
     serpiente: {
       titulo: 'PLAN MÉXICO',
       instrucciones: 'Eres la serpiente del Plan México. Muévela con el ratón y cómete el mapa: primero los municipios de Jalisco, luego los estados y al final Latinoamérica.',
-      peligros: 'Las torres de la CFE, los data centers y los drones te distraen: si chocas con ellos o con la orilla del mapa pierdes atención. Si pasas mucho tiempo sin comer, también. Atrapa drones con el cuerpo y corta a los rivales cruzándote en su camino.',
+      peligros: 'Israel, Coca-Cola y Nestlé también quieren el mapa: sus serpientes se comen lo que encuentran. Si chocas de cabeza con ellas, con los drones o con la orilla del mapa pierdes atención; si pasas mucho tiempo sin comer, también. Atrapa drones con el cuerpo y revienta a los rivales cruzándote en su camino.',
       minimo: 'Mínimo para pasar: terminarte México.',
       ayuda: 'CLIC SOSTENIDO = ACELERAR (pierdes longitud)',
       fases: [
@@ -362,7 +362,7 @@ Game.guion = {
       gana: 'Te comiste todo el mapa.',
       ganaMexico: 'Te comiste México.',
       agotado: 'Ya no puedes más. Suficiente imperio por hoy.',
-      rivales: ['CFE', 'DATA CENTER', 'MINERA'],
+      rivales: ['ISRAEL', 'COCA-COLA', 'NESTLÉ'],
     },
     maquila: {
       titulo: 'SILICON VALLEY',

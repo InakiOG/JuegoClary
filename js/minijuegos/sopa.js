@@ -1,9 +1,11 @@
 // Minijuego del acto 2: pestaña que se abre glitcheando con código y luego una sopa de letras
 // con estética de página web dosmilera. Solo hay cuatro palabras (EJIDO, APAGÓN, IA, SANCHEZ).
 // Mientras tanto salen anuncios pop-up (diálogos tipo Windows 98 en cascada) que van comiendo
-// atención mientras sigan abiertos; cuanto más tiempo lleva abierto, más come. Salen más y más
-// rápido conforme se encuentran palabras. La atención la gestiona el host (Game.atencion).
-// Contrato: Game.minijuegos.sopa(host) → { done: Promise<boolean>, destroy() }
+// atención (muy poco a poco) mientras sigan abiertos. No sale ninguno hasta encontrar la primera
+// palabra; luego salen más conforme se encuentran palabras. Con EJIDO y APAGÓN basta para pasar:
+// se ofrece pasar a la siguiente fase o seguir jugando. La atención la gestiona el host (Game.atencion).
+// Contrato: Game.minijuegos.sopa(host, { dificultad: 'facil'|'intermedio'|'dificil' })
+//   → { done: Promise<boolean>, destroy() }
 window.Game = window.Game || {};
 Game.minijuegos = Game.minijuegos || {};
 
@@ -81,16 +83,29 @@ Game.minijuegos = Game.minijuegos || {};
     'void ocultar(cifrado_t *c) {', '  memset(c->rastro, 0, sizeof c->rastro);', '  apagon_local(COLONIA_7);', '}',
   ];
 
-  // Dificultad según palabras encontradas (0..3).
-  const LEVELS = [
-    { every: 6.5, max: 2, base: 0.6 },
-    { every: 4.8, max: 3, base: 0.8 },
-    { every: 3.4, max: 5, base: 1.0 },
-    { every: 2.5, max: 7, base: 1.2 },
-  ];
-  const DRAIN_SLOPE = 0.05; // puntos/s extra por cada segundo que el anuncio sigue abierto
-  const DRAIN_CAP = 3;      // máximo por anuncio (puntos/s)
-  const HOT_AGE = 4;        // a partir de aquí la barra del anuncio parpadea en rojo
+  // Ajustes por dificultad. Con 0 palabras encontradas no sale ningún anuncio.
+  //   every: segundos entre anuncios según palabras encontradas (1, 2, 3+)
+  //   max:   anuncios abiertos a la vez como mucho (1, 2, 3+ palabras)
+  //   burst: anuncios que salen justo al encontrar una palabra
+  //   base / slope / cap: drenaje de atención por anuncio abierto (puntos/s sobre 100):
+  //          base + slope · segundos abierto, hasta cap
+  const TUNING = {
+    facil:      { every: [11, 9, 8],    max: [1, 1, 2], burst: 1, base: 0.06, slope: 0.004, cap: 0.2 },
+    intermedio: { every: [8, 6.5, 5.5], max: [1, 2, 3], burst: 1, base: 0.12, slope: 0.008, cap: 0.4 },
+    dificil:    { every: [5, 4, 3],     max: [3, 4, 5], burst: 2, base: 0.25, slope: 0.02,  cap: 0.8 },
+  };
+  const HOT_AGE = 6;        // a partir de aquí la barra del anuncio parpadea en rojo
+  const KEY_WORDS = ['EJIDO', 'APAGON']; // con estas dos ya se puede pasar de fase
+
+  // Textos nuevos (el resto viene de Game.guion.minijuegos.sopa).
+  const TXT = {
+    elegirTitulo: 'Mensaje_descifrado.txt',
+    elegirGrande: '¡MENSAJE ENCONTRADO!',
+    elegirTexto: 'Ya tienes EJIDO y APAGÓN. Puedes pasar a la siguiente fase o seguir buscando el resto de palabras.',
+    pasar: 'Pasar a la siguiente fase',
+    seguir: 'Seguir jugando',
+    mensaje: '¡¡MENSAJE ENCONTRADO!!',
+  };
 
   // Adornos de cada anuncio (estrella, icono).
   const ART = {
@@ -106,7 +121,10 @@ Game.minijuegos = Game.minijuegos || {};
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
-  Game.minijuegos.sopa = function (host) {
+  Game.minijuegos.sopa = function (host, opts) {
+    const dif = opts && TUNING[opts.dificultad] ? opts.dificultad : 'intermedio';
+    const TU = TUNING[dif];
+    const lvl = (n) => Math.max(0, Math.min(n, 3) - 1); // índice en every/max (n ≥ 1)
     const T = (Game.guion && Game.guion.minijuegos && Game.guion.minijuegos.sopa) || {};
     const A = (Game.guion && Game.guion.acto2) || {};
     const WORDS = T.palabras || ['EJIDO', 'APAGÓN', 'IA', 'SANCHEZ'];
@@ -218,6 +236,8 @@ Game.minijuegos = Game.minijuegos || {};
       let start = null;
       let path = [];
       let finished = false;
+      let choosing = false; // panel de "pasar / seguir" abierto
+      let offered = false;
       function cellFromPoint(x, y) {
         const rc = gridEl.getBoundingClientRect();
         return { r: ((y - rc.top) / rc.height) * N - 0.5, c: ((x - rc.left) / rc.width) * N - 0.5 };
@@ -247,7 +267,7 @@ Game.minijuegos = Game.minijuegos || {};
         path.forEach((p) => cell(p.r, p.c).classList.add('sp-sel'));
       }
       on(gridEl, 'mousedown', (e) => {
-        if (e.button !== 0 || finished) return;
+        if (e.button !== 0 || finished || choosing) return;
         e.preventDefault();
         const p = cellFromPoint(e.clientX, e.clientY);
         const r = Math.round(p.r), c = Math.round(p.c);
@@ -287,11 +307,57 @@ Game.minijuegos = Game.minijuegos || {};
         addScore(500);
         if (Game.atencion) Game.atencion.curar(6);
         const n = foundCount();
-        if (n >= words.length) { win(); return; }
-        // Más anuncios de golpe cada vez que encuentra una palabra.
-        const burst = Math.min(n, 2);
-        for (let i = 0; i < burst; i++) later(() => spawn(), 350 + i * 450);
-        nextSpawn = Math.min(nextSpawn, LEVELS[n].every * 0.6);
+        if (n >= words.length) { win(T.completa || '¡SOPA COMPLETA!'); return; }
+        if (!offered && KEY_WORDS.every((k) => words.some((x) => x.key === k && x.found))) {
+          offered = true;
+          later(offerChoice, 500);
+          return;
+        }
+        // Anuncios de golpe al encontrar una palabra (los primeros salen tras la primera).
+        for (let i = 0; i < TU.burst; i++) {
+          later(() => { if (pops.length < TU.max[lvl(foundCount())]) spawn(); }, 600 + i * 500);
+        }
+        nextSpawn = TU.every[lvl(n)];
+      }
+
+      // --- panel: pasar a la siguiente fase o seguir jugando ---
+      function offerChoice() {
+        if (finished) return;
+        choosing = true;
+        start = null; path = []; paint();
+        const ov = document.createElement('div');
+        ov.className = 'sp-choice';
+        ov.innerHTML =
+          '<div class="sp-pop sp-dlg">' +
+            '<div class="sp-pop-bar">' +
+              '<span class="sp-pop-ico">✉</span>' +
+              `<span class="sp-pop-t">${esc(TXT.elegirTitulo)}</span>` +
+            '</div>' +
+            '<div class="sp-pop-body">' +
+              '<div class="sp-shield"><span>✔</span></div>' +
+              `<div class="sp-pop-big">${esc(TXT.elegirGrande)}</div>` +
+              `<div class="sp-pop-txt">${esc(TXT.elegirTexto)}</div>` +
+              '<div class="sp-pop-btns sp-dlg-btns">' +
+                `<button class="sp-pop-btn sp-dlg-pasar" data-cursor="hand">${esc(TXT.pasar)}</button>` +
+                `<button class="sp-pop-btn sp-dlg-seguir" data-cursor="hand">${esc(TXT.seguir)}</button>` +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        root.appendChild(ov);
+        if (Game.sound) Game.sound.message(true);
+        ov.querySelector('.sp-dlg-pasar').addEventListener('click', () => {
+          if (finished) return;
+          if (Game.sound) Game.sound.tick();
+          ov.remove();
+          choosing = false;
+          win(TXT.mensaje);
+        });
+        ov.querySelector('.sp-dlg-seguir').addEventListener('click', () => {
+          if (Game.sound) Game.sound.tick();
+          ov.remove();
+          choosing = false;
+          nextSpawn = TU.every[lvl(foundCount())];
+        });
       }
 
       // --- anuncios ---
@@ -316,7 +382,7 @@ Game.minijuegos = Game.minijuegos || {};
       function front(p) { p.el.style.zIndex = ++z; }
 
       function spawn(near) {
-        if (!alive || finished || !ADS.length) return;
+        if (!alive || finished || choosing || !ADS.length) return;
         const ad = ADS[order[adIndex++ % order.length]];
         const art = ART[ad.id] || {};
         const el = document.createElement('div');
@@ -389,23 +455,24 @@ Game.minijuegos = Game.minijuegos || {};
 
       // --- bucle: aparición y drenaje ---
       let last = null;
-      let nextSpawn = 2.5;
+      let nextSpawn = TU.every[0];
       let debt = 0;
       function frame(ts) {
         if (!alive) return;
         raf = requestAnimationFrame(frame);
         const dt = last == null ? 0 : Math.min(0.05, Math.max(0, (ts - last) / 1000));
         last = ts;
-        if (finished) return;
-        const L = LEVELS[Math.min(foundCount(), LEVELS.length - 1)];
+        if (finished || choosing) return;
+        const n = foundCount();
+        if (n === 0) return; // sin palabras encontradas no hay anuncios
         nextSpawn -= dt;
         if (nextSpawn <= 0) {
-          if (pops.length < L.max) spawn();
-          nextSpawn = L.every * (0.8 + Math.random() * 0.4);
+          if (pops.length < TU.max[lvl(n)]) spawn();
+          nextSpawn = TU.every[lvl(n)] * (0.8 + Math.random() * 0.4);
         }
         for (const p of pops) {
           p.age += dt;
-          debt += Math.min(DRAIN_CAP, L.base + DRAIN_SLOPE * p.age) * dt;
+          debt += Math.min(TU.cap, TU.base + TU.slope * p.age) * dt;
           if (!p.hot && p.age > HOT_AGE) { p.hot = true; p.el.classList.add('sp-pop-hot'); }
         }
         if (debt >= 1) {
@@ -416,13 +483,13 @@ Game.minijuegos = Game.minijuegos || {};
       }
       raf = requestAnimationFrame(frame);
 
-      function win() {
+      function win(msg) {
         finished = true;
         pops.splice(0).forEach((p, i) => later(() => p.el.classList.add('sp-pop-bye'), i * 60));
         addScore(Math.round(((Game.atencion && Game.atencion.value) || 0) * 10));
         const ban = document.createElement('div');
         ban.className = 'sp-win';
-        ban.innerHTML = `<span>${esc(T.completa || '¡SOPA COMPLETA!')}</span>`;
+        ban.innerHTML = `<span>${esc(msg)}</span>`;
         root.appendChild(ban);
         later(() => resolveDone(true), 1600);
       }

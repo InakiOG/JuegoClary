@@ -3,7 +3,8 @@
 // Hay 3 peces dorados sanos en toda la partida: engánchalos y súbelos a la superficie para guardarlos.
 // Los peces con baba verde fosforescente y la basura que se hunde (o flota) son "fallas": cada una
 // quita 25 de atención; a la cuarta (más de tres) se vacía la atención y el host lanza GAME OVER.
-// Contrato: Game.minijuegos.pesca(host) -> { done: Promise<boolean>, destroy() }.
+// Contrato: Game.minijuegos.pesca(host, opts) -> { done: Promise<boolean>, destroy() }.
+// opts.dificultad: 'facil' | 'intermedio' | 'dificil' (por defecto 'intermedio', la que usa la historia).
 // done -> true al guardar los 3 peces sanos; false si se pierde (o si se llama a destroy() antes).
 (function () {
   window.Game = window.Game || {};
@@ -15,12 +16,41 @@
   const BOTTOM = H - 12;               // fondo de lodo (aprox.)
   const HX0 = 6, HX1 = W - 6, HY0 = SURFACE - 3, HY1 = BOTTOM - 3; // zona del anzuelo
   const BANK_Y = SURFACE + 2;          // subir el pez hasta aquí lo saca del agua
-  const GOLD_TOTAL = 3;                // peces sanos en toda la partida
-  const MAX_FALLAS = 3;                // a la cuarta se pierde
-  const DANO = 25;                     // atención por falla
-  const HOOK_SPEED = 230, HOOK_SPEED_FULL = 125; // px internos/s (vacío / con pez)
-  const INVULN = 2.4;                  // s sin fallas tras una
+  const HOOK_SPEED = 230;              // px internos/s (anzuelo vacío)
   const PTS_SANO = 1000, PTS_ESQUIVA = 10;
+
+  // --- dificultad ---
+  // 'intermedio' es el ajuste original (el de la historia): no cambiar sus valores.
+  //   gold: peces sanos para ganar · fallas: fallas permitidas (se pierde con la siguiente)
+  //   dano: atención por falla (dano * (fallas + 1) >= 100 para que la última vacíe la barra)
+  //   invuln: s sin fallas tras una · hookFull: velocidad del anzuelo con pez
+  //   goldVel / decoyVel / radVel: rango de velocidad de cada pez (px/s)
+  //   decoy: probabilidad de que un pez nuevo sea señuelo dorado con baba
+  //   radBase / radExtra: peces malos en el agua (base + hasta radExtra más, uno cada 30 s)
+  //   goldPrimero / goldSig / goldEscapa: s hasta el primer pez sano / el siguiente / tras escaparse
+  //   basuraMax: basura a la vez · basuraT: intervalo inicial [min, max] y reducción a los 90 s
+  //   caida: velocidad de hundimiento [min, max] + aceleración máxima con el tiempo
+  const DIFICULTAD = {
+    facil: {
+      gold: 2, fallas: 5, dano: 17, invuln: 3.2, hookFull: 145,
+      goldVel: [24, 32], decoyVel: [20, 28], radVel: [10, 22], decoy: 0.08,
+      radBase: 5, radExtra: 1, goldPrimero: [3, 5], goldSig: [3, 5], goldEscapa: [1.5, 3],
+      basuraMax: 3, basuraT: [3.4, 4.8, 0.9, 1.3], caida: [7, 11, 3],
+    },
+    intermedio: {
+      gold: 3, fallas: 3, dano: 25, invuln: 2.4, hookFull: 125,
+      goldVel: [30, 40], decoyVel: [24, 34], radVel: [12, 28], decoy: 0.18,
+      radBase: 7, radExtra: 3, goldPrimero: [5, 7], goldSig: [4, 7], goldEscapa: [2.5, 4],
+      basuraMax: 5, basuraT: [2.2, 3.4, 0.9, 1.3], caida: [9, 15, 6],
+    },
+    dificil: {
+      gold: 4, fallas: 2, dano: 34, invuln: 1.6, hookFull: 110,
+      goldVel: [36, 48], decoyVel: [30, 42], radVel: [16, 34], decoy: 0.3,
+      radBase: 9, radExtra: 3, goldPrimero: [6, 8], goldSig: [5, 8], goldEscapa: [3, 5],
+      basuraMax: 7, basuraT: [1.6, 2.6, 0.7, 1.0], caida: [12, 18, 8],
+    },
+  };
+  const NUM = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis'];
 
   const DEFAULTS = {
     titulo: 'RIBERA DE CHAPALA',
@@ -266,10 +296,19 @@
   }
   const TRASH_KINDS = ['lona', 'coca', 'hershey', 'bacardi', 'cuervo', 'dron', 'camara', 'tarjeta'];
 
-  Game.minijuegos.pesca = function (host) {
+  Game.minijuegos.pesca = function (host, opts) {
+    const dif = (opts && DIFICULTAD[opts.dificultad]) ? opts.dificultad : 'intermedio';
+    const D = DIFICULTAD[dif];
+    const GOLD_TOTAL = D.gold, MAX_FALLAS = D.fallas, DANO = D.dano, INVULN = D.invuln, HOOK_SPEED_FULL = D.hookFull;
     const G = (Game.guion && Game.guion.minijuegos && Game.guion.minijuegos.pesca) || {};
     const T = Object.assign({}, DEFAULTS, G);
     T.basura = Object.assign({}, DEFAULTS.basura, G.basura || {});
+    if (dif !== 'intermedio') { // los textos dicen "3 peces" y "más de tres": se ajustan a la dificultad
+      const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+      T.instrucciones = T.instrucciones.replace(/\b3 peces/g, GOLD_TOTAL + ' peces')
+        .replace(/más de tres/g, 'más de ' + NUM[MAX_FALLAS]);
+      T.gana = T.gana.replace(/\bTres\b/, cap(NUM[GOLD_TOTAL])).replace(/\btres\b/, NUM[GOLD_TOTAL]);
+    }
 
     // --- sprites ---
     const SPR = {
@@ -477,7 +516,7 @@
     let reel = null;              // { f, t, sx, sy } el pez sube a la lancha
     let invuln = 0;
     let fallas = 0, sanos = 0, pts = 0;
-    let goldT = rand(5, 7);       // segundos hasta el siguiente pez sano
+    let goldT = rand(D.goldPrimero[0], D.goldPrimero[1]);       // segundos hasta el siguiente pez sano
     let gold = null;              // pez sano en el agua (uno a la vez)
     let trashT = 2.2;
     let lastKind = null;
@@ -531,7 +570,8 @@
       const spr = kind === 'gold' ? SPR.G : kind === 'decoy' ? SPR.D : RAD_SPR[Math.floor(Math.random() * RAD_SPR.length)];
       const left = side != null ? side : Math.random() < 0.5;
       const lane = LANES[Math.floor(Math.random() * LANES.length)];
-      const spd = kind === 'gold' ? rand(30, 40) : kind === 'decoy' ? rand(24, 34) : rand(12, 28);
+      const v = kind === 'gold' ? D.goldVel : kind === 'decoy' ? D.decoyVel : D.radVel;
+      const spd = rand(v[0], v[1]);
       const f = {
         spr, kind, st: 'swim',
         cx: left ? -spr.w : W + spr.w, cy: lane, baseY: lane, ty: lane,
@@ -571,7 +611,7 @@
       } else {
         let x = rand(8, W - 8 - s.w);
         if (Math.abs(x + s.w / 2 - hook.x) < 22) x = clamp(x + (x + s.w / 2 < hook.x ? -40 : 40), 8, W - 8 - s.w);
-        o = { s, x, y: SURFACE - s.h + 2, vx: 0, vy: rand(9, 15) + Math.min(6, playT / 20), float: false, phase: Math.random() * 6, entered: false };
+        o = { s, x, y: SURFACE - s.h + 2, vx: 0, vy: rand(D.caida[0], D.caida[1]) + Math.min(D.caida[2], playT / 20), float: false, phase: Math.random() * 6, entered: false };
         splash(x + s.w / 2, SURFACE, 8, true);
       }
       o.sway = rand(4, 9);
@@ -665,7 +705,7 @@
         const i = fish.indexOf(f);
         if (i >= 0) fish.splice(i, 1);
         gold = null;
-        goldT = rand(4, 7);
+        goldT = rand(D.goldSig[0], D.goldSig[1]);
       }
     }
 
@@ -689,8 +729,8 @@
 
       // aparecen peces
       const radCount = fish.filter((f) => f.kind !== 'gold' && f.st === 'swim').length;
-      const want = 7 + Math.min(3, Math.floor(playT / 30));
-      if (radCount < want && Math.random() < dt * 2) spawnFish(Math.random() < 0.18 ? 'decoy' : 'rad');
+      const want = D.radBase + Math.min(D.radExtra, Math.floor(playT / 30));
+      if (radCount < want && Math.random() < dt * 2) spawnFish(Math.random() < D.decoy ? 'decoy' : 'rad');
       if (!gold && sanos < GOLD_TOTAL && playing) {
         goldT -= dt;
         if (goldT <= 0) gold = spawnFish('gold');
@@ -699,9 +739,10 @@
       // aparece basura
       trashT -= dt;
       if (trashT <= 0 && playing) {
-        if (trash.length < 5) spawnTrash();
+        if (trash.length < D.basuraMax) spawnTrash();
         const k = Math.min(1, playT / 90);
-        trashT = rand(2.2 - k * 0.9, 3.4 - k * 1.3);
+        const bt = D.basuraT;
+        trashT = rand(bt[0] - k * bt[2], bt[1] - k * bt[3]);
       }
 
       // peces
@@ -721,7 +762,7 @@
           }
           if (f.cx < -40 || f.cx > W + 40) {
             fish.splice(i, 1);
-            if (f === gold) { gold = null; goldT = rand(2.5, 4); }
+            if (f === gold) { gold = null; goldT = rand(D.goldEscapa[0], D.goldEscapa[1]); }
             continue;
           }
           // contacto con el anzuelo

@@ -294,6 +294,15 @@
   box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 var(--sp-gray-d);
 }
 .sp-root .sp-pop-q { opacity: 0.6; }
+/* X grande y fácil de atinar */
+.sp-pop-bar { height: 2.6em; }
+.sp-root .sp-pop-x {
+  width: 2.1em;
+  height: 1.75em;
+  font-size: 1.35em;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #fff, inset -3px -3px 0 var(--sp-gray-d);
+}
+.sp-root .sp-pop-x:hover { background: #ff5f6f; color: #fff; }
 .sp-root .sp-pop-x:active, .sp-root .sp-pop-btn:active {
   box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 var(--sp-gray-d);
 }
@@ -397,6 +406,27 @@
 .sp-pop-warn .sp-pop-bar { background: linear-gradient(90deg, #000080, #1084d0); }
 .sp-pop-virus .sp-pop-txt { color: #0000c0; text-decoration: underline; font-size: 0.9em; }
 .sp-pop-virus .sp-warn { background: var(--sp-acid); }
+
+/* ---------- panel "pasar a la siguiente fase / seguir jugando" ---------- */
+.sp-choice {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: repeating-linear-gradient(0deg, rgba(8, 4, 14, 0.72) 0 0.25em, rgba(20, 8, 34, 0.72) 0.25em 0.5em);
+}
+.sp-root .sp-dlg { position: relative; width: 34em; max-width: 96%; }
+.sp-dlg .sp-pop-bar { background: linear-gradient(90deg, #000080, #1084d0); }
+.sp-dlg .sp-pop-body { background: var(--sp-gray); padding: 1em 1.2em 1em; }
+.sp-dlg .sp-pop-big { font-size: 1.9em; color: #0d4a24; animation-name: sp-blink-g; }
+@keyframes sp-blink-g { 50% { color: #c0186a; } }
+.sp-dlg .sp-pop-txt { font-size: 0.9em; line-height: 1.35; }
+.sp-dlg-btns { gap: 1em; flex-wrap: wrap; margin-top: 1em; }
+.sp-root .sp-dlg .sp-pop-btn { font-size: 1em; padding: 0.55em 1em; }
+.sp-root .sp-dlg .sp-dlg-pasar { background: var(--sp-acid); }
+.sp-root .sp-dlg .sp-pop-btn:hover { filter: brightness(1.1); }
 
 /* ---------- victoria ---------- */
 .sp-win {

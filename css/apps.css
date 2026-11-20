@@ -229,3 +229,46 @@
 .fa-bg { right: 0.3em; bottom: 0.3em; }
 .fa-palette { display: grid; grid-template-columns: repeat(14, 0.95em); grid-template-rows: repeat(2, 0.95em); gap: 0; }
 .fa-sw { box-shadow: inset 1px 1px 0 var(--w98-lo), inset -1px -1px 0 var(--w98-hi), inset 2px 2px 0 var(--w98-dk), inset -2px -2px 0 #dfdfdf; }
+
+/* ---------- Fotos (carpeta PILINES.12) y Minijuegos ---------- */
+.fo, .mjl {
+  --w98: #c0c0c0; --w98-hi: #ffffff; --w98-lo: #808080; --w98-dk: #000000; --w98-sel: #000080;
+  display: flex;
+  flex-direction: column;
+  background: var(--w98) !important;
+  color: #000;
+  font-family: Tahoma, "MS Sans Serif", "Microsoft Sans Serif", Verdana, sans-serif;
+  user-select: none;
+}
+.fo-barra { display: flex; align-items: center; gap: 0.4em; padding: 0.25em; font-size: 0.62em; }
+.fo-btn {
+  background: var(--w98); color: #000; border: none; font: inherit; padding: 0.2em 0.6em; cursor: none;
+  box-shadow: inset -1px -1px 0 var(--w98-dk), inset 1px 1px 0 var(--w98-hi), inset -2px -2px 0 var(--w98-lo), inset 2px 2px 0 #dfdfdf;
+}
+.fo-btn:active { box-shadow: inset 1px 1px 0 var(--w98-dk), inset -1px -1px 0 var(--w98-hi); }
+.fo-btn:disabled { color: var(--w98-lo); }
+.fo-ruta { flex: 1; padding: 0.2em 0.4em; background: #fff; box-shadow: inset 1px 1px 0 var(--w98-lo), inset -1px -1px 0 var(--w98-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fo-vista { flex: 1; min-height: 0; margin: 0 0.25em; background: #fff; box-shadow: inset 1px 1px 0 var(--w98-lo), inset -1px -1px 0 var(--w98-hi); overflow: auto; }
+.fo-estado, .mjl-estado { padding: 0.25em 0.5em; font-size: 0.55em; box-shadow: inset 1px 1px 0 var(--w98-lo), inset -1px -1px 0 var(--w98-hi); margin: 0.25em; }
+.fo-raiz, .fo-miniaturas { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0.6em; padding: 0.6em; }
+.fo-item { display: flex; flex-direction: column; align-items: center; gap: 0.2em; width: 4.6em; font-size: 0.6em; text-align: center; padding: 0.2em; }
+.fo-item svg { width: 2.6em; height: 2.6em; }
+.fo-item span { white-space: nowrap; font-size: 0.85em; }
+.fo-mini { width: 5.2em; }
+.fo-item.sel span { background: var(--w98-sel); color: #fff; }
+.fo-marco { width: 4.2em; height: 4.2em; display: grid; place-items: center; background: #eee; box-shadow: inset 1px 1px 0 var(--w98-lo); overflow: hidden; }
+.fo-marco img { max-width: 100%; max-height: 100%; }
+.fo-item.sel .fo-marco { outline: 2px solid var(--w98-sel); }
+.fo-visor { display: flex; align-items: center; gap: 0.3em; padding: 0.3em; background: #111; }
+.fo-visor .fo-btn { font-size: 0.8em; align-self: center; }
+.fo-grande { flex: 1; min-width: 0; height: 100%; display: grid; place-items: center; }
+.fo-grande img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.mjl-cabecera { padding: 0.35em 0.5em; font: 700 0.7em Tahoma, sans-serif; color: #fff; background: linear-gradient(90deg, #2b0638, #8c1f74); }
+.mjl-lista { flex: 1; min-height: 0; overflow: auto; margin: 0.25em; background: #fff; box-shadow: inset 1px 1px 0 var(--w98-lo), inset -1px -1px 0 var(--w98-hi); }
+.mjl-item { display: flex; align-items: center; gap: 0.5em; padding: 0.35em 0.5em; border-bottom: 1px dotted var(--w98-lo); font-size: 0.62em; }
+.mjl-item:hover { background: #e9d8f0; }
+.mjl-ico svg { width: 2em; height: 2em; display: block; }
+.mjl-txt { flex: 1; display: flex; flex-direction: column; }
+.mjl-txt small { color: #444; }
+.mjl-jugar { font-size: 1em !important; padding: 0.3em 0.9em !important; }

@@ -449,7 +449,22 @@ window.Game = window.Game || {};
     return p.svg();
   };
 
+  // Minijuegos: control de videojuego gris con cruceta y botones de colores.
+  const drawMinijuegos = () => {
+    const p = grid();
+    p.shape((x, y) => ellipse(9, 18, 8, 7.5)(x, y) || ellipse(23, 18, 8, 7.5)(x, y) || (x >= 9 && x <= 23 && y >= 11 && y <= 21),
+      (x, y) => (y > 21 ? 'D' : 'G'), 'K');
+    p.hl(10, 12, 12, 'W');
+    p.rect(5, 16, 7, 3, 'K').rect(7, 14, 3, 7, 'K');           // cruceta
+    p.set(8, 17, 'D');
+    p.rect(24, 13, 3, 3, 'R').rect(27, 16, 3, 3, 'L').rect(21, 16, 3, 3, 'B').rect(24, 19, 3, 3, 'Y');
+    p.rect(13, 17, 2, 1, 'P').rect(17, 17, 2, 1, 'P');           // select / start
+    p.vl(16, 4, 7, 'K').set(15, 3, 'R').set(16, 3, 'R').set(17, 3, 'R').set(16, 2, 'R');  // cable
+    return p.svg();
+  };
+
   const draw = {
+    minijuegos: memo(drawMinijuegos),
     pc: memo(drawPc), folder: memo(drawFolder), text: memo(drawText), notes: memo(drawNotes),
     trash: memo((k) => drawTrash(k === 'full')), luciano: memo(drawLuciano), mensajes: memo(drawMensajes),
     postit: memo(drawPostit), sr: memo(drawSr), mapa: memo(drawMapa), viewer: memo(drawViewer),
@@ -473,5 +488,6 @@ window.Game = window.Game || {};
     notes: () => draw.notes(),
     videos: () => draw.videos(),
     faint: () => draw.faint(),
+    minijuegos: () => draw.minijuegos(),
   };
 })();

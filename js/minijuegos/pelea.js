@@ -4,8 +4,12 @@
 //  Nivel 3: FINAL BOSS (túnica azul, agave en la cabeza, seis manos con ojo). Solo recibe daño completo
 //           durante sus GLITCH. Poder: agua radioactiva → vomitar ácido.
 //  Siempre: ↑↑ doble salto (salta por encima del Tralalero), ESPACIO patada, C "pata del mameitor" (15 s).
+//  En todos los niveles el rival tiene un GOLPE FUERTE cada ~30 s (avisado) y el rayo SLOP, que deja
+//  a Tomás paralizado viendo el celular. El jefe aplasta con sus manos gigantes; a la mitad de su vida
+//  empieza la BATALLA DE AURA (Tomás usa todos sus poderes; el jefe saca las manos del SIX SEVEN).
+// Tomás es el dibujo del cliente (img/minijuegos/tomas_avatar_claro.png), animado con transformaciones.
 // La vida de Tomás es la barra global de atención (Game.atencion); la vida del rival es propia.
-// Contrato: Game.minijuegos.pelea(host) -> { done: Promise<boolean>, destroy() }.
+// Contrato: Game.minijuegos.pelea(host, { dificultad }) -> { done: Promise<boolean>, destroy() }.
 (function () {
   'use strict';
   window.Game = window.Game || {};
@@ -17,6 +21,89 @@
   const MAME_CD = 15, MAME_REACH = 30, MAME_DMG = 16;
   const MAX_CARGAS = 3;
   const INV_T = 0.9;
+
+  // Ajuste por dificultad ('intermedio' = la historia). hp: vida del rival · dmg: daño a Tomás ·
+  // speed: velocidad del rival · cd: multiplicador de esperas entre ataques (más alto = más calma) ·
+  // strongEvery: segundos entre GOLPES FUERTES · strongTele: aviso del golpe fuerte · slopEvery: rango de
+  // segundos entre rayos SLOP · slopTele: aviso del SLOP · para: segundos paralizado · wave67: ritmo del SIX SEVEN.
+  const DIF = {
+    facil:      { hp: 0.75, dmg: 0.6,  speed: 0.8, cd: 1.35, strongEvery: 36, strongTele: 1.5,  slopEvery: [15, 19], slopTele: 1.0,  para: 1.5, wave67: 1.3 },
+    intermedio: { hp: 1,    dmg: 1,    speed: 1,   cd: 1,    strongEvery: 30, strongTele: 1.15, slopEvery: [10, 14], slopTele: 0.75, para: 2.0, wave67: 1 },
+    dificil:    { hp: 1.3,  dmg: 1.35, speed: 1.2, cd: 0.75, strongEvery: 24, strongTele: 0.85, slopEvery: [7, 10],  slopTele: 0.6,  para: 2.4, wave67: 0.8 },
+  };
+  const STRONG_DMG = 24;          // golpe fuerte (antes de multiplicar por dmg)
+  const STRONG_RANGE = 130;       // alcance de la onda del golpe fuerte del Tralalero
+  const CRUSH_HALF = 26;          // medio ancho del aplastón de la mano gigante del jefe
+  const SLOP_DMG = 3, SLOP_LEN = 80, SLOP_SPEED = 300, SLOP_H = 24;
+  const AURA_MAME_CD = 2, AURA_POW_CD = 0.55;
+  const WAVE67_EVERY = 6.7, WAVE67_DMG = 8;
+
+  // Textos nuevos (en español).
+  const TX = {
+    golpeFuerte: '¡GOLPE FUERTE!',
+    slop: 'SLOP',
+    paralizado: 'PARALIZADO',
+    aura: 'BATALLA DE AURA',
+    six: 'SIX', seven: 'SEVEN',
+    todos: 'TODOS LOS PODERES',
+    tipSlop: 'Cuidado con el rayo SLOP: te deja pegado al celular. ¡Sáltalo!',
+    tipGolpe: 'Cada rato viene un GOLPE FUERTE: cuando lo veas venir, salta o aléjate.',
+    tipAura: '¡BATALLA DE AURA! X usa TODOS tus poderes sin recogerlos (libro → pasto → agua) · C casi sin espera',
+  };
+
+  // ---------- avatar de Tomás (dibujo del cliente) ----------
+  // La imagen mira a la derecha; se reduce con "max pooling" del alfa para no perder los trazos finos.
+  const AVATAR_SRC = 'img/minijuegos/tomas_avatar_claro.png';
+  const AV_H = 52;                    // alto en píxeles internos
+  const AV_AX = 200, AV_AY = 498;     // ancla (cadera sobre los pies) en la imagen original
+  const AV = { img: null, ready: false, cv: null, ax: 0, ay: 0 };
+  function loadAvatar() {
+    if (AV.img) return;
+    const img = new Image();
+    AV.img = img;
+    img.onload = () => { try { buildAvatar(img); } catch (er) { AV.ready = false; } };
+    img.src = AVATAR_SRC;
+  }
+  function buildAvatar(img) {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const s = AV_H / ih;
+    const w = Math.ceil(iw * s), h = AV_H, pad = 2;
+    const src = mk(iw, ih), sg = src.getContext('2d');
+    sg.drawImage(img, 0, 0);
+    const d = sg.getImageData(0, 0, iw, ih).data;
+    const OW = w + pad * 2, OH = h + pad * 2;
+    const mask = new Uint8Array(OW * OH);
+    for (let y = 0; y < h; y++) {
+      const y0 = Math.floor(y / s), y1 = Math.min(ih, Math.ceil((y + 1) / s));
+      for (let x = 0; x < w; x++) {
+        const x0 = Math.floor(x / s), x1 = Math.min(iw, Math.ceil((x + 1) / s));
+        let m = 0;
+        for (let yy = y0; yy < y1 && m < 255; yy++) for (let xx = x0; xx < x1; xx++) { const a = d[(yy * iw + xx) * 4 + 3]; if (a > m) m = a; }
+        if (m > 80) mask[(y + pad) * OW + x + pad] = 1;
+      }
+    }
+    const out = mk(OW, OH), og = out.getContext('2d');
+    const od = og.createImageData(OW, OH);
+    for (let y = 0; y < OH; y++) {
+      for (let x = 0; x < OW; x++) {
+        const i = y * OW + x, j = i * 4;
+        if (mask[i]) { od.data[j] = 246; od.data[j + 1] = 242; od.data[j + 2] = 250; od.data[j + 3] = 255; continue; }
+        let near = false;
+        for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx >= 0 && yy >= 0 && xx < OW && yy < OH && mask[yy * OW + xx]) { near = true; break; }
+        }
+        if (near) { od.data[j] = 5; od.data[j + 1] = 3; od.data[j + 2] = 10; od.data[j + 3] = 255; }
+      }
+    }
+    og.putImageData(od, 0, 0);
+    AV.cv = out;
+    AV.ax = AV_AX * s + pad;
+    AV.ay = AV_AY * s + pad;
+    AV.ready = true;
+  }
+  // Puntos útiles del dibujo, relativos al ancla y mirando a la derecha (para accesorios y proyectiles).
+  const AVP = { hipY: -16, head: [11, -45], mouth: [14, -40], hand: [22, -41] };
 
   // Al reintentar (la ventana llama otra vez a la fábrica) se sigue en el nivel alcanzado.
   let nivelGuardado = 1;
@@ -306,6 +393,14 @@
     win() { [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, 0.16, 'square', 0.045, null, i * 0.12)); },
     lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, 0.28, 'triangle', 0.06, null, i * 0.22)); },
     dissolve() { noise(2.4, 0.06, 2500); tone(600, 2.4, 'sine', 0.03, 60); },
+    warn() { [880, 660, 880, 660].forEach((f, i) => tone(f, 0.1, 'square', 0.04, null, i * 0.12)); },
+    strong() { noise(0.45, 0.22, 200); tone(55, 0.6, 'square', 0.1, 25); tone(1200, 0.25, 'sawtooth', 0.04, 150); },
+    slopCharge() { tone(200, 0.7, 'sawtooth', 0.04, 600); noise(0.6, 0.03, 900); },
+    slopFire() { noise(0.5, 0.08, 700); tone(420, 0.45, 'square', 0.05, 110); },
+    slopHit() { [1320, 1568, 1320].forEach((f, i) => tone(f, 0.06, 'sine', 0.04, null, i * 0.09)); noise(0.3, 0.06, 1200); },
+    aura() { [196, 262, 330, 392, 523, 659].forEach((f, i) => tone(f, 0.3, 'sawtooth', 0.045, f * 1.01, i * 0.09)); noise(0.8, 0.06, 3000); },
+    six() { tone(330, 0.12, 'square', 0.04, 300); },
+    seven() { tone(262, 0.12, 'square', 0.04, 240); },
   };
   function gsound(name, arg) {
     try { if (Game.sound && Game.sound[name]) Game.sound[name](arg); } catch (e) { /* nada */ }
@@ -488,11 +583,47 @@
   ];
   const HAND_BLINK = HAND_MAP.map((r, j) => (j >= 4 && j <= 7 ? r.replace(/[WIP]/g, j === 6 ? 'L' : 'G') : r));
 
-  Game.minijuegos.pelea = function (host) {
+  // Mano GIGANTE del SIX SEVEN: palma hacia arriba, dedos hacia +x, antebrazo que sale del piso.
+  // Ancla (muñeca) en GH_AX, GH_AY.
+  const GH_AX = 15, GH_AY = 22, GH_SC = 1.4;
+  let giantHandCache = null;
+  function buildGiantHand() {
+    const c = mk(60, 120), g = c.getContext('2d');
+    const G = '#efeaf3', GS = '#a9a3b5', GD = '#6c6575', ROBE = '#2747a8', ROBED = '#182c6e', ROBEH = '#3d63c8';
+    // antebrazo (manga de la túnica)
+    px(g, 7, 24, 17, 96, ROBE); px(g, 7, 24, 3, 96, ROBED); px(g, 19, 24, 2, 96, ROBEH);
+    for (let y = 30; y < 120; y += 9) px(g, 12, y, 1, 4, ROBEH);
+    px(g, 5, 19, 21, 6, '#cfc8d8'); px(g, 5, 23, 21, 2, '#8a829a');            // puño
+    // palma (vista de lado, hacia arriba) y dedos curvados
+    px(g, 4, 9, 40, 11, G); px(g, 4, 17, 40, 3, GS); px(g, 6, 20, 34, 1, GD);
+    px(g, 3, 11, 1, 7, G); px(g, 44, 10, 3, 9, G);
+    for (let k = 0; k < 4; k++) { const fx = 34 + k * 4; px(g, fx, 3 + (k === 3 ? 2 : 0), 3, 8, G); px(g, fx + 2, 4 + (k === 3 ? 2 : 0), 1, 7, GS); }
+    px(g, 7, 1, 5, 9, G); px(g, 11, 2, 1, 7, GS);                                // pulgar
+    // ojo en la palma
+    px(g, 18, 11, 13, 6, '#ffffff'); px(g, 17, 12, 1, 4, '#ffffff'); px(g, 31, 12, 1, 4, '#ffffff');
+    px(g, 22, 11, 5, 6, '#9dff3a'); px(g, 23, 12, 3, 4, '#05030a'); px(g, 23, 12, 1, 1, '#ffffff');
+    px(g, 17, 10, 15, 1, GD); px(g, 17, 17, 15, 1, GD);
+    giantHandCache = c;
+    return c;
+  }
+
+  Game.minijuegos.pelea = function (host, opts) {
     const T = Object.assign({}, DEFAULTS,
       (Game.guion && Game.guion.minijuegos && Game.guion.minijuegos.pelea) || {});
+    const dificultad = (opts && DIF[opts.dificultad]) ? opts.dificultad : 'intermedio';
+    const D = DIF[dificultad];
+    // Nivel ajustado a la dificultad.
+    function nivel(lv) {
+      const b = NIV[lv], o = Object.assign({}, b);
+      o.hp = Math.round(b.hp * D.hp);
+      if (b.speed) o.speed = b.speed * D.speed;
+      if (b.wind) { o.wind = b.wind * D.cd; o.recover = b.recover * D.cd; o.heavyEvery = b.heavyEvery * D.cd; o.charge = b.charge * Math.sqrt(D.cd); }
+      return o;
+    }
     if (!fxCache) fxCache = buildFX();
     if (!bossCache) buildBoss();
+    if (!giantHandCache) buildGiantHand();
+    loadAvatar();
     const fxC = fxCache;
 
     // ---------- DOM ----------
@@ -536,6 +667,13 @@
     hud.appendChild(tip);
     const glitchLab = el('div', 'mjp-glitch'); glitchLab.appendChild(el('span', '', T.glitch)); glitchLab.hidden = true;
     hud.appendChild(glitchLab);
+    const warnLab = el('div', 'mjp-warn'); warnLab.appendChild(el('span', '', TX.golpeFuerte)); warnLab.hidden = true;
+    hud.appendChild(warnLab);
+    const slopLab = el('div', 'mjp-slop'); slopLab.appendChild(el('span', '', TX.slop)); slopLab.hidden = true;
+    hud.appendChild(slopLab);
+    const lab67 = [el('div', 'mjp-67'), el('div', 'mjp-67')];
+    lab67[0].appendChild(el('span', '', TX.six)); lab67[1].appendChild(el('span', '', TX.seven));
+    for (const l of lab67) { l.hidden = true; hud.appendChild(l); }
     const popLayer = el('div'); hud.appendChild(popLayer);
     const card = el('div', 'mjp-card'); const cardH = el('h2'); const cardP = el('p');
     card.appendChild(cardH); card.appendChild(cardP); card.hidden = true;
@@ -603,7 +741,7 @@
 
     // ---------- estado ----------
     let level = clamp(nivelGuardado, 1, 3);
-    let L = NIV[level];
+    let L = nivel(level);
     let bg = buildBG(level);
     let state = 'intro';   // intro | card | fight | ko | lose | win | dissolve | black | over
     let phaseT = 0, fightT = 0, clock = 0, shakeT = 0, shakeA = 0, hitStop = 0;
@@ -617,6 +755,11 @@
     let pickups = [], books = [], acid = [], orbs = [], clones = [], parts = [], pops = [];
     let dis = null;   // desintegración final
     let won = false;
+    let waves = [];   // ondas por el piso (golpe fuerte del Tralalero, SIX SEVEN)
+    let slop = null;  // rayo SLOP: { st: 'prep'|'fly', t, x0, y, dir, head, hand }
+    let aura = false, auraT = 0, auraPow = 0, s67 = null;
+    let bannerT = 0;
+    let frozen = false;   // solo para pruebas (__peleaDebug.freeze)
 
     function att() { return Game.atencion ? Game.atencion.value : attLocal; }
     function danar(n) { if (Game.atencion) Game.atencion.danar(n); else attLocal = Math.max(0, attLocal - n); }
@@ -633,32 +776,43 @@
 
     function resetTom() {
       Object.assign(tom, {
-        x: 86, y: 0, vy: 0, dir: 1, jumps: 0, kickT: 0, kickCd: 0, mameCd: MAME_CD, hurtT: 0, inv: 0,
+        x: 86, y: 0, vy: 0, dir: 1, jumps: 0, kickT: 0, kickCd: 0, mameCd: MAME_CD, mameMax: MAME_CD, hurtT: 0, inv: 0,
         kbx: 0, walkPh: 0, moving: false, act: null, actT: 0, actE: 0, actHit: false, spit: 0, cargas: 0, ko: false,
+        para: 0, spin: 0, powCd: 0,
       });
     }
     function resetEnemy() {
-      L = NIV[level];
+      L = nivel(level);
+      const common = { superT: 0, slopCd: rnd(D.slopEvery[0], D.slopEvery[1]) * 0.6 };
       if (level < 3) {
-        e = { kind: 'log', x: 290, fy: 0, dir: -1, hp: L.hp, max: L.hp, ghost: L.hp, st: 'walk', t: 0, cd: 0.8, heavy: 0,
-          kbx: 0, flash: 0, stagger: 0, walkPh: 0, hitDone: false, comboed: false, ko: false, koT: 0, hw: 11, h: 58 };
+        e = Object.assign({ kind: 'log', x: 290, fy: 0, dir: -1, hp: L.hp, max: L.hp, ghost: L.hp, st: 'walk', t: 0, cd: 0.8, heavy: 0,
+          kbx: 0, flash: 0, stagger: 0, walkPh: 0, hitDone: false, comboed: false, ko: false, koT: 0, hw: 11, h: 58, superDir: -1 }, common);
       } else {
-        e = { kind: 'boss', x: 286, fy: 12, dir: -1, hp: L.hp, max: L.hp, ghost: L.hp, kbx: 0, flash: 0, stagger: 0,
-          glitch: 0, nextGlitch: 5, atkCd: 2.2, ko: false, koT: 0, hw: 18, h: 100, hands: [] };
-        for (let i = 0; i < 6; i++) e.hands.push({ i, x: e.x, y: GY - 70, st: 'orbit', t: 0, vy: 0, blink: rnd(0, 4), sweepDir: 1 });
+        e = Object.assign({ kind: 'boss', x: 286, fy: 12, dir: -1, hp: L.hp, max: L.hp, ghost: L.hp, kbx: 0, flash: 0, stagger: 0,
+          glitch: 0, nextGlitch: 5 * D.cd, atkCd: 2.2 * D.cd, ko: false, koT: 0, hw: 18, h: 100, hands: [] }, common);
+        for (let i = 0; i < 6; i++) e.hands.push({ i, x: e.x, y: GY - 70, st: 'orbit', t: 0, vy: 0, blink: rnd(0, 4), sweepDir: 1, sc: 1, crush: false });
       }
       nameR.textContent = T.enemigos[level - 1] || 'LucIAno';
       lvlTxt.textContent = level < 3 ? (T.nivel + ' ' + level + '/3') : T.finalBoss;
       lvlBox.classList.toggle('boss', level === 3);
     }
     function clearWorld() {
-      pickups = []; books = []; acid = []; orbs = []; clones = []; parts = [];
+      pickups = []; books = []; acid = []; orbs = []; clones = []; parts = []; waves = [];
       for (const p of pops) p.el.remove();
       pops = [];
+      slop = null;
+      endAura();
+    }
+    function endAura() {
+      aura = false; auraT = 0; s67 = null;
+      canvas.style.transform = '';
+      for (const l of lab67) l.hidden = true;
+      warnLab.hidden = true; slopLab.hidden = true;
+      root.classList.remove('aura');
     }
 
     function setupLevel() {
-      L = NIV[level];
+      L = nivel(level);
       bg = buildBG(level);
       resetTom();
       resetEnemy();
@@ -669,7 +823,8 @@
       spawnT = 2.5;
     }
 
-    function showBanner(text, cls) {
+    function showBanner(text, cls, life) {
+      bannerT = life || 0;   // 0 = se queda hasta que alguien lo esconda
       banner.className = 'mjp-banner' + (cls ? ' ' + cls : '');
       banner.textContent = text;
       banner.hidden = false;
@@ -720,10 +875,10 @@
     function beginFight() {
       card.hidden = true;
       state = 'fight'; fightT = 0;
-      showBanner(T.fight);
+      showBanner(T.fight, '', 1.4);
       SFX.fight();
       tipQueue = level === 1
-        ? [[T.instrucciones, 7], [T.poderTips[0], 7]]
+        ? [[T.instrucciones, 7], [T.poderTips[0], 7], [TX.tipSlop, 6], [TX.tipGolpe, 6]]
         : [[T.poderTips[level - 1], 7]];
       tip.hidden = true;
     }
@@ -731,8 +886,9 @@
     function enemyKO() {
       e.ko = true; e.koT = 0; e.hp = 0;
       hitStop = 0.18;
-      orbs = []; acid = []; books = []; pickups = [];
-      tom.act = null; tom.kickT = 0; tom.hurtT = 0; tom.inv = 0;
+      orbs = []; acid = []; books = []; pickups = []; waves = []; slop = null;
+      endAura();
+      tom.act = null; tom.kickT = 0; tom.hurtT = 0; tom.inv = 0; tom.para = 0;
       score(500 * level + Math.round(att()) * 5);
       tip.hidden = true;
       phaseT = 0;
@@ -755,8 +911,9 @@
     function lose() {
       if (state !== 'fight') return;
       state = 'lose'; phaseT = 0;
-      tom.ko = true; tom.act = null; tom.kickT = 0; tom.vy = Math.max(tom.vy, 0);
-      clones = [];
+      tom.ko = true; tom.act = null; tom.kickT = 0; tom.vy = Math.max(tom.vy, 0); tom.para = 0;
+      clones = []; waves = []; slop = null;
+      endAura();
       tip.hidden = true;
       nivelGuardado = level;
       SFX.hurt(); SFX.lose();
@@ -767,6 +924,7 @@
     // ---------- daño ----------
     function hurtTom(n, fromDir, big) {
       if (state !== 'fight' || tom.inv > 0 || tom.ko) return false;
+      n = Math.max(1, Math.round(n * D.dmg));
       if (att() - n <= 0.5) { lose(); return true; }   // el golpe mortal: primero "PERDISTE lol"
       danar(n);
       tom.inv = INV_T; tom.hurtT = big ? 0.45 : 0.3;
@@ -781,10 +939,27 @@
       return true;
     }
 
+    // Rayo SLOP: poco daño, pero Tomás se queda pegado al celular (sin controles) unos segundos.
+    function slopTom(fromDir) {
+      if (state !== 'fight' || tom.inv > 0 || tom.ko || tom.para > 0) return false;
+      const n = Math.max(1, Math.round(SLOP_DMG * D.dmg));
+      if (att() - n <= 0.5) { lose(); return true; }
+      danar(n);
+      tom.para = D.para; tom.inv = 0.2; tom.kbx = fromDir * 60;
+      if (tom.act && tom.act !== 'mame') tom.act = null;
+      tom.kickT = 0;
+      shake(0.15, 2);
+      SFX.slopHit();
+      burst(tom.x, GY - tom.y - 24, 14, ['#9dff3a', '#8a7a2a', '#e6ff9e'], 80, 0.5, 120);
+      pop(TX.paralizado, tom.x, GY - tom.y - 58, 'slop', D.para);
+      return true;
+    }
+
     function startGlitch() {
       if (e.kind !== 'boss' || e.ko) return;
       e.glitch = 1.9;
-      for (const h of e.hands) { h.st = 'drop'; h.vy = rnd(-40, 10); }
+      // la mano del aplastón (golpe fuerte) no se cae: el golpe ya viene avisado
+      for (const h of e.hands) { if (h.crush && (h.st === 'crushHover' || h.st === 'slam')) continue; h.st = 'drop'; h.crush = false; h.vy = rnd(-40, 10); }
       gsound('glitch');
       shake(0.15, 2);
       burst(e.x, GY - e.fy - 60, 14, ['#ff2a6a', '#2affd0', '#ffffff'], 80, 0.5, 0);
@@ -809,8 +984,9 @@
       e.flash = o.quiet ? Math.max(e.flash, 0.035) : 0.09;
       e.stagger = Math.max(e.stagger, o.mame ? 0.6 : 0.15);
       e.kbx += (o.kb || 0) * (e.kind === 'boss' ? 0.3 : 1);
-      if (o.interrupt && e.kind === 'log' && (e.st === 'wind' || e.st === 'charge' || e.st === 'smash' || e.st === 'swing')) {
+      if (o.interrupt && e.kind === 'log' && (e.st === 'wind' || e.st === 'charge' || e.st === 'smash' || e.st === 'swing' || e.st === 'slopPrep')) {
         if (e.st === 'charge' || e.st === 'smash') e.heavy = 0.5;
+        if (e.st === 'slopPrep') { slop = null; e.slopCd = rnd(3, 5); }
         e.st = 'recover'; e.t = 0.55;
       }
       if (mult >= 0.5) {
@@ -819,11 +995,29 @@
         if (!o.quiet) pop(String(Math.round(d)), o.x, o.y - 8, o.acid ? 'verde' : '', 0.7);
       }
       if (e.hp <= 0) enemyKO();
+      else if (e.kind === 'boss' && !aura && e.hp <= e.max * 0.5) startAura();
+    }
+
+    // ---------- BATALLA DE AURA (jefe a media vida) ----------
+    function startAura() {
+      aura = true; auraT = 0; auraPow = 0;
+      hitStop = 0.45;
+      showBanner(TX.aura, 'aura', 3.0);
+      SFX.aura(); gsound('glitch');
+      shake(0.6, 4);
+      orbs = []; slop = null;
+      for (const h of e.hands) if (h.st !== 'drop') { h.st = 'orbit'; h.crush = false; }
+      e.atkCd = Math.max(e.atkCd, 2.6);
+      tom.mameCd = 0; tom.mameMax = AURA_MAME_CD; tom.powCd = 0; tom.para = 0;
+      s67 = { rise: 0, waveT: 3.5 + WAVE67_EVERY * D.wave67 * 0.5, tele: 0, beat: 0 };
+      tipQueue = [[TX.tipAura, 8]]; tip.hidden = true;
+      root.classList.add('aura');
+      burst(tom.x, GY - tom.y - 26, 30, ['#e3d34a', '#9dff3a', '#ffffff'], 140, 0.8, 0, 2);
     }
 
     // ---------- acciones de Tomás ----------
     function live() { return state === 'fight' && fightT > 0.25 && !tom.ko; }
-    function canAct() { return live() && tom.hurtT <= 0 && !tom.act; }
+    function canAct() { return live() && tom.hurtT <= 0 && !tom.act && tom.para <= 0; }
 
     function frontDist(x) { return (x - tom.x) * tom.dir; }
     function enemyInHeight(feetY, top) {
@@ -832,13 +1026,13 @@
     }
 
     function doJump() {
-      if (!live() || tom.hurtT > 0 || (tom.act && tom.act !== 'throw')) return;
+      if (!live() || tom.hurtT > 0 || tom.para > 0 || (tom.act && tom.act !== 'throw')) return;
       if (tom.y <= 0 && tom.jumps === 0) {
         tom.vy = JUMP_V; tom.y = 0.01; tom.jumps = 1;
         SFX.jump();
         burst(tom.x, GY - 1, 5, ['#b9b4bf'], 40, 0.25, 0);
       } else if (tom.jumps === 1) {
-        tom.vy = JUMP_V * 0.96; tom.jumps = 2;
+        tom.vy = JUMP_V * 0.96; tom.jumps = 2; tom.spin = 0.42;
         SFX.jump2();
         for (let i = 0; i < 10; i++) {
           const a = (i / 10) * Math.PI * 2;
@@ -858,7 +1052,8 @@
     function doMame() {
       if (!canAct() || tom.mameCd > 0) return;
       tom.act = 'mame'; tom.actT = 0.5; tom.actE = 0; tom.actHit = false;
-      tom.mameCd = MAME_CD;
+      tom.mameMax = aura ? AURA_MAME_CD : MAME_CD;
+      tom.mameCd = tom.mameMax;
       tom.kbx = tom.dir * 150;
       SFX.mameUp();
       showShout(T.mameitorGrito);
@@ -866,6 +1061,16 @@
     }
     function doPower() {
       if (!canAct()) return;
+      if (aura) {
+        // BATALLA DE AURA: todos los poderes, sin recogerlos, uno tras otro.
+        if (tom.powCd > 0) return;
+        tom.powCd = AURA_POW_CD;
+        const k = 1 + (auraPow % 3);
+        auraPow++;
+        usePower(k);
+        burst(tom.x, GY - tom.y - 26, 10, ['#e3d34a', '#9dff3a'], 70, 0.4, 0);
+        return;
+      }
       if (tom.cargas <= 0) {
         SFX.empty();
         pop(T.sinPoder, tom.x, GY - tom.y - 46, 'bloq', 0.7);
@@ -873,12 +1078,15 @@
         return;
       }
       tom.cargas--;
+      usePower(level);
+    }
+    function usePower(kind) {
       tom.actE = 0;
-      if (level === 1) {
+      if (kind === 1) {
         tom.act = 'throw'; tom.actT = 0.26;
-        books.push({ x: tom.x + tom.dir * 10, y: GY - tom.y - 27, vx: tom.dir * 235, vy: -50, rot: 0, life: 2 });
+        books.push({ x: tom.x + tom.dir * 16, y: GY - tom.y - 34, vx: tom.dir * 235, vy: -50, rot: 0, life: 2 });
         SFX.throw();
-      } else if (level === 2) {
+      } else if (kind === 2) {
         tom.act = 'touch'; tom.actT = 0.5;
         SFX.grass();
         burst(tom.x + tom.dir * 8, GY - 2, 16, ['#9dff3a', '#4f9a12', '#e3d34a'], 70, 0.6, 120);
@@ -895,6 +1103,9 @@
       if (tom.kickCd > 0) tom.kickCd -= dt;
       if (tom.inv > 0) tom.inv -= dt;
       if (tom.hurtT > 0) tom.hurtT -= dt;
+      if (tom.para > 0) tom.para = Math.max(0, tom.para - dt);
+      if (tom.spin > 0) tom.spin = Math.max(0, tom.spin - dt);
+      if (tom.powCd > 0) tom.powCd -= dt;
       if (lv && tom.mameCd > 0) tom.mameCd = Math.max(0, tom.mameCd - dt);
 
       if (tom.act) {
@@ -915,7 +1126,7 @@
           tom.spit -= dt;
           while (tom.spit <= 0) {
             tom.spit += 0.03;
-            acid.push({ x: tom.x + tom.dir * 8, y: GY - tom.y - 31, vx: tom.dir * rnd(190, 300), vy: rnd(-75, 10), life: 1.6 });
+            acid.push({ x: tom.x + tom.dir * (AV.ready ? AVP.mouth[0] : 8), y: GY - tom.y - (AV.ready ? -AVP.mouth[1] - 4 : 31), vx: tom.dir * rnd(190, 300), vy: rnd(-75, 10), life: 1.6 });
           }
         }
         if (tom.actT <= 0) {
@@ -936,7 +1147,7 @@
       }
 
       let mv = 0;
-      if (lv && tom.hurtT <= 0 && (!tom.act || tom.act === 'throw')) mv = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      if (lv && tom.hurtT <= 0 && tom.para <= 0 && (!tom.act || tom.act === 'throw')) mv = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
       tom.moving = mv !== 0;
       if (tom.moving) tom.walkPh += dt * 13;
       tom.x += (mv * WALK + tom.kbx) * dt;
@@ -950,7 +1161,7 @@
           burst(tom.x, GY - 1, 4, ['#6c6575'], 30, 0.2, 0);
         }
       }
-      if (!tom.ko && tom.kickT <= 0 && (!tom.act || tom.act === 'touch')) tom.dir = e.x >= tom.x ? 1 : -1;
+      if (!tom.ko && tom.para <= 0 && tom.kickT <= 0 && (!tom.act || tom.act === 'touch')) tom.dir = e.x >= tom.x ? 1 : -1;
       tom.x = clamp(tom.x, 10, W - 10);
 
       // el tronco es sólido: hay que saltarlo con doble salto
@@ -986,12 +1197,26 @@
       e.x = clamp(e.x, 16, W - 16);
       if (!live()) return;
       if (e.st === 'walk') e.heavy = Math.min(1, e.heavy + dt / L.heavyEvery);
+      if (e.st !== 'superTele') e.superT += dt;
+      if (e.st === 'walk' && !slop) e.slopCd -= dt;
       const dx = tom.x - e.x, dist = Math.abs(dx);
       const fd = dx * e.dir;
       switch (e.st) {
         case 'walk':
           e.dir = dx >= 0 ? 1 : -1;
           if (e.stagger <= 0 && dist > L.reach - 8) { e.x += e.dir * L.speed * dt; e.walkPh += dt * 7; }
+          if (e.stagger <= 0 && e.superT >= D.strongEvery && dist < STRONG_RANGE - 25) {
+            // GOLPE FUERTE: aviso largo, sin interrupción; luego una onda por el piso hacia Tomás.
+            e.st = 'superTele'; e.t = D.strongTele; e.superDir = e.dir; e.superT = 0;
+            SFX.warn(); SFX.charge();
+            break;
+          }
+          if (e.stagger <= 0 && e.slopCd <= 0 && !slop && dist > 30 && tom.para <= 0) {
+            e.st = 'slopPrep'; e.t = D.slopTele;
+            slop = { st: 'prep', t: D.slopTele, x0: e.x + e.dir * 12, y: GY - SLOP_H, dir: e.dir, head: 0, hand: null };
+            SFX.slopCharge();
+            break;
+          }
           if (e.cd <= 0 && e.stagger <= 0 && dist <= L.reach + 2 && tom.y < 44) {
             if (e.heavy >= 1) { e.st = 'charge'; e.t = L.charge; e.heavy = 0; SFX.charge(); }
             else { e.st = 'wind'; e.t = L.wind; SFX.wind(); }
@@ -1027,27 +1252,103 @@
           e.t -= dt;
           if (e.t <= 0) { e.st = 'walk'; e.cd = 0.25; }
           break;
+        case 'superTele':
+          e.t -= dt;
+          e.dir = e.superDir;
+          if (Math.random() < 0.7) parts.push({ x: e.x + rnd(-16, 16), y: GY - rnd(6, 76), vx: 0, vy: -60, life: 0.4, max: 0.4, col: Math.random() < 0.5 ? '#ff2a4a' : '#ffffff', g: 0, sz: 1 });
+          if (e.t <= 0) {
+            e.st = 'recover'; e.t = L.recover + 0.7;
+            SFX.strong(); shake(0.4, 6); hitStop = 0.05;
+            waves.push({ x: e.x + e.dir * 10, dir: e.dir, d: 0, max: STRONG_RANGE, speed: 300, h: 16, dmg: STRONG_DMG, hit: false, col: ['#ff2a4a', '#ffffff', '#ff4fbf'], big: true });
+            burst(e.x + e.dir * 18, GY - 2, 24, ['#ff2a4a', '#ffffff', '#e3d34a'], 160, 0.5, 260, 2);
+          }
+          break;
+        case 'slopPrep':
+          e.dir = slop ? slop.dir : e.dir;
+          if (!slop) { e.st = 'recover'; e.t = 0.4; break; }
+          if (slop.st === 'fly') { e.st = 'recover'; e.t = 0.6 * D.cd; e.slopCd = rnd(D.slopEvery[0], D.slopEvery[1]); }
+          break;
       }
       e.x = clamp(e.x, 16, W - 16);
     }
 
     function freeHands() { return e.hands.filter((h) => h.st === 'orbit'); }
+    const shuffle = (a) => a.sort(() => Math.random() - 0.5);
+    // Escala objetivo de cada mano: chiquitas en la órbita, enormes cuando atacan.
+    function handScale(h) {
+      if (h.crush) return 5;
+      if (h.st === 'orbit' || h.st === 'aim' || h.st === 'drop') return 1;
+      return 3;
+    }
+    const handGround = (h, sc) => GY - 5.5 * (sc == null ? h.sc : sc);
     function bossAttack() {
       const free = freeHands();
       if (!free.length) return;
       const r = Math.random();
       const lowHp = e.hp < e.max * 0.5;
-      if (r < 0.42) {
+      if (r < 0.3) {
+        // manotazo desde arriba
         const n = lowHp ? 2 : 1;
-        free.sort(() => Math.random() - 0.5).slice(0, n).forEach((h, k) => { h.st = 'hover'; h.t = 0.8 + k * 0.4; });
-      } else if (r < 0.72) {
+        shuffle(free).slice(0, n).forEach((h, k) => { h.st = 'hover'; h.t = 0.8 + k * 0.4; });
+      } else if (r < 0.5) {
+        // barrida por el piso
         const h = free[(Math.random() * free.length) | 0];
         h.st = 'sweepPrep'; h.t = 0.75; h.sweepDir = tom.x >= e.x ? 1 : -1;
         h.sx = clamp(e.x - h.sweepDir * 10, 8, W - 8);
+      } else if (r < 0.72 && free.length >= 2) {
+        // aplauso: dos manos te aplastan desde los lados (hay que saltar)
+        const [a, b] = shuffle(free);
+        const xm = clamp(tom.x, 40, W - 40);
+        a.st = 'clapPrep'; a.t = 0.8; a.sx = xm - 52; a.xm = xm; a.sweepDir = 1;
+        b.st = 'clapPrep'; b.t = 0.8; b.sx = xm + 52; b.xm = xm; b.sweepDir = -1;
+        tone(150, 0.5, 'sawtooth', 0.03, 300);
       } else {
-        free.sort(() => Math.random() - 0.5).slice(0, lowHp ? 4 : 3).forEach((h, k) => { h.st = 'aim'; h.t = 0.55 + k * 0.18; });
+        shuffle(free).slice(0, lowHp ? 4 : 3).forEach((h, k) => { h.st = 'aim'; h.t = 0.55 + k * 0.18; });
       }
-      e.atkCd = lerp(1.25, 2.3, e.hp / e.max);
+      e.atkCd = lerp(1.25, 2.3, e.hp / e.max) * D.cd * (aura ? 0.75 : 1);
+    }
+    function bossSpecials(dt) {
+      // GOLPE FUERTE del jefe: una mano descomunal te sigue desde arriba y aplasta.
+      if (!e.hands.some((h) => h.crush)) e.superT += dt;
+      if (e.superT >= D.strongEvery) {
+        const free = freeHands();
+        if (free.length) {
+          const h = free[0];
+          h.crush = true; h.st = 'crushHover'; h.t = D.strongTele + 0.35; h.tx = tom.x;
+          e.superT = 0;
+          SFX.warn(); SFX.charge();
+        }
+      }
+      // rayo SLOP desde una mano
+      if (!slop) e.slopCd -= dt;
+      if (!slop && e.slopCd <= 0 && tom.para <= 0) {
+        const free = freeHands();
+        if (free.length) {
+          const h = free[(Math.random() * free.length) | 0];
+          const dir = tom.x >= e.x ? 1 : -1;
+          h.st = 'slopPrep';
+          slop = { st: 'prep', t: D.slopTele + 0.25, x0: clamp(e.x + dir * 26, 12, W - 12), y: GY - SLOP_H, dir, head: 0, hand: h };
+          e.slopCd = rnd(D.slopEvery[0], D.slopEvery[1]) * (aura ? 0.75 : 1);
+          SFX.slopCharge();
+        } else e.slopCd = 0.5;
+      }
+      // SIX SEVEN: las manos gigantes golpean el piso y mandan ondas
+      if (aura && s67 && s67.rise >= 1) {
+        if (s67.tele > 0) {
+          s67.tele -= dt;
+          if (s67.tele <= 0) {
+            SFX.slam(); shake(0.3, 4);
+            for (const side of [1, -1]) {
+              const x = side > 0 ? 40 : W - 40;
+              waves.push({ x, dir: side, d: 0, max: W / 2 - 34, speed: 190 * D.speed, h: 12, dmg: WAVE67_DMG, hit: false, col: ['#e3d34a', '#ffffff', '#9dff3a'] });
+              burst(x, GY - 2, 16, ['#e3d34a', '#ffffff'], 120, 0.5, 250);
+            }
+          }
+        } else {
+          s67.waveT -= dt;
+          if (s67.waveT <= 0) { s67.waveT = WAVE67_EVERY * D.wave67; s67.tele = 0.9; SFX.warn(); }
+        }
+      }
     }
     function updBoss(dt) {
       if (e.flash > 0) e.flash -= dt;
@@ -1058,25 +1359,27 @@
       if (Math.abs(e.kbx) < 3) e.kbx = 0;
       const lv = live();
       if (lv) {
+        if (aura && s67) s67.rise = Math.min(1, s67.rise + dt / 1.4);
         if (e.glitch > 0) {
           e.glitch -= dt;
           if (Math.random() < 0.15) gsound('tick');
           if (e.glitch <= 0) {
             e.glitch = 0;
-            e.nextGlitch = rnd(4.6, 6.4);
+            e.nextGlitch = rnd(4.6, 6.4) * D.cd;
             for (const h of e.hands) if (h.st === 'drop') h.st = 'orbit';
             e.atkCd = Math.max(e.atkCd, 0.9);
           }
         } else {
           e.nextGlitch -= dt;
-          if (e.nextGlitch <= 0) startGlitch();
+          if (e.nextGlitch <= 0 && !e.hands.some((h) => h.crush)) startGlitch();
           // mantenerse a distancia de Tomás
           const away = sgn(e.x - tom.x);
           const target = clamp(tom.x + away * 92, 40, W - 40);
-          const sp = Math.abs(tom.x - e.x) < 34 ? 48 : 26;
+          const sp = (Math.abs(tom.x - e.x) < 34 ? 48 : 26) * D.speed;
           if (Math.abs(target - e.x) > 2) e.x += sgn(target - e.x) * sp * dt;
           e.atkCd -= dt;
           if (e.atkCd <= 0) bossAttack();
+          bossSpecials(dt);
         }
       }
       e.x = clamp(e.x, 26, W - 26);
@@ -1086,42 +1389,79 @@
       for (const h of e.hands) {
         h.blink -= dt;
         if (h.blink < -0.12) h.blink = rnd(1.5, 4.5);
+        h.sc += (handScale(h) - h.sc) * Math.min(1, dt * 8);
         let tx, ty, k = Math.min(1, dt * 7);
         switch (h.st) {
           case 'orbit': {
             const a = h.i * Math.PI / 3 + clock * 0.7;
             tx = cx + Math.cos(a) * 46; ty = cy + Math.sin(a) * 32;
+            h.crush = false;
             break;
           }
           case 'hover':
             h.t -= dt;
             if (h.t > 0.28) h.tx = tom.x;
-            tx = clamp(h.tx == null ? tom.x : h.tx, 8, W - 8); ty = GY - 80; k = Math.min(1, dt * 9);
+            tx = clamp(h.tx == null ? tom.x : h.tx, 8, W - 8); ty = GY - 90; k = Math.min(1, dt * 9);
             if (lv && h.t <= 0) { h.st = 'slam'; h.vy = 60; }
             break;
-          case 'slam':
-            h.vy += 1600 * dt; h.y += h.vy * dt; tx = h.x; ty = h.y; k = 0;
-            if (h.y >= GY - 6) {
-              h.y = GY - 6; h.st = 'ground'; h.t = 0.5;
-              SFX.slam(); shake(0.2, 3);
-              burst(h.x, GY - 2, 14, ['#b9b4bf', '#efeaf3', '#e3d34a'], 110, 0.4, 250);
-              if (Math.abs(tom.x - h.x) < 13 && tom.y < 26) hurtTom(11, sgn(tom.x - h.x), true);
+          case 'crushHover':
+            h.t -= dt;
+            if (h.t > 0.35) h.tx = tom.x;
+            tx = clamp(h.tx, 20, W - 20); ty = GY - 108 + Math.sin(clock * 30) * 1.5; k = Math.min(1, dt * 6);
+            if (lv && h.t <= 0) { h.st = 'slam'; h.vy = 120; }
+            break;
+          case 'slam': {
+            h.vy += (h.crush ? 2200 : 1600) * dt; h.y += h.vy * dt; tx = h.x; ty = h.y; k = 0;
+            const gy = handGround(h, handScale(h));
+            if (h.y >= gy) {
+              h.y = gy; h.st = 'ground'; h.t = h.crush ? 0.8 : 0.5;
+              if (h.crush) {
+                SFX.strong(); shake(0.45, 7); hitStop = 0.06;
+                burst(h.x, GY - 2, 34, ['#b9b4bf', '#efeaf3', '#ff2a4a', '#e3d34a'], 190, 0.6, 260, 2);
+                if (Math.abs(tom.x - h.x) < CRUSH_HALF && tom.y < 40) hurtTom(STRONG_DMG, sgn(tom.x - h.x), true);
+              } else {
+                SFX.slam(); shake(0.2, 3);
+                burst(h.x, GY - 2, 14, ['#b9b4bf', '#efeaf3', '#e3d34a'], 110, 0.4, 250);
+                if (Math.abs(tom.x - h.x) < 5.5 * h.sc + 4 && tom.y < 26) hurtTom(11, sgn(tom.x - h.x), true);
+              }
             }
             break;
+          }
           case 'ground':
-            h.t -= dt; tx = h.x; ty = GY - 6; k = 0;
+            h.t -= dt; tx = h.x; ty = handGround(h); k = 1;
             if (h.t <= 0) h.st = 'orbit';
             break;
           case 'sweepPrep':
-            h.t -= dt; tx = h.sx; ty = GY - 6; k = Math.min(1, dt * 10);
+            h.t -= dt; tx = h.sx; ty = handGround(h); k = Math.min(1, dt * 10);
             if (lv && h.t <= 0) { h.st = 'sweep'; tone(300, 0.4, 'sawtooth', 0.03, 900); }
             break;
           case 'sweep':
-            h.x += h.sweepDir * 245 * dt; tx = h.x; ty = GY - 6; k = 1;
+            h.x += h.sweepDir * 245 * D.speed * dt; tx = h.x; ty = handGround(h); k = 1;
             if (Math.random() < 0.6) parts.push({ x: h.x - h.sweepDir * 5, y: GY - 2, vx: -h.sweepDir * 30, vy: -20, life: 0.3, max: 0.3, col: '#b9b4bf', g: 100, sz: 1 });
-            if (Math.abs(tom.x - h.x) < 9 && tom.y < 13) hurtTom(9, h.sweepDir);
+            if (Math.abs(tom.x - h.x) < 5 * h.sc && tom.y < 9 * h.sc - 6) hurtTom(9, h.sweepDir);
             if (h.x < -12 || h.x > W + 12) { h.st = 'orbit'; h.y = GY - 120; }
             break;
+          case 'clapPrep':
+            h.t -= dt; tx = clamp(h.sx, 6, W - 6); ty = handGround(h); k = Math.min(1, dt * 10);
+            if (lv && h.t <= 0) { h.st = 'clap'; tone(240, 0.3, 'sawtooth', 0.04, 700); }
+            break;
+          case 'clap': {
+            const stop = h.xm - h.sweepDir * 5.5 * h.sc;
+            h.x += h.sweepDir * 300 * D.speed * dt; tx = h.x; ty = handGround(h); k = 1;
+            if (Math.random() < 0.6) parts.push({ x: h.x - h.sweepDir * 8, y: GY - 2, vx: -h.sweepDir * 30, vy: -20, life: 0.3, max: 0.3, col: '#b9b4bf', g: 100, sz: 1 });
+            if (Math.abs(tom.x - h.x) < 5 * h.sc && tom.y < 9 * h.sc - 4) hurtTom(10, h.sweepDir, true);
+            if ((h.x - stop) * h.sweepDir >= 0) {
+              h.x = stop; h.st = 'ground'; h.t = 0.35;
+              if (h.sweepDir > 0) { SFX.slam(); shake(0.2, 3); burst(h.xm, GY - 12, 16, ['#ffffff', '#e3d34a'], 120, 0.35, 0); }
+            }
+            break;
+          }
+          case 'slopPrep': {
+            const sl = slop && slop.hand === h ? slop : null;
+            if (!sl || sl.st === 'fly') { h.st = 'orbit'; break; }
+            tx = sl.x0 - sl.dir * 4; ty = sl.y; k = Math.min(1, dt * 9);
+            break;
+          }
           case 'aim':
             h.t -= dt; k = Math.min(1, dt * 5);
             {
@@ -1129,8 +1469,8 @@
               tx = cx + Math.cos(a) * 46; ty = cy + Math.sin(a) * 32 - 6;
             }
             if (lv && h.t <= 0) {
-              const ax = tom.x - h.x, ay = (GY - tom.y - 20) - h.y, d = Math.hypot(ax, ay) || 1;
-              orbs.push({ x: h.x, y: h.y, vx: ax / d * 125, vy: ay / d * 125, life: 3.2 });
+              const ax = tom.x - h.x, ay = (GY - tom.y - 24) - h.y, d = Math.hypot(ax, ay) || 1;
+              orbs.push({ x: h.x, y: h.y, vx: ax / d * 125 * D.speed, vy: ay / d * 125 * D.speed, life: 3.2 });
               SFX.orb();
               h.st = 'orbit';
             }
@@ -1148,6 +1488,33 @@
     }
 
     function updCommon(dt) {
+      // rayo SLOP: aviso → sale disparado a la altura de la cintura (se esquiva saltando)
+      if (slop) {
+        if (slop.st === 'prep') {
+          slop.t -= dt;
+          if (e.kind === 'log') slop.x0 = e.x + slop.dir * 12;
+          else if (slop.hand) slop.x0 = slop.hand.x + slop.dir * 4 * slop.hand.sc;
+          if (Math.random() < 0.6) parts.push({ x: slop.x0 + rnd(-4, 4), y: slop.y + rnd(-4, 4), vx: rnd(-15, 15), vy: rnd(-25, 5), life: 0.3, max: 0.3, col: Math.random() < 0.5 ? '#9dff3a' : '#8a7a2a', g: 0, sz: 1 });
+          if (slop.t <= 0) { slop.st = 'fly'; slop.head = 0; SFX.slopFire(); }
+        } else {
+          slop.head += SLOP_SPEED * dt;
+          const tail = Math.max(0, slop.head - SLOP_LEN);
+          const a = slop.x0 + slop.dir * tail, b = slop.x0 + slop.dir * slop.head;
+          const lo = Math.min(a, b) - 5, hi = Math.max(a, b) + 5;
+          if (!slop.hit && tom.x > lo && tom.x < hi && tom.y < SLOP_H + 2) { if (slopTom(slop.dir)) slop.hit = true; }
+          if (Math.random() < 0.7) parts.push({ x: b, y: slop.y + rnd(-3, 3), vx: -slop.dir * rnd(10, 40), vy: rnd(-20, 20), life: 0.35, max: 0.35, col: Math.random() < 0.5 ? '#9dff3a' : '#c9b25a', g: 0, sz: 1 });
+          if (tail > W + 40) slop = null;
+        }
+      }
+      // ondas por el piso
+      for (let i = waves.length - 1; i >= 0; i--) {
+        const w = waves[i];
+        w.d += w.speed * dt;
+        const fx = w.x + w.dir * w.d;
+        if (!w.hit && Math.abs(tom.x - fx) < 8 && tom.y < w.h) { w.hit = true; hurtTom(w.dmg, w.dir, true); }
+        if (Math.random() < 0.8) parts.push({ x: fx, y: GY - 1, vx: w.dir * rnd(0, 30), vy: rnd(-90, -30), life: 0.35, max: 0.35, col: w.col[(Math.random() * w.col.length) | 0], g: 300, sz: w.big ? 2 : 1 });
+        if (w.d >= w.max) waves.splice(i, 1);
+      }
       // proyectiles: libros
       for (let i = books.length - 1; i >= 0; i--) {
         const b = books[i];
@@ -1254,8 +1621,12 @@
         if (phaseT >= 1.7) beginFight();
       } else if (state === 'fight') {
         fightT += dt;
-        if (fightT > 0.8) hideBanner(true);
-        if (fightT > 1.4 && !banner.hidden && banner.classList.contains('sale')) banner.hidden = true;
+        if (bannerT > 0) {
+          bannerT -= dt;
+          if (bannerT <= 0.6) hideBanner(true);
+          if (bannerT <= 0) banner.hidden = true;
+        }
+        if (aura) auraT += dt;
         // avisos
         if (tipQueue.length) {
           const [txt, dur] = tipQueue[0];
@@ -1263,7 +1634,7 @@
           if (fightT - tipQueue[0][2] >= dur) { tipQueue.shift(); tip.hidden = true; }
         }
         updTom(dt);
-        if (state === 'fight') { if (e.kind === 'log') updLog(dt); else updBoss(dt); }
+        if (state === 'fight' && !frozen) { if (e.kind === 'log') updLog(dt); else updBoss(dt); }
         if (state === 'fight') updCommon(dt);
       } else if (state === 'ko') {
         phaseT += dt; e.koT += dt;
@@ -1480,6 +1851,7 @@
     function tomPoseOf() {
       if (tom.ko) return 'ko';
       if (state === 'win' || state === 'dissolve' || state === 'black' || state === 'ko') return tom.y > 0 ? 'jump' : 'win';
+      if (tom.para > 0) return 'para';
       if (tom.hurtT > 0) return 'hurt';
       if (tom.act) return tom.act;
       if (tom.kickT > 0) return 'kick';
@@ -1487,7 +1859,115 @@
       if (tom.moving) return 'walk';
       return 'idle';
     }
-    function drawTomSprite(pose, ph, actE, x, y, dir, alpha, ghost) {
+    // ---------- Tomás con el dibujo del cliente: una sola imagen animada con transformaciones ----------
+    // Devuelve desplazamiento, giro (alrededor de la cadera) y estiramiento para cada pose.
+    function avatarXf(pose, ph, actE, o) {
+      const f = { dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, piv: AVP.hipY };
+      switch (pose) {
+        case 'idle': { const b = Math.sin(ph * 3); f.sy = 1 + b * 0.035; f.sx = 1 - b * 0.025; break; }
+        case 'walk': {
+          const b = Math.sin(ph);
+          f.dy = -Math.abs(b) * 2.5; f.rot = 0.07 + b * 0.06;
+          f.sy = 1 + Math.abs(Math.cos(ph)) * 0.05; f.sx = 1 - Math.abs(Math.cos(ph)) * 0.04;
+          break;
+        }
+        case 'jump':
+          if (o.spin > 0) f.rot = (1 - o.spin / 0.42) * Math.PI * 2;  // doble salto: maroma
+          else if (o.vy > 0) { f.sy = 1.12; f.sx = 0.9; f.rot = -0.12; }
+          else { f.sy = 0.97; f.sx = 1.03; f.rot = 0.1; }
+          break;
+        case 'kick': f.rot = -0.5; f.dx = 4; f.sx = 1.12; f.sy = 0.95; break;
+        case 'hurt': f.rot = -0.32; f.dx = -3; f.sx = 0.88; f.sy = 1.08; break;
+        case 'throw': f.rot = 0.25; f.dx = 2; f.sx = 1.1; break;
+        case 'touch': f.rot = 0.45; f.sy = 0.72; f.sx = 1.12; f.piv = 0; break;
+        case 'drink': f.rot = -0.2; f.sy = 1.04; break;
+        case 'vomit': f.rot = 0.3 + Math.sin(ph * 40) * 0.04; f.dx = Math.sin(ph * 37); f.sy = 0.95; break;
+        case 'mame': f.rot = actE < 0.12 ? -0.3 : -0.12; f.sx = actE < 0.12 ? 0.9 : 1.08; break;
+        case 'win': { const b = Math.abs(Math.sin(ph * 5)); f.dy = -b * 7; f.sy = 0.9 + b * 0.18; f.sx = 1.08 - b * 0.12; f.rot = Math.sin(ph * 2.5) * 0.08; break; }
+        case 'para':
+          // pegado al celular: se tambalea
+          f.rot = Math.sin(ph * 7) * 0.17 + 0.08; f.dx = Math.sin(ph * 3.5) * 2.5;
+          f.sy = 1 + Math.sin(ph * 14) * 0.03; f.sx = 1 - Math.sin(ph * 14) * 0.02;
+          break;
+        case 'ko': f.rot = -1.48; f.piv = 0; f.dy = -6; f.dx = 2; break;
+      }
+      return f;
+    }
+    function drawPhone(g, ph) {
+      // celular grande frente a la cara, con scroll infinito
+      const x = AVP.hand[0] - 7, y = AVP.head[1] - 6;
+      g.globalAlpha = 0.3 + Math.sin(ph * 9) * 0.1;       // luz azul en la cara
+      g.fillStyle = '#5ad8ff'; g.fillRect(x - 6, y - 2, 7, 13);
+      g.globalAlpha = 1;
+      px(g, x - 1, y - 1, 10, 16, '#05030a');
+      px(g, x, y, 8, 14, '#2a2733');
+      px(g, x + 1, y + 1, 6, 11, '#5ad8ff');
+      const sc = Math.floor(ph * 10) % 5;
+      for (let k = 0; k < 4; k++) {
+        const yy = y + 1 + ((k * 3 + 5 - sc) % 11);
+        px(g, x + 1, yy, k % 2 ? 4 : 6, 1, '#e8fbff');
+        if (k === 1) px(g, x + 1, yy + 1, 2, 1, '#ff4fbf');
+      }
+      px(g, x + 3, y + 12, 2, 1, '#6c6575');
+      px(g, x + 7, y + 6, 3, 5, '#f6f2fa'); px(g, x + 7, y + 6, 3, 1, '#05030a');   // dedos
+    }
+    function drawGlass(g, actE) {
+      const [hx, hy] = AVP.hand;
+      px(g, hx - 2, hy - 7, 6, 8, '#05030a');
+      px(g, hx - 1, hy - 6, 4, 6, '#cfe8f0');
+      const lvl = Math.min(4, Math.floor(actE * 9));
+      px(g, hx, hy - 5 + lvl, 2, 5 - lvl, '#9dff3a');
+    }
+    function drawMegaLeg(g) {
+      const C = TC, hipY = AVP.hipY + 2;
+      px(g, -3, hipY - 3, 7, 5, C.jean);
+      tl(g, 2, hipY, 11, hipY - 2, C.sk, 7);
+      disc(g, 6, hipY - 2, 4, C.sk);
+      tl(g, 11, hipY - 2, 22, hipY - 4, C.sk, 5);
+      disc(g, 16, hipY + 1, 3, C.sk);
+      px(g, 4, hipY - 5, 5, 1, C.skh); px(g, 12, hipY - 5, 4, 1, C.skh); px(g, 10, hipY - 3, 2, 2, C.skh);
+      px(g, 4, hipY + 3, 7, 1, C.skd); px(g, 13, hipY + 3, 6, 1, C.skd);
+      px(g, 6, hipY - 2, 1, 1, C.vein); px(g, 7, hipY - 1, 2, 1, C.vein); px(g, 9, hipY, 1, 1, C.vein); px(g, 15, hipY - 3, 2, 1, C.vein); px(g, 17, hipY - 2, 1, 1, C.vein);
+      px(g, 22, hipY - 9, 5, 10, C.shoe); px(g, 27, hipY - 9, 1, 10, C.sole); px(g, 22, hipY - 9, 5, 1, C.shoed);
+    }
+    function drawAvatar(pose, ph, actE, x, y, dir, alpha, ghost, o) {
+      const f = avatarXf(pose, ph, actE, o);
+      const cv = AV.cv, cw = cv.width, ch = cv.height;
+      ctx.save();
+      ctx.translate(Math.round(x), GY - Math.round(y));
+      ctx.scale(dir, 1);
+      ctx.translate(f.dx, f.dy + f.piv);
+      ctx.rotate(f.rot);
+      ctx.scale(f.sx, f.sy);
+      ctx.translate(0, -f.piv);
+      ctx.globalAlpha = alpha;
+      const ox = -Math.round(AV.ax), oy = -Math.round(AV.ay);
+      // brillo sutil (verde ácido; dorado/verde en la BATALLA DE AURA; verde fuerte en los clones)
+      const glowCol = ghost ? '#9dff3a' : (o.aura ? (Math.sin(clock * 12) > 0 ? '#e3d34a' : '#9dff3a') : '#9dff3a');
+      const t = tinted(cv, glowCol, cw, ch);
+      ctx.globalAlpha = alpha * (ghost ? 0.5 : (o.aura ? 0.75 : 0.28));
+      const r = o.aura ? 2 : 1;
+      for (const [gx, gy] of [[-r, 0], [r, 0], [0, -r], [0, r]]) ctx.drawImage(t, 0, 0, cw, ch, ox + gx, oy + gy, cw, ch);
+      ctx.globalAlpha = alpha;
+      if (pose === 'mame' && actE >= 0.12) drawMegaLeg(ctx);
+      if (ghost) ctx.drawImage(tinted(cv, '#c8ff9a', cw, ch), 0, 0, cw, ch, ox, oy, cw, ch); else ctx.drawImage(cv, ox, oy);
+      if (!ghost) {
+        if (pose === 'para') drawPhone(ctx, ph);
+        else if (pose === 'drink') drawGlass(ctx, actE);
+        else if (pose === 'vomit') px(ctx, AVP.mouth[0] - 1, AVP.mouth[1] - 1, 3, 3, '#9dff3a');
+        if (pose === 'ko') { // ojos de "x"
+          const [hx, hy] = AVP.head;
+          for (const ex of [hx - 3, hx + 2]) { px(ctx, ex - 1, hy - 1, 1, 1, '#ff4a6e'); px(ctx, ex + 1, hy - 1, 1, 1, '#ff4a6e'); px(ctx, ex, hy, 1, 1, '#ff4a6e'); px(ctx, ex - 1, hy + 1, 1, 1, '#ff4a6e'); px(ctx, ex + 1, hy + 1, 1, 1, '#ff4a6e'); }
+        }
+        if (o.hurt > 0) { // destello al recibir un golpe
+          ctx.globalAlpha = alpha * 0.85;
+          ctx.drawImage(tinted(cv, Math.floor(o.hurt * 24) % 2 ? '#ffffff' : '#ff4a6e', cw, ch), 0, 0, cw, ch, ox, oy, cw, ch);
+        }
+      }
+      ctx.restore();
+    }
+    function drawTomSprite(pose, ph, actE, x, y, dir, alpha, ghost, o) {
+      if (AV.ready) { drawAvatar(pose, ph, actE, x, y, dir, alpha, ghost, o || {}); return; }
       tG.clearRect(0, 0, 64, 64);
       tG.save(); tG.translate(32, 60); drawTomPose(tG, pose, ph, actE); tG.restore();
       cG.clearRect(0, 0, 64, 64);
@@ -1527,7 +2007,7 @@
       }
       const walking = e.st === 'walk' && e.stagger <= 0 && !e.ko;
       const bob = walking ? (Math.sin(e.walkPh) > 0 ? 1 : 0) : 0;
-      const shk = e.st === 'charge' ? Math.round(Math.sin(clock * 60)) : 0;
+      const shk = e.st === 'charge' || e.st === 'superTele' ? Math.round(Math.sin(clock * 60)) : 0;
       g.translate(shk, 0);
       const top = -60 + bob, bottom = -14;
       const Lx = -11, Wd = 22;
@@ -1573,7 +2053,7 @@
         px(g, fx - 6, fy, 4, 3, eyeW); px(g, fx + 1, fy, 4, 3, eyeW);
         px(g, fx - 4, fy + 1, 2, 2, '#000'); px(g, fx + 3, fy + 1, 2, 2, '#000');
         tl(g, fx - 7, fy - 3, fx - 2, fy - 1, '#000', 1); tl(g, fx + 6, fy - 3, fx + 1, fy - 1, '#000', 1);
-        const angry = e.st === 'wind' || e.st === 'swing' || e.st === 'charge' || e.st === 'smash';
+        const angry = e.st === 'wind' || e.st === 'swing' || e.st === 'charge' || e.st === 'smash' || e.st === 'superTele' || e.st === 'slopPrep';
         px(g, fx - 4, fy + 7, 7, angry ? 3 : 2, '#2a0e04');
         if (angry) { px(g, fx - 3, fy + 7, 1, 1, '#fff'); px(g, fx + 1, fy + 7, 1, 1, '#fff'); }
       }
@@ -1583,6 +2063,7 @@
       else if (e.st === 'wind') ang = lerp(70, 150, 1 - e.t / (e.comboed ? L.wind * 0.7 : L.wind));
       else if (e.st === 'swing') ang = lerp(150, -15, 1 - e.t / 0.14);
       else if (e.st === 'charge') ang = 165 + Math.sin(clock * 50) * 4;
+      else if (e.st === 'superTele') ang = 172 + Math.sin(clock * 60) * 6;
       else if (e.st === 'smash') ang = lerp(165, -35, Math.min(1, (0.26 - e.t) / 0.12));
       else if (e.st === 'recover') ang = e.t > 0.4 ? -15 : lerp(70, -15, e.t / 0.4);
       else ang = 70 + Math.sin(clock * 3) * 4;
@@ -1590,7 +2071,7 @@
       const shx = 9, shy = top + 30, hx = shx + 6, hy = shy - 1;
       tl(g, shx, shy, hx, hy, OUT, 2);
       const dx = Math.cos(a), dy = -Math.sin(a);
-      const heavyGlow = e.st === 'charge' || e.st === 'smash' || (e.heavy >= 1 && !e.ko);
+      const heavyGlow = e.st === 'charge' || e.st === 'smash' || e.st === 'superTele' || (e.heavy >= 1 && !e.ko);
       if (heavyGlow) {
         g.globalAlpha = 0.5 + Math.sin(clock * 30) * 0.3;
         tl(g, hx + dx * 8, hy + dy * 8, hx + dx * 27, hy + dy * 27, '#ff4fbf', 8);
@@ -1625,13 +2106,22 @@
     }
 
     // ---------- dibujo: FINAL BOSS ----------
+    const handC = mk(11, 11), handG = handC.getContext('2d');
     function drawHand(g, h) {
-      const aiming = h.st === 'aim' || h.st === 'hover' || h.st === 'sweepPrep';
+      const aiming = h.st === 'aim' || h.st === 'hover' || h.st === 'sweepPrep' || h.st === 'clapPrep' || h.st === 'crushHover' || h.st === 'slopPrep';
       const map = h.blink < 0 && !aiming ? HAND_BLINK : HAND_MAP;
-      const pal = { G: '#efeaf3', W: '#ffffff', I: aiming ? '#ff2a4a' : (e.glitch > 0 ? '#2affd0' : '#9dff3a'), P: '#05030a',
+      const pal = { G: h.crush && Math.sin(clock * 30) > 0 ? '#ffd0d8' : '#efeaf3', W: '#ffffff', I: h.st === 'slopPrep' ? '#9dff3a' : aiming ? '#ff2a4a' : (e.glitch > 0 ? '#2affd0' : '#9dff3a'), P: '#05030a',
         C: '#cfc8d8', c: '#8a829a', L: '#5a4a66' };
-      drawMap(g, map, Math.round(h.x) - 5, Math.round(h.y) - 5, pal);
-      if (aiming && Math.sin(clock * 40) > 0) { g.globalAlpha = 0.6; ring(g, h.x, h.y, 7, '#ff2a4a'); g.globalAlpha = 1; }
+      const sc = h.sc || 1;
+      if (sc < 1.15) { drawMap(g, map, Math.round(h.x) - 5, Math.round(h.y) - 5, pal); }
+      else {
+        handG.clearRect(0, 0, 11, 11);
+        drawMap(handG, map, 0, 0, pal);
+        g.imageSmoothingEnabled = false;
+        const s = Math.round(11 * sc);
+        g.drawImage(handC, Math.round(h.x - s / 2), Math.round(h.y - s / 2), s, s);
+      }
+      if (aiming && Math.sin(clock * 40) > 0) { g.globalAlpha = 0.6; ring(g, h.x, h.y, Math.round(7 * sc), h.st === 'slopPrep' ? '#9dff3a' : '#ff2a4a'); g.globalAlpha = 1; }
     }
     function drawBoss(g) {
       const bx = Math.round(e.x), by = GY - Math.round(e.fy);
@@ -1667,6 +2157,11 @@
           ctx.drawImage(elC, 0, y, W, 5, off, y, W, 5);
         }
       } else ctx.drawImage(elC, 0, 0);
+      if (e.kind === 'log' && e.st === 'superTele' && Math.sin(clock * 36) > 0) {
+        ctx.globalAlpha = 0.55;
+        ctx.drawImage(tinted(elC, '#ff2a4a', W, H), 0, 0);
+        ctx.globalAlpha = 1;
+      }
       if (e.flash > 0) {
         ctx.globalAlpha = 0.85;
         ctx.drawImage(tinted(elC, '#ffffff', W, H), 0, 0);
@@ -1695,6 +2190,62 @@
       else { px(ctx, x - 3, y - 4, 6, 8, '#05030a'); px(ctx, x - 2, y - 3, 4, 6, '#b81f86'); px(ctx, x + 1, y - 3, 1, 6, '#efeaf3'); px(ctx, x - 1, y, 1, 1, '#9dff3a'); }
     }
 
+    function drawWave(w) {
+      const fx = w.x + w.dir * w.d;
+      for (let k = 0; k < 5; k++) {
+        const xx = fx - w.dir * k * 5, hh = Math.max(2, w.h - k * 3 + Math.round(Math.sin(clock * 50 + k) * 2));
+        ctx.globalAlpha = 1 - k * 0.18;
+        px(ctx, xx - 2, GY - hh, 4, hh, w.col[k % w.col.length]);
+      }
+      ctx.globalAlpha = 1;
+    }
+    function drawSlop() {
+      if (slop.st === 'prep') {
+        const r = Math.round(2 + (1 - clamp(slop.t / D.slopTele, 0, 1)) * 5);
+        disc(ctx, slop.x0, slop.y, r + 1, '#05030a');
+        disc(ctx, slop.x0, slop.y, r, Math.sin(clock * 40) > 0 ? '#9dff3a' : '#c9b25a');
+        return;
+      }
+      const tail = Math.max(0, slop.head - SLOP_LEN);
+      const a = slop.x0 + slop.dir * tail, b = slop.x0 + slop.dir * slop.head;
+      const lo = Math.min(a, b), w = Math.abs(b - a);
+      px(ctx, lo, slop.y - 5, w, 11, '#05030a');
+      px(ctx, lo, slop.y - 4, w, 9, '#6b5a1e');
+      px(ctx, lo, slop.y - 3, w, 7, '#9dff3a');
+      px(ctx, lo, slop.y - 1, w, 2, '#f2ffd8');
+      for (let k = 0; k < w; k += 3) { // grumos
+        const yy = slop.y - 4 + ((k * 7 + Math.floor(clock * 30)) % 9);
+        px(ctx, lo + k, yy, 2, 1, (k / 3) % 2 ? '#8a7a2a' : '#e6ff9e');
+      }
+      disc(ctx, b, slop.y, 6, '#05030a'); disc(ctx, b, slop.y, 5, '#9dff3a'); disc(ctx, b, slop.y, 2, '#ffffff');
+    }
+    // Manos gigantes del SIX SEVEN: suben del piso, palmas arriba, alternando como si pesaran algo.
+    function s67Wrist(side) {
+      const base = GY + 90 - s67.rise * 140;  // muñeca, sube desde abajo del piso
+      const bob = Math.sin(clock * 4.2) * 9 * side;
+      const up = s67.tele > 0 ? -12 + Math.sin(clock * 60) * 2 : 0;
+      return { x: side < 0 ? 30 : W - 30, y: Math.round(base + bob * s67.rise + up) };
+    }
+    function drawSixSeven() {
+      const gh = giantHandCache;
+      for (const side of [-1, 1]) {
+        const p = s67Wrist(side);
+        const dir = side < 0 ? 1 : -1;     // los dedos apuntan al centro
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(dir * GH_SC, GH_SC);
+        const t = tinted(gh, '#05030a', gh.width, gh.height);
+        for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) ctx.drawImage(t, 0, 0, gh.width, gh.height, -GH_AX + ox, -GH_AY + oy, gh.width, gh.height);
+        ctx.drawImage(gh, -GH_AX, -GH_AY);
+        if (s67.tele > 0 && Math.sin(clock * 40) > 0) {
+          ctx.globalAlpha = 0.5; ctx.drawImage(tinted(gh, '#ff2a4a', gh.width, gh.height), 0, 0, gh.width, gh.height, -GH_AX, -GH_AY, gh.width, gh.height); ctx.globalAlpha = 1;
+        }
+        ctx.restore();
+      }
+      // el piso vuelve a tapar los antebrazos: parece que salen del suelo
+      ctx.drawImage(bg.canvas, 0, GY, W, H - GY, 0, GY, W, H - GY);
+    }
+
     function draw() {
       ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
@@ -1702,6 +2253,7 @@
       if (shakeT > 0) ctx.translate(Math.round((Math.random() - 0.5) * shakeA * 2), Math.round((Math.random() - 0.5) * shakeA * 1.5));
       ctx.drawImage(bg.canvas, 0, 0);
       for (const l of bg.leds) if (Math.sin(clock * l.sp + l.ph) > 0) px(ctx, l.x, l.y, 2, 2, l.c);
+      if (aura && s67) drawSixSeven();
 
       for (const p of pickups) drawPickup(p);
       // sombras
@@ -1719,6 +2271,38 @@
           if (h.st === 'sweepPrep' && Math.sin(clock * 30) > 0) {
             for (let k = 0; k < 6; k++) px(ctx, h.x + h.sweepDir * (10 + k * 12), GY - 3, 6, 1, '#ff2a4a');
           }
+          if (h.st === 'clapPrep' && Math.sin(clock * 30) > 0) {
+            for (let k = 0; k < 4; k++) px(ctx, h.sx + h.sweepDir * (14 + k * 9), GY - 3, 5, 1, '#ff2a4a');
+          }
+          if (h.st === 'crushHover') {
+            // sombra creciente y zona de peligro del aplastón
+            const k = 1 - clamp(h.t / (D.strongTele + 0.35), 0, 1);
+            ctx.globalAlpha = 0.35 + k * 0.4;
+            px(ctx, h.tx - CRUSH_HALF, GY - 1, CRUSH_HALF * 2, 3, '#000');
+            ctx.globalAlpha = 1;
+            if (Math.sin(clock * (h.t < 0.35 ? 60 : 30)) > 0) {
+              px(ctx, h.tx - CRUSH_HALF, GY + 1, CRUSH_HALF * 2, 2, '#ff2a4a');
+              for (let yy = GY - 30; yy < GY; yy += 6) { px(ctx, h.tx - CRUSH_HALF, yy, 1, 3, '#ff2a4a'); px(ctx, h.tx + CRUSH_HALF - 1, yy, 1, 3, '#ff2a4a'); }
+            }
+          }
+        }
+      }
+      // aviso del GOLPE FUERTE del Tralalero: la franja por donde va a correr la onda
+      if (e.kind === 'log' && e.st === 'superTele' && state === 'fight') {
+        const x0 = e.x + e.superDir * 10, x1 = e.x + e.superDir * STRONG_RANGE;
+        const a = Math.min(x0, x1), w = Math.abs(x1 - x0);
+        ctx.globalAlpha = 0.25 + 0.2 * Math.sin(clock * 30);
+        px(ctx, a, GY - 16, w, 16, '#ff2a4a');
+        ctx.globalAlpha = 1;
+        for (let k = 0; k < w; k += 8) if (Math.sin(clock * 20 - k * 0.2) > 0) px(ctx, a + k, GY + 1, 5, 2, '#ff2a4a');
+      }
+      // aviso del SLOP: línea punteada por donde va a pasar
+      if (slop && slop.st === 'prep' && state === 'fight') {
+        const blink = Math.sin(clock * 36) > 0;
+        for (let k = 6; k < W; k += 7) {
+          const xx = slop.x0 + slop.dir * k;
+          if (xx < 0 || xx > W) break;
+          if (blink) px(ctx, xx, slop.y, 3, 1, '#9dff3a');
         }
       }
 
@@ -1730,7 +2314,8 @@
         drawTomSprite(c.punchT > 0 ? 'kick' : (c.moving ? 'walk' : 'idle'), c.walkPh, 0, c.x, 0, c.dir, 0.5 * fade, true);
       }
       if (!(tom.inv > 0 && Math.floor(tom.inv * 14) % 2 && !tom.ko)) {
-        drawTomSprite(tomPoseOf(), tom.act ? tom.actE : (tom.moving ? tom.walkPh : clock), tom.actE, tom.x, tom.y, tom.dir, 1, false);
+        drawTomSprite(tomPoseOf(), tom.act ? tom.actE : (tom.moving ? tom.walkPh : clock), tom.actE, tom.x, tom.y, tom.dir, 1, false,
+          { spin: tom.spin, vy: tom.vy, aura: aura && state === 'fight', hurt: tom.hurtT });
       }
       if (tom.act === 'mame' && tom.actE >= 0.12 && tom.actE < 0.3) {
         ctx.globalAlpha = 0.7;
@@ -1738,6 +2323,8 @@
         ctx.globalAlpha = 1;
       }
 
+      for (const w of waves) drawWave(w);
+      if (slop) drawSlop();
       for (const b of books) drawBook(b);
       for (const a of acid) { px(ctx, a.x - 1, a.y - 1, 2, 2, '#9dff3a'); px(ctx, a.x, a.y - 1, 1, 1, '#e6ff9e'); }
       for (const o of orbs) {
@@ -1790,14 +2377,19 @@
       const hpk = e.max ? e.hp / e.max * 100 : 0;
       setStyle(fillR, 'fr', 'width', hpk.toFixed(1) + '%');
       setStyle(ghostR, 'gr', 'width', (e.max ? e.ghost / e.max * 100 : 0).toFixed(1) + '%');
-      // poder
-      setText(sPow.count, 'pc', '×' + tom.cargas);
-      setClass(sPow.s, 'pv', 'vacio', tom.cargas <= 0);
+      // poder (en la BATALLA DE AURA: todos, infinitos, en rotación)
+      const auraOn = aura && state === 'fight';
+      setText(sPow.count, 'pc', auraOn ? '∞' : '×' + tom.cargas);
+      setClass(sPow.s, 'pv', 'vacio', !auraOn && tom.cargas <= 0);
+      setClass(sPow.s, 'pa', 'aura', auraOn);
+      const powIcon = auraOn ? POWER_ICON[1 + (auraPow % 3)] : POWER_ICON[level];
+      if (hudCache.pi !== powIcon) { hudCache.pi = powIcon; sPow.icg.clearRect(0, 0, 16, 16); sPow.icg.drawImage(iconCanvas(powIcon), 0, 0); }
+      setText(sPow.lab, 'pl', auraOn ? TX.todos : T.poderes[level - 1]);
       // pata del mameitor
       const ready = tom.mameCd <= 0;
       setClass(sMame.s, 'mr', 'listo', ready);
       setClass(sMame.s, 'mv', 'vacio', !ready);
-      setStyle(sMame.cd, 'mcd', 'height', ready ? '0' : Math.round(tom.mameCd / MAME_CD * 22) + 'em');
+      setStyle(sMame.cd, 'mcd', 'height', ready ? '0' : Math.round(tom.mameCd / (tom.mameMax || MAME_CD) * 22) + 'em');
       setText(sMame.secs, 'ms', ready ? '' : String(Math.ceil(tom.mameCd)));
       if (ready && !lastMameReady && state === 'fight') SFX.mameReady();
       lastMameReady = ready;
@@ -1808,6 +2400,38 @@
         glitchLab.style.left = Math.round(e.x) + 'em';
         glitchLab.style.top = Math.round(GY - e.fy - 76) + 'em';
       }
+      // aviso del GOLPE FUERTE
+      let wx = null;
+      if (state === 'fight') {
+        if (e.kind === 'log' && e.st === 'superTele') wx = e.x;
+        else if (e.kind === 'boss' && e.hands.some((q) => q.st === 'crushHover')) wx = 1;
+      }
+      if (warnLab.hidden !== (wx == null)) warnLab.hidden = wx == null;
+      // etiqueta del rayo SLOP
+      let sx = null;
+      if (slop && state === 'fight') {
+        if (slop.st === 'prep') sx = slop.x0;
+        else { const tail = Math.max(0, slop.head - SLOP_LEN); sx = slop.x0 + slop.dir * (tail + Math.min(slop.head, SLOP_LEN) / 2); }
+      }
+      if (slopLab.hidden !== (sx == null)) slopLab.hidden = sx == null;
+      if (sx != null) { setStyle(slopLab, 'sx', 'left', Math.round(clamp(sx, 16, W - 16)) + 'em'); setStyle(slopLab, 'sy', 'top', Math.round(slop.y - 10) + 'em'); }
+      // SIX SEVEN y pantalla de gelatina
+      const on67 = auraOn && s67 && s67.rise > 0.5;
+      for (let i = 0; i < 2; i++) {
+        const l = lab67[i];
+        if (l.hidden === on67) l.hidden = !on67;
+        if (on67) {
+          const p = s67Wrist(i === 0 ? -1 : 1);
+          setStyle(l, 'l67x' + i, 'left', Math.round(p.x + (i === 0 ? 22 : -22)) + 'em');
+          setStyle(l, 'l67y' + i, 'top', Math.round(p.y - 38) + 'em');
+          setClass(l, 'l67t' + i, 'rojo', s67.tele > 0);
+        }
+      }
+      if (auraOn) {
+        const k = clamp(auraT / 1.2, 0, 1);
+        const sk = Math.sin(clock * 5.2) * 2.6 * k, sc = Math.sin(clock * 7.3) * 0.022 * k;
+        canvas.style.transform = 'skewX(' + sk.toFixed(2) + 'deg) scale(' + (1 + sc).toFixed(3) + ',' + (1 - sc).toFixed(3) + ')';
+      } else if (canvas.style.transform) canvas.style.transform = '';
     }
 
     // ---------- bucle ----------
@@ -1863,9 +2487,22 @@
       readyMame() { tom.mameCd = 0; },
       glitchNow() { if (e.kind === 'boss') startGlitch(); },
       spawnPickup() { spawnT = 0; },
+      setAtt(v) { const d = v - att(); if (d > 0) curar(d); else if (d < 0) danar(-d); },
+      strongNow() { e.superT = D.strongEvery; },
+      slopNow() { e.slopCd = 0; },
+      auraNow() { if (e.kind === 'boss' && !aura) { e.hp = e.max * 0.5; startAura(); } },
+      rise67() { if (s67) s67.rise = 1; },
+      wave67Now() { if (s67) { s67.rise = 1; s67.waveT = 0; } },
+      paralyze() { tom.inv = 0; slopTom(1); },
+      freeze(on) { frozen = !!on; },
+      setTom(x, y) { tom.x = x; if (y != null) { tom.y = y; tom.vy = 0; } },
+      setEnemyX(x) { e.x = x; },
+      bossAttack(kind) { if (e.kind !== 'boss') return; const real = Math.random; const r = { slam: 0.1, sweep: 0.4, clap: 0.6, orbs: 0.9 }[kind]; Math.random = () => r; try { bossAttack(); } finally { Math.random = real; } },
+      dificultad,
       info() {
-        return { state, level, att: att(), tom: { x: tom.x, y: tom.y, dir: tom.dir, jumps: tom.jumps, cargas: tom.cargas, mameCd: tom.mameCd, act: tom.act },
-          enemy: { kind: e.kind, x: e.x, hp: e.hp, st: e.st, glitch: e.glitch, heavy: e.heavy }, clones: clones.length, pickups: pickups.map((q) => Math.round(q.x)),
+        return { state, level, dificultad, att: att(), aura, tom: { x: tom.x, y: tom.y, dir: tom.dir, jumps: tom.jumps, cargas: tom.cargas, mameCd: tom.mameCd, act: tom.act, para: tom.para },
+          enemy: { kind: e.kind, x: e.x, hp: e.hp, max: e.max, st: e.st, glitch: e.glitch, heavy: e.heavy, superT: e.superT, slopCd: e.slopCd, hands: e.hands ? e.hands.map((h) => h.st) : null },
+          slop: slop ? slop.st : null, waves: waves.length, avatar: AV.ready, clones: clones.length, pickups: pickups.map((q) => Math.round(q.x)),
           books: books.length, acid: acid.length, orbs: orbs.length, settled };
       },
     };

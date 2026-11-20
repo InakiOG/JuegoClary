@@ -301,6 +301,22 @@
 .pensamiento .pz2 { width: 1.3vmin; height: 1.3vmin; left: 4%; bottom: -5.8vmin; }
 
 /* ---------- Botón "siguiente" (▶) ---------- */
+/* ---------- Pestaña de dificultad (antes de cada minijuego) ---------- */
+.dif-capa { position: fixed; inset: 0; z-index: 25000; display: grid; place-items: center; background: rgba(10, 7, 13, 0.55); }
+body:has(#intro:not([hidden])) .dif-capa, .dif-capa * { cursor: default; }
+.dif-ventana {
+  width: min(62vmin, 92vw);
+  background: var(--g-gris);
+  font-family: var(--g-chrome-font);
+  color: #000;
+  box-shadow: inset -2px -2px 0 #000, inset 2px 2px 0 #fff, inset -4px -4px 0 var(--g-gris-lo), 1vmin 1vmin 0 rgba(140, 31, 116, 0.6);
+}
+.dif-barra { padding: 0.7vmin 1.2vmin; font: 700 clamp(12px, 2vmin, 22px)/1.2 var(--g-chrome-font); color: #fff; background: linear-gradient(90deg, var(--g-titulo-a), var(--g-titulo-b)); }
+.dif-cuerpo { padding: 2.4vmin; text-align: center; font-size: clamp(12px, 2vmin, 20px); }
+.dif-cuerpo p { margin: 0 0 2vmin; }
+.dif-botones { display: flex; gap: 1.6vmin; justify-content: center; flex-wrap: wrap; }
+.dif-botones .g-btn { min-width: 14vmin; padding: 1.2vmin 1.6vmin; font-size: clamp(12px, 2vmin, 20px); }
+
 /* Capa invisible que recoge el clic de "continuar" en cualquier parte (debajo del botón de pausa). */
 .clic-seguir { position: fixed; inset: 0; z-index: 25000; }
 /* En pantallas con el cursor normal del sistema (intro, pantallas en negro) se mantiene visible. */
@@ -311,9 +327,11 @@ body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidd
   pointer-events: none;
   display: grid;
   place-items: center;
-  width: 4.4vmin;
-  height: 4.4vmin;
-  font: 700 2.2vmin/1 var(--g-pixel-font);
+  width: 6.6vmin;
+  height: 6.6vmin;
+  min-width: 40px;
+  min-height: 40px;
+  font: 700 3.3vmin/1 var(--g-pixel-font);
   color: #000;
   background: var(--g-acido);
   box-shadow: inset -0.4vmin -0.4vmin 0 #4f9a12, inset 0.4vmin 0.4vmin 0 #e6ffc8, 0 0 0 0.35vmin #000;
@@ -322,7 +340,7 @@ body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidd
 .siguiente:hover { background: #c4ff7d; }
 .siguiente-chat, .siguiente-pantalla { right: 3vmin; bottom: 7vmin; }
 .siguiente-subs { right: 3vmin; bottom: 4.5vmin; }
-.siguiente-nube { left: calc(50% + min(30%, 35vmin) - 6.2vmin); bottom: calc(11% + 1.4vmin); }
+.siguiente-nube { left: calc(50% + min(30%, 35vmin) - 8.4vmin); bottom: calc(11% + 1.4vmin); }
 @keyframes sig-blink { 50% { transform: translateX(0.5vmin); } }
 
 /* ---------- GAME OVER → Perdiste toda tu atención → score ---------- */
@@ -421,14 +439,14 @@ body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidd
   top: 0.8vmin;
   right: 0.8vmin;
   z-index: 30000;
-  width: 4.2vmin;
-  height: 4.2vmin;
-  min-width: 26px;
-  min-height: 26px;
+  width: 6.4vmin;
+  height: 6.4vmin;
+  min-width: 38px;
+  min-height: 38px;
   display: grid;
   place-items: center;
   padding: 0;
-  font: 900 clamp(11px, 1.8vmin, 20px)/1 var(--g-chrome-font);
+  font: 900 clamp(15px, 2.7vmin, 30px)/1 var(--g-chrome-font);
   color: #000;
   background: var(--g-gris);
   border: none;
@@ -446,6 +464,30 @@ body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidd
   cursor: default;
 }
 #pausa[hidden] { display: none; }
+/* Gato que rebota dentro del recuadro negro: dos animaciones lineales con duraciones distintas
+   (horizontal en .pausa-x, vertical en la imagen) dan el rebote tipo DVD sin JavaScript,
+   así sigue moviéndose aunque el juego esté en pausa. */
+.pausa-recuadro {
+  position: relative;
+  width: min(56vmin, 80vw);
+  height: 34vmin;
+  margin: 0 auto 2.5vmin;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 0 2px #000, 0 0 0 2px var(--g-gris-lo);
+}
+.pausa-x { position: absolute; inset: 0; animation: pausa-x 3.7s linear infinite alternate; }
+.pausa-gato {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 13vmin;
+  height: auto;
+  image-rendering: pixelated;
+  animation: pausa-y 2.3s linear infinite alternate;
+}
+@keyframes pausa-x { from { transform: translateX(0); } to { transform: translateX(calc(min(56vmin, 80vw) - 13vmin)); } }
+@keyframes pausa-y { from { transform: translateY(0); } to { transform: translateY(calc(34vmin - 15.6vmin)); } }
 #pausa * { cursor: default; }
 #pausa .login { text-align: center; }
 #pausa h1 { margin: 0 0 2vmin; font: 900 clamp(32px, 8vmin, 90px)/1 Impact, "Arial Black", sans-serif; letter-spacing: 0.15em; color: var(--g-titulo-b); }

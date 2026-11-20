@@ -53,7 +53,7 @@ window.Game = window.Game || {};
 
   function open() {
     if (win) { Game.os.focusWindow(win); return win; }
-    win = Game.os.createWindow({ key: 'faint', title: 'sin título — FAINT', iconHtml: Game.icons.faint(), w: 42, h: 30, build });
+    win = Game.os.createWindow({ key: 'faint', title: 'proyecto SOLLOZO — FAINT', iconHtml: Game.icons.faint(), w: 42, h: 30, build });
     return win;
   }
 
@@ -380,7 +380,7 @@ window.Game = window.Game || {};
       pushUndo();
       g.fillStyle = bg;
       g.fillRect(0, 0, canvas.width, canvas.height);
-      W.setTitle('sin título — FAINT');
+      W.setTitle('proyecto SOLLOZO — FAINT');
     });
     $('.fa-undo').addEventListener('click', () => {
       const img = undo.pop();
