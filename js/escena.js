@@ -162,7 +162,8 @@ window.Game = window.Game || {};
   Game.voz = {
     // Lee el texto en voz alta con subtítulos. titulo: lo que se muestra encima del subtítulo.
     // subtitulos: false cuando el texto ya está en pantalla (p. ej. escrito a máquina), para no duplicarlo.
-    async say(text, { titulo = 'VOZ EN OFF', estilo = 'narrador', pitch, rate, profunda = false, subtitulos = true } = {}) {
+    // clic: al terminar, el subtítulo se queda hasta que el jugador haga clic (false = sigue solo).
+    async say(text, { titulo = 'VOZ EN OFF', estilo = 'narrador', pitch, rate, profunda = false, subtitulos = true, clic = true } = {}) {
       if (profunda) estilo = 'profunda';
       await vocesListas;
       const base = ESTILOS[estilo] || ESTILOS.narrador;
@@ -187,6 +188,8 @@ window.Game = window.Game || {};
         }
         await wait(450); // un respiro para terminar de leer el subtítulo
       }
+      Game.musica.duck(false);
+      if (clic) await siguiente({ donde: subtitulos ? 'subs' : 'pantalla' });
       subs.hidden = true;
       Game.musica.duck(false);
     },
@@ -273,16 +276,21 @@ window.Game = window.Game || {};
   // ---------- Botón "siguiente" ----------
   // Flechita que parpadea; se cumple al pulsarla (o con Enter / Espacio). Queda por encima
   // del bloqueo, así funciona también cuando la historia controla el ratón.
+  // Espera a que el jugador haga clic en cualquier parte de la pantalla (o Enter / Espacio): el clic es
+  // el botón "siguiente". El ▶ parpadeante solo indica que se puede continuar.
+  // donde: posición del ▶ — 'chat', 'nube' (pensamiento), 'subs' (subtítulos) o 'pantalla'.
   function siguiente({ texto = '▶', donde = 'chat' } = {}) {
     return new Promise((resolve) => {
+      const capa = document.createElement('div');
+      capa.className = 'clic-seguir';
       const b = document.createElement('div');
       b.className = `siguiente siguiente-${donde}`;
-      b.dataset.cursor = 'hand';
       b.innerHTML = `<span>${esc(texto)}</span>`;
-      screenEl.insertBefore(b, cursorEl);
+      capa.appendChild(b);
+      document.body.appendChild(capa);
       const fin = () => {
         window.removeEventListener('keydown', key, true);
-        b.remove();
+        capa.remove();
         Game.sound.mouse(true);
         resolve();
       };
@@ -291,8 +299,8 @@ window.Game = window.Game || {};
         if (e.target && e.target.closest && e.target.closest('input, textarea') && !Game.input.locked) return;
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); fin(); }
       };
-      b.addEventListener('mousedown', (e) => { e.stopPropagation(); });
-      b.addEventListener('click', fin);
+      capa.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); });
+      capa.addEventListener('click', (e) => { e.stopPropagation(); if (!(Game.pausa && Game.pausa.activa)) fin(); });
       window.addEventListener('keydown', key, true);
     });
   }

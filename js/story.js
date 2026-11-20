@@ -72,11 +72,12 @@ window.Game = window.Game || {};
     intro.innerHTML = '<div class="intro-text"><p></p><p></p></div>';
     const [p1, p2] = intro.querySelectorAll('p');
     await wait(2500);
-    const voz = Game.voz.say(G.intro.join('. '), { titulo: 'AÑO 2040', subtitulos: false });
+    const voz = Game.voz.say(G.intro.join('. '), { titulo: 'AÑO 2040', subtitulos: false, clic: false });
     await typewriter(p1, G.intro[0], 40);
     await wait(1200);
     await typewriter(p2, G.intro[1], 40);
     await Promise.all([voz, wait(10000)]);
+    await siguiente({ donde: 'pantalla' });  // clic para continuar
     intro.classList.add('fade');            // la pantalla de la computadora se vuelve visible
     await wait(1600);
     intro.hidden = true;
@@ -716,8 +717,9 @@ window.Game = window.Game || {};
     const p = document.createElement('p');
     p.className = 'f-negro';
     fin.appendChild(p);
-    await Promise.all([typewriter(p, A.ganaLuciano, 30), Game.voz.say(A.ganaLuciano, { titulo: 'LucIAno', estilo: 'loquendo', subtitulos: false })]);
-    await wait(2500);
+    await Promise.all([typewriter(p, A.ganaLuciano, 30), Game.voz.say(A.ganaLuciano, { titulo: 'LucIAno', estilo: 'loquendo', subtitulos: false, clic: false })]);
+    await siguiente({ donde: 'pantalla' });
+    await wait(400);
     fin.hidden = true;
     fin.innerHTML = '';
   }

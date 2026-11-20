@@ -301,9 +301,14 @@
 .pensamiento .pz2 { width: 1.3vmin; height: 1.3vmin; left: 4%; bottom: -5.8vmin; }
 
 /* ---------- Botón "siguiente" (▶) ---------- */
+/* Capa invisible que recoge el clic de "continuar" en cualquier parte (debajo del botón de pausa). */
+.clic-seguir { position: fixed; inset: 0; z-index: 25000; }
+/* En pantallas con el cursor normal del sistema (intro, pantallas en negro) se mantiene visible. */
+body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidden])) .clic-seguir { cursor: default; }
 .siguiente {
-  position: absolute;
-  z-index: 10000;
+  position: fixed;
+  z-index: 25001;
+  pointer-events: none;
   display: grid;
   place-items: center;
   width: 4.4vmin;
@@ -315,7 +320,8 @@
   animation: sig-blink 0.9s steps(1) infinite;
 }
 .siguiente:hover { background: #c4ff7d; }
-.siguiente-chat { right: 3vmin; bottom: 7vmin; }
+.siguiente-chat, .siguiente-pantalla { right: 3vmin; bottom: 7vmin; }
+.siguiente-subs { right: 3vmin; bottom: 4.5vmin; }
 .siguiente-nube { left: calc(50% + min(30%, 35vmin) - 6.2vmin); bottom: calc(11% + 1.4vmin); }
 @keyframes sig-blink { 50% { transform: translateX(0.5vmin); } }
 
