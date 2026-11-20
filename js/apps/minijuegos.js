@@ -17,6 +17,7 @@ window.Game = window.Game || {};
 
   let win = null;
   let jugando = false;
+  let forzar = null;   // truco: gana el minijuego en curso
 
   function open() {
     if (win) { Game.os.focusWindow(win); return win; }
@@ -65,7 +66,9 @@ window.Game = window.Game || {};
         const game = Game.minijuegos[j.id](W.body, { dificultad });
         // Cerrar la ventana con la X cuenta como abandonar.
         const cerrada = new Promise((r) => { const prev = W.onClose; W.onClose = () => { if (prev) prev(); r('cerrada'); }; });
-        const res = await Promise.race([game.done, Game.atencion.vacia().then(() => false), cerrada]);
+        const res = await Promise.race([game.done, Game.atencion.vacia().then(() => false), cerrada,
+          new Promise((r) => { forzar = () => r(true); })]);
+        forzar = null;
         game.destroy();
         Game.atencion.juego(false);
         if (res !== 'cerrada') Game.os.closeWindow(W);
@@ -85,6 +88,6 @@ window.Game = window.Game || {};
     }
   }
 
-  Game.minijuegosApp = { open, JUEGOS };
+  Game.minijuegosApp = { open, JUEGOS, forzarVictoria: () => { if (forzar) forzar(); } };
   Game.os.addApp({ id: 'app-minijuegos', name: 'Minijuegos', iconHtml: Game.icons.minijuegos(), open });
 })();

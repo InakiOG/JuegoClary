@@ -16,6 +16,13 @@ Los videos (Reproductor de Videos y fondo de los créditos) salen de YouTube y *
 servidor y con internet**: YouTube no deja incrustar videos en una página abierta con doble clic
 (`file://`). Sin conexión el juego usa los archivos de `video/` si están, y si no, un fondo animado.
 
+## Trucos (para probar)
+
+Escribe **PILINES** en cualquier momento (o el código Konami **↑ ↑ ↓ ↓ ← → ← → B A**). Se desbloquea todo al 100 %:
+el mapa completo y la app **Trucos** en el escritorio, con atención infinita, "Ganar el minijuego en curso",
+Minijuegos, cada minijuego en bucle y saltos a cualquier capítulo. Sigue activo en esa pestaña del navegador
+(también al saltar de capítulo) hasta pulsar "Desactivar trucos". Código en `js/trucos.js`.
+
 ## Historia
 
 Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el código). Lo marcado como PROVISIONAL es relleno hasta tener el texto definitivo.

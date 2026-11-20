@@ -262,7 +262,10 @@ window.Game = window.Game || {};
       }
     },
     // Daño y curación en los minijuegos (puntos de 0 a 100).
+    // Truco "atención infinita" (js/trucos.js): los minijuegos no quitan atención.
+    inmortal: false,
     danar(n) {
+      if (Game.atencion.inmortal) return;
       if (!(n > 0) || atVal <= 0) return;
       setVal(atVal - n);
       if (n >= 3) sacudir();

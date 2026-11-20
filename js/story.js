@@ -864,7 +864,7 @@ window.Game = window.Game || {};
     location.href = location.pathname;
   }
 
-  Game.story = { notify, forzarVictoria: () => { if (forzarVictoria) forzarVictoria(); } };
+  Game.story = { notify, addMapFile, forzarVictoria: () => { if (forzarVictoria) forzarVictoria(); } };
 
   // ---------- Atajos para probar (?desde=…) ----------
   // Dejan el estado como estaría en ese punto de la historia.
