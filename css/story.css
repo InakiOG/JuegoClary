@@ -5,6 +5,11 @@
 #cursor.hand .c-arrow { display: none; }
 #cursor.hand .c-hand { display: block; }
 #cursor.hand { width: 2.9vmin; margin-left: -0.9vmin; }
+/* I-beam sobre texto: centrado en el punto del puntero */
+#cursor .c-text { display: none; }
+#cursor.text .c-arrow { display: none; }
+#cursor.text .c-text { display: block; }
+#cursor.text { width: 1.1vmin; height: 2.6vmin; margin-left: -0.55vmin; margin-top: -1.3vmin; }
 
 /* bloquea los clics mientras la historia controla las manos */
 #blocker { position: absolute; inset: 0; z-index: 9999; display: none; }

@@ -30,7 +30,10 @@
     '<svg class="c-hand" viewBox="0 0 20 24"><path d="M7,1.5 C8.3,1.5 9,2.3 9,3.6 V10 L9.6,9.6 C10,8.4 12.4,8.4 12.6,10 ' +
     'C13.1,8.9 15.4,9 15.6,10.6 C16.2,9.8 18.4,10.1 18.4,12 V16.5 C18.4,20 16,22.5 12.6,22.5 H10.4 C8.3,22.5 7,21.6 5.8,20 ' +
     'L1.9,14.6 C1.1,13.5 2.4,11.9 3.7,12.8 L5,13.8 V3.6 C5,2.3 5.7,1.5 7,1.5 Z" ' +
-    'fill="#d6fff4" stroke="#03120f" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+    'fill="#d6fff4" stroke="#03120f" stroke-width="1.2" stroke-linejoin="round"/></svg>' +
+    // I-beam de texto: el punto activo es su centro (ver #cursor.text en story.css)
+    '<svg class="c-text" viewBox="0 0 10 24"><path d="M1.5,1 H4 L5,2 L6,1 H8.5 V3 H6 V21 H8.5 V23 H6 L5,22 L4,23 H1.5 V21 H4 V3 H1.5 Z" ' +
+    'fill="#d6fff4" stroke="#03120f" stroke-width="1" stroke-linejoin="round"/></svg>';
 
   // ---------- Disposición ----------
   function layout() {
@@ -89,14 +92,40 @@
     updateHover();
   }
 
-  // El cursor se vuelve mano sobre lo que se puede pulsar (data-cursor="hand").
+  // Forma del cursor según lo que tenga debajo, y vuelve a la flecha al salir:
+  //   mano  sobre lo que se puede pulsar (data-cursor="hand")
+  //   texto (I-beam) sobre campos de texto y sobre texto de verdad (no en botones, iconos, barras de título…)
   // Se comprueba al mover el puntero y cuando cambia lo que hay en pantalla.
-  let lastHover = false;
+  const CAMPO_TEXTO = 'textarea, [contenteditable=""], [contenteditable="true"], [data-cursor="text"], ' +
+    'input:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color])';
+  const SIN_TEXTO = 'button, label, .icon, .titlebar, .task, #taskbar, #start-menu, .menubar, .statusbar, ' +
+    '.viewer-bar, .ex-toolbar, .ex-side, .crumb, .siguiente, [data-cursor="arrow"]';
+  function sobreTexto(hit, x, y) {
+    if (hit.closest(CAMPO_TEXTO)) return true;
+    if (hit.closest(SIN_TEXTO)) return false;
+    for (const n of hit.childNodes) {
+      if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+      const r = document.createRange();
+      r.selectNodeContents(n);
+      for (const q of r.getClientRects()) if (x >= q.left && x <= q.right && y >= q.top && y <= q.bottom) return true;
+    }
+    return false;
+  }
+  let lastHover = 'flecha';
   function updateHover() {
+    // el punto activo es la punta de la flecha: la esquina del elemento del cursor
     const c = cursor.getBoundingClientRect();
-    const hit = document.elementFromPoint(c.left + 1, c.top + 1);
-    const hover = !!(hit && hit.closest('[data-cursor="hand"]'));
-    if (hover !== lastHover) { cursor.classList.toggle('hand', hover); lastHover = hover; }
+    const x = lastHover === 'texto' ? c.left + c.width / 2 : c.left + 1;
+    const y = lastHover === 'texto' ? c.top + c.height / 2 : c.top + 1;
+    const hit = document.elementFromPoint(x, y);
+    let forma = 'flecha';
+    if (hit && hit.closest('[data-cursor="hand"]')) forma = 'mano';
+    else if (hit && sobreTexto(hit, x, y)) forma = 'texto';
+    if (forma !== lastHover) {
+      cursor.classList.toggle('hand', forma === 'mano');
+      cursor.classList.toggle('text', forma === 'texto');
+      lastHover = forma;
+    }
   }
   let hoverQueued = false;
   new MutationObserver(() => {

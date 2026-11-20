@@ -17,91 +17,6 @@ window.Game = window.Game || {};
     return c.toDataURL('image/jpeg', 0.9);
   }
 
-  function beach(g, w, h) {
-    const rnd = seeded(7);
-    const horizon = h * 0.56;
-    let gr = g.createLinearGradient(0, 0, 0, horizon);
-    gr.addColorStop(0, '#2f6fbf');
-    gr.addColorStop(0.6, '#8fb7d9');
-    gr.addColorStop(1, '#ffd3a3');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, w, horizon);
-
-    // sol y halo
-    const sx = w * 0.68, sy = horizon - h * 0.07;
-    gr = g.createRadialGradient(sx, sy, 0, sx, sy, h * 0.3);
-    gr.addColorStop(0, 'rgba(255,240,200,0.9)');
-    gr.addColorStop(1, 'rgba(255,240,200,0)');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, w, horizon);
-    g.fillStyle = '#fff4d6';
-    g.beginPath();
-    g.arc(sx, sy, h * 0.055, 0, Math.PI * 2);
-    g.fill();
-
-    // nubes
-    g.fillStyle = 'rgba(255,255,255,0.55)';
-    for (let i = 0; i < 5; i++) {
-      const cx = rnd() * w, cy = h * (0.08 + rnd() * 0.25), r = h * (0.03 + rnd() * 0.03);
-      for (let j = 0; j < 4; j++) {
-        g.beginPath();
-        g.ellipse(cx + j * r * 0.9, cy + (j % 2) * r * 0.3, r * 1.4, r * 0.7, 0, 0, Math.PI * 2);
-        g.fill();
-      }
-    }
-
-    // mar
-    gr = g.createLinearGradient(0, horizon, 0, h * 0.8);
-    gr.addColorStop(0, '#3b7fb3');
-    gr.addColorStop(1, '#4fb0be');
-    g.fillStyle = gr;
-    g.fillRect(0, horizon, w, h * 0.3);
-    // reflejo del sol
-    for (let i = 0; i < 26; i++) {
-      const y = horizon + 4 + i * 6;
-      const half = (h * 0.05) * (1 + i * 0.05) * (0.5 + rnd());
-      g.fillStyle = `rgba(255,236,190,${0.5 - i * 0.017})`;
-      g.fillRect(sx - half, y, half * 2, 2);
-    }
-
-    // arena con orilla ondulada
-    const shore = (x) => h * 0.74 + Math.sin(x / w * 7) * h * 0.02 + Math.sin(x / w * 17) * h * 0.006;
-    g.fillStyle = 'rgba(255,255,255,0.85)';
-    g.beginPath();
-    g.moveTo(0, h);
-    for (let x = 0; x <= w; x += 8) g.lineTo(x, shore(x) - 5);
-    g.lineTo(w, h);
-    g.fill();
-    gr = g.createLinearGradient(0, h * 0.72, 0, h);
-    gr.addColorStop(0, '#f0d6a8');
-    gr.addColorStop(1, '#d4a970');
-    g.fillStyle = gr;
-    g.beginPath();
-    g.moveTo(0, h);
-    for (let x = 0; x <= w; x += 8) g.lineTo(x, shore(x));
-    g.lineTo(w, h);
-    g.fill();
-
-    // palmera
-    g.strokeStyle = '#5a3d27';
-    g.lineWidth = w * 0.018;
-    g.lineCap = 'round';
-    g.beginPath();
-    g.moveTo(w * 0.14, h * 1.02);
-    g.quadraticCurveTo(w * 0.1, h * 0.55, w * 0.2, h * 0.3);
-    g.stroke();
-    g.fillStyle = '#2f6b3a';
-    const top = [w * 0.2, h * 0.3];
-    [[-0.6, 0.2], [-0.3, 0.32], [0.2, 0.3], [0.55, 0.22], [0.9, 0.1], [-0.95, 0.1]].forEach(([dx, dy]) => {
-      g.beginPath();
-      g.moveTo(top[0], top[1]);
-      g.quadraticCurveTo(top[0] + dx * w * 0.08, top[1] - h * 0.12,
-        top[0] + dx * w * 0.16, top[1] + dy * h * 0.35);
-      g.quadraticCurveTo(top[0] + dx * w * 0.08, top[1] - h * 0.05, top[0], top[1]);
-      g.fill();
-    });
-  }
-
   function mountains(g, w, h) {
     const rnd = seeded(42);
     let gr = g.createLinearGradient(0, 0, 0, h * 0.65);
@@ -166,7 +81,6 @@ window.Game = window.Game || {};
         '- Revisar la carpeta Documentos\n\n' +
         'No te olvides de vaciar la papelera de vez en cuando.',
     },
-    { id: 'playa', name: 'playa.jpg', type: 'image', loc: 'desktop', paint: beach },
     { id: 'montana', name: 'montaña.jpg', type: 'image', loc: 'pictures', paint: mountains },
     {
       id: 'recordatorio', name: 'recordatorio.txt', type: 'text', loc: 'documents',
