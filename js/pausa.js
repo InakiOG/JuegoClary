@@ -54,12 +54,14 @@ window.Game = window.Game || {};
       pausedMedia = [...document.querySelectorAll('audio, video')].filter((m) => !m.paused);
       (Game._sueltos || []).forEach((m) => { if (!m.paused) pausedMedia.push(m); });
       pausedMedia.forEach((m) => m.pause());
+      if (window.speechSynthesis) window.speechSynthesis.pause();
       if (Game.sound && Game.sound.suspend) Game.sound.suspend(true);
     } else {
       offset += realNow() - pausedAt;
       paused = false;
       pausedMedia.forEach((m) => m.play().catch(() => {}));
       pausedMedia = [];
+      if (window.speechSynthesis) window.speechSynthesis.resume();
       if (Game.sound && Game.sound.suspend) Game.sound.suspend(false);
       const t = heldTimeouts.splice(0);
       t.forEach((fn) => realTimeout(fn, 0));
