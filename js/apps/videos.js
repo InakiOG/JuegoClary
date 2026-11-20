@@ -1,16 +1,18 @@
 // Reproductor de Videos: app extra del escritorio.
 //  - Canal "DVD": el salvapantallas del logo que rebota (canvas). Cambia de color en cada rebote,
 //    cuenta los golpes en las esquinas y lo celebra cuando el logo entra justo en una.
-//  - Videos locales (<video>) de la lista VIDEOS, a x1/x2/x3 (por defecto x3). Si el archivo no
-//    está en la carpeta video/, se muestra "archivo no encontrado" en vez de romperse.
-// Nada se carga de internet: todo sale de archivos locales.
+//  - Videos de la lista VIDEOS, a x1/x2/x3 (por defecto x3). Se reproducen desde YouTube (js/youtube.js);
+//    si no hay conexión usa el archivo local de video/, y si tampoco está muestra "archivo no encontrado".
+//    YouTube solo llega a x2, así que x3 solo es exacto con el archivo local.
 window.Game = window.Game || {};
 
 (function () {
   // Videos que busca el reproductor (rutas relativas a index.html). Ver video/README.txt.
+  // yt: id del video en YouTube; inicio: segundo donde empieza (el de los enlaces del documento).
   const VIDEOS = [
-    { titulo: 'La caída de Edgar', src: 'video/caida_edgar.mp4' },
-    { titulo: 'Video del canal (x3)', src: 'video/video_x3.mp4' },
+    { titulo: 'Video del canal (x3)', yt: '1bTMsg2XN90', inicio: 446, src: 'video/video_x3.mp4' },
+    { titulo: 'DVD · YouTube', yt: '5mGuCdlCcNM', inicio: 4079 },
+    { titulo: 'La caída de Edgar', yt: 'b89CnP0Iq30', inicio: 0, src: 'video/caida_edgar.mp4' },
   ];
 
   const VELOCIDADES = [1, 2, 3];
@@ -58,6 +60,7 @@ window.Game = window.Game || {};
       '    <div class="vp-screen">' +
       '      <canvas class="vp-dvd"></canvas>' +
       '      <video class="vp-video" preload="metadata" playsinline hidden></video>' +
+      '      <div class="vp-yt" hidden></div>' +
       '      <div class="vp-msg" hidden></div>' +
       '      <div class="vp-osd" hidden></div>' +
       '    </div>' +
@@ -83,6 +86,15 @@ window.Game = window.Game || {};
     const seekThumb = $('.vp-seek-thumb'), playBtn = $('.vp-play'), timeEl = $('.vp-time');
     const stLeft = $('.vp-st-left'), stRight = $('.vp-st-right');
     const g = canvas.getContext('2d');
+    const ytBox = $('.vp-yt');
+    let yt = null;      // reproductor de YouTube del video elegido (o null si es local)
+    let selTok = 0;     // para ignorar cargas de un video que ya no está elegido
+    let ytTimer = 0;
+    function cerrarYt() {
+      if (yt) { yt.destroy(); yt = null; }
+      ytBox.hidden = true;
+      clearInterval(ytTimer);
+    }
 
     let speed = 3;
     let mode = 'dvd';      // 'dvd' | índice de VIDEOS
@@ -244,6 +256,10 @@ window.Game = window.Game || {};
     }
 
     function applySpeed() {
+      if (yt) {
+        const r = yt.setRate(speed);
+        if (r !== speed) showOsd(`x${speed} → x${r} (máximo de YouTube)`, 2200);
+      }
       video.defaultPlaybackRate = speed;
       video.playbackRate = speed;
       body.querySelectorAll('.vp-speed').forEach((b) => b.classList.toggle('on', +b.dataset.v === speed));
@@ -253,14 +269,16 @@ window.Game = window.Game || {};
       msg.innerHTML =
         `<div class="vp-msg-box"><div class="vp-msg-ico">${Game.icons.videos()}</div>` +
         '<div><b>Archivo no encontrado</b><br>' +
-        `No se puede abrir <code>${esc(v.src)}</code>.<br>` +
-        'Copia el video en la carpeta <code>video/</code> del juego y vuelve a intentarlo.</div></div>';
+        (v.yt ? 'No se pudo conectar con YouTube.<br>' : '') +
+        (v.src ? `No se puede abrir <code>${esc(v.src)}</code>.<br>` +
+          'Copia el video en la carpeta <code>video/</code> del juego y vuelve a intentarlo.' :
+          'Revisa la conexión a internet y vuelve a intentarlo.') + '</div></div>';
       msg.hidden = false;
       setPlaying(false);
       stLeft.textContent = 'Error: archivo no encontrado';
     }
 
-    video.addEventListener('error', () => { if (typeof mode === 'number') showMissing(VIDEOS[mode]); });
+    video.addEventListener('error', () => { if (typeof mode === 'number' && video.getAttribute('src')) showMissing(VIDEOS[mode]); });
     video.addEventListener('loadedmetadata', () => { applySpeed(); updateStatus(); });
     video.addEventListener('timeupdate', updateStatus);
     video.addEventListener('play', () => { applySpeed(); playBtn.innerHTML = G.pause; });
@@ -268,11 +286,13 @@ window.Game = window.Game || {};
     video.addEventListener('ended', () => setPlaying(false));
     video.addEventListener('click', () => setPlaying(!playing));
     canvas.addEventListener('click', () => setPlaying(!playing));
+    ytBox.addEventListener('click', () => setPlaying(!playing));
 
     function setPlaying(on) {
       playing = on;
       playBtn.innerHTML = on ? G.pause : G.play;
-      if (typeof mode === 'number' && msg.hidden) {
+      if (yt) { if (on) yt.play(); else yt.pause(); }
+      else if (typeof mode === 'number' && msg.hidden) {
         if (on) video.play().catch(() => {});
         else video.pause();
       }
@@ -284,6 +304,8 @@ window.Game = window.Game || {};
       entries.forEach((e) => e.el.classList.toggle('sel', e.id === id));
       msg.hidden = true;
       osd.hidden = true;
+      cerrarYt();
+      const tok = ++selTok;
       if (id === 'dvd') {
         video.pause();
         video.removeAttribute('src');
@@ -297,15 +319,39 @@ window.Game = window.Game || {};
       } else {
         const v = VIDEOS[id];
         canvas.hidden = true;
-        video.hidden = false;
         seek.classList.remove('off');
-        video.src = v.src;
-        applySpeed();
         playing = true;
         playBtn.innerHTML = G.pause;
-        video.play().catch(() => {}); // si falla, el evento 'error' muestra el aviso
         W.setTitle(`${v.titulo} — Reproductor de Videos`);
-        showOsd(`x${speed}`);
+        video.pause();
+        video.removeAttribute('src');
+        video.hidden = true;
+        const local = () => {
+          if (!v.src) { showMissing(v); return; }
+          video.hidden = false;
+          video.src = v.src;
+          applySpeed();
+          if (playing) video.play().catch(() => {}); // si falla, el evento 'error' muestra el aviso
+          showOsd(`x${speed}`);
+        };
+        if (!v.yt) { local(); updateStatus(); return; }
+        ytBox.hidden = false;
+        stLeft.textContent = 'Conectando con YouTube…';
+        Game.yt.player(ytBox, { id: v.yt, inicio: v.inicio || 0 }).then((h) => {
+          if (tok !== selTok || closed) { h.destroy(); return; }
+          yt = h;
+          h.onFallo = () => { if (tok === selTok) { cerrarYt(); local(); } };
+          applySpeed();
+          if (!playing) h.pause();
+          ytTimer = setInterval(updateStatus, 250);
+          if (speed === h.setRate(speed)) showOsd(`x${speed}`);
+          updateStatus();
+        }).catch(() => {
+          if (tok !== selTok || closed) return;
+          ytBox.hidden = true;
+          local();
+          updateStatus();
+        });
       }
       updateStatus();
     }
@@ -319,18 +365,22 @@ window.Game = window.Game || {};
         seekThumb.style.left = '0%';
         return;
       }
-      const d = video.duration, c = video.currentTime;
+      const d = yt ? yt.duration() : video.duration, c = yt ? yt.time() : video.currentTime;
       const f = isFinite(d) && d > 0 ? c / d : 0;
       seekFill.style.width = `${f * 100}%`;
       seekThumb.style.left = `${f * 100}%`;
       timeEl.textContent = `${fmt(c)} / ${fmt(d)}`;
-      if (msg.hidden) stLeft.textContent = video.paused ? 'En pausa' : 'Reproduciendo';
+      if (msg.hidden) {
+        const pausado = yt ? yt.paused : video.paused;
+        stLeft.textContent = (pausado ? 'En pausa' : 'Reproduciendo') + (yt ? ' · YouTube' : '');
+      }
     }
 
     // ---------- Controles ----------
     playBtn.addEventListener('click', () => setPlaying(!playing));
     $('.vp-stop').addEventListener('click', () => {
       if (mode === 'dvd') { setPlaying(false); return; }
+      if (yt) { yt.seek(VIDEOS[mode].inicio || 0); setPlaying(false); return; }
       video.pause();
       if (msg.hidden) video.currentTime = 0;
       setPlaying(false);
@@ -342,6 +392,7 @@ window.Game = window.Game || {};
         return;
       }
       if (!msg.hidden) { select(mode); return; } // reintenta cargar el archivo
+      if (yt) { yt.seek(VIDEOS[mode].inicio || 0); setPlaying(true); return; }
       video.currentTime = 0;
       setPlaying(true);
     });
@@ -354,13 +405,14 @@ window.Game = window.Game || {};
 
     // barra de avance: clic y arrastre
     seek.addEventListener('mousedown', (e) => {
-      if (mode === 'dvd' || !isFinite(video.duration)) return;
+      const dur = yt ? yt.duration() : video.duration;
+      if (mode === 'dvd' || !isFinite(dur) || !dur) return;
       e.preventDefault();
       e.stopPropagation();
       const go = (ev) => {
         const r = seek.getBoundingClientRect();
         const f = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
-        video.currentTime = f * video.duration;
+        if (yt) yt.seek(f * dur); else video.currentTime = f * dur;
         updateStatus();
       };
       go(e);
@@ -376,6 +428,8 @@ window.Game = window.Game || {};
       cancelAnimationFrame(raf);
       clearTimeout(osdTimer);
       ro.disconnect();
+      selTok++;
+      cerrarYt();
       video.pause();
       video.removeAttribute('src');
       video.load();

@@ -784,15 +784,25 @@ window.Game = window.Game || {};
     fin.hidden = false;
     fin.innerHTML =
       '<div class="cr-fondo-anim"></div>' +
-      `<video class="cr-fondo" src="${C.video}" autoplay loop playsinline></video>` +
+      '<div class="cr-fondo cr-yt"></div>' +
       '<div class="cr-rodillo">' +
       `<h1>${esc(C.fin)}</h1><h2 class="cr-gracias">${esc(C.agradecimiento)}</h2><h2>${esc(C.titulo)}</h2>` +
       C.lista.map(([a, b]) => `<dl class="cr-fila"><dt>${esc(a)}</dt><dd>${esc(b)}</dd></dl>`).join('') +
       `<div class="cr-jugador">${esc(Game.jugador.nombre)} — SCORE ${String(Game.score.value).padStart(6, '0')}</div>` +
       '</div>';
-    const video = fin.querySelector('video');
-    video.addEventListener('error', () => video.remove());
-    video.play().catch(() => {});
+    // Fondo: YouTube (en silencio, suena la música del juego); si falla, el video local; si no, el animado.
+    const ytFondo = fin.querySelector('.cr-yt');
+    const fondoLocal = () => {
+      ytFondo.remove();
+      const video = document.createElement('video');
+      Object.assign(video, { className: 'cr-fondo', src: C.video, autoplay: true, loop: true, muted: true, playsInline: true });
+      video.addEventListener('error', () => video.remove());
+      fin.insertBefore(video, fin.querySelector('.cr-rodillo'));
+      video.play().catch(() => {});
+    };
+    Game.yt.player(ytFondo, { id: C.youtube.id, inicio: C.youtube.inicio, mute: true })
+      .then((h) => { h.onFallo = fondoLocal; })
+      .catch(fondoLocal);
     Game.musica.play('acto1');
     const rod = fin.querySelector('.cr-rodillo');
     await wait(50);

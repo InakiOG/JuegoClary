@@ -75,6 +75,10 @@
 .vp-dvd, .vp-video { display: block; width: 100%; height: 100%; }
 .vp-dvd { image-rendering: pixelated; }
 .vp-video { object-fit: contain; background: #000; }
+.vp-yt { position: absolute; inset: 2px; background: #000; }
+.yt-caja, .yt-caja iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+/* El iframe no recibe el ratón: el juego dibuja su propio cursor y usa sus propios controles. */
+.yt-caja iframe { pointer-events: none; }
 .vp-osd {
   position: absolute;
   top: 0.5em;

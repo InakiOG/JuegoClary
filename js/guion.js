@@ -289,6 +289,8 @@ Game.guion = {
       ['Programación', 'Iñaki Orozco'],
     ],
     // Video de fondo de los créditos (la caída de Edgar). Si el archivo no existe, sale un fondo animado.
+    // Fondo: la caída de Edgar desde YouTube; sin conexión, el archivo local; si tampoco, un fondo animado.
+    youtube: { id: 'b89CnP0Iq30', inicio: 0 },
     video: 'video/caida_edgar.mp4',
   },
 

@@ -455,6 +455,10 @@
 #final .f-btn:hover { background: #d6d0dc; }
 #final.creditos { padding: 0; overflow: hidden; justify-content: flex-start; }
 .cr-fondo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; filter: saturate(1.3) contrast(1.1); }
+/* Fondo de YouTube: el iframe se agranda para cubrir toda la pantalla (como object-fit: cover). */
+.cr-fondo.cr-yt { overflow: hidden; pointer-events: none; }
+/* La caída de Edgar es 4:3 dentro del reproductor 16:9: se dimensiona para que la imagen 4:3 cubra la pantalla. */
+.cr-yt .yt-caja { inset: auto; left: 50%; top: 50%; width: max(133.34vw, 177.78vh); height: max(75vw, 100vh); transform: translate(-50%, -50%); }
 .cr-fondo-anim {
   position: absolute;
   inset: -70%;

@@ -12,6 +12,10 @@ El jugador ve la pantalla completa de una computadora vieja (sin habitación, ma
   ```
   y abre http://localhost:8000
 
+Los videos (Reproductor de Videos y fondo de los créditos) salen de YouTube y **solo funcionan con el
+servidor y con internet**: YouTube no deja incrustar videos en una página abierta con doble clic
+(`file://`). Sin conexión el juego usa los archivos de `video/` si están, y si no, un fondo animado.
+
 ## Historia
 
 Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el código). Lo marcado como PROVISIONAL es relleno hasta tener el texto definitivo.
@@ -37,9 +41,9 @@ Los textos del guion están en `js/guion.js` (se pueden editar sin tocar el cód
 
 El monólogo final de LucIAno se escucha en voz profunda y luego en voz de loquendo; al terminar empieza la pelea.
 
-**ACTO IV**: **ShitGPT Fighter** de tres niveles (ver `js/minijuegos/pelea.js`). Si pierde: "PERDISTE lol" y la secuencia de GAME OVER. Si gana: "GANASTE", el enemigo se desintegra y en negro LucIAno dice "Ta bueno, me ganaste…" (loquendo). Luego la sección CÓDIGO, "¡Claro!, el código es PTAL", el jugador lo escribe en el chat de SR, final en negro, "Finalizar juego" y **créditos** que suben con letra de cómic y la caída de Edgar de fondo (`video/caida_edgar.mp4`; si no está, un fondo animado).
+**ACTO IV**: **ShitGPT Fighter** de tres niveles (ver `js/minijuegos/pelea.js`). Si pierde: "PERDISTE lol" y la secuencia de GAME OVER. Si gana: "GANASTE", el enemigo se desintegra y en negro LucIAno dice "Ta bueno, me ganaste…" (loquendo). Luego la sección CÓDIGO, "¡Claro!, el código es PTAL", el jugador lo escribe en el chat de SR, final en negro, "Finalizar juego" y **créditos** que suben con letra de cómic y la caída de Edgar de fondo (desde YouTube, en silencio; sin conexión `video/caida_edgar.mp4` y, si no está, un fondo animado).
 
-**Apps extra:** **Videos** (canal "DVD" con el logo que rebota, y videos locales de `video/` a x3) y **FAINT** (paint con varias brochas).
+**Apps extra:** **Videos** (canal "DVD" con el logo que rebota, y videos de YouTube a x3 —YouTube llega como máximo a x2— con los archivos de `video/` como respaldo) y **FAINT** (paint con varias brochas).
 
 **Voz en off:** síntesis de voz del navegador en español, con subtítulos (la música baja mientras habla). Estilos: `narrador` (robótica con glitches, para la intro y el mapa), `loquendo` y `profunda` (`Game.voz.say(texto, { estilo })`). El acento yucateco no se puede lograr con la voz del navegador: haría falta grabar los audios.
 **Música:** las tres canciones (`audio/acto1.mp3`, `acto2.mp3`, `acto3.mp3`) suenan en bucle una tras otra; cada acto empieza en la suya.
@@ -94,7 +98,7 @@ css/minijuegos/   Estilos de cada minijuego
 css/apps.css      Estilos de Videos y FAINT
 css/goth.css      Estética goth divine machinery (pantalla completa, Windows 9x ácido, nube, GAME OVER, pausa, créditos)
 audio/            Música de cada acto
-video/            Videos locales (caída de Edgar para los créditos y el Reproductor de Videos; ver video/README.txt)
+video/            Respaldo local de los videos de YouTube (ver video/README.txt)
 img/mapa/         Recortes del tablero "IA en México"
 ```
 
