@@ -123,17 +123,20 @@ window.Game = window.Game || {};
       const v = pickVoice(estilo);
       if (synth && !voices.length) loadVoices();
       const conVoz = !!(synth && voices.length);
-      const fallback = setTimeout(resolve, conVoz ? 5000 + text.length * 160 : 1200 + text.length * 70);
+      const fallback = setTimeout(resolve, conVoz ? 5000 + text.length * 160 : (1200 + text.length * 70) / VELOCIDAD);
       if (!conVoz) return;
       const u = new SpeechSynthesisUtterance(text);
       if (v) u.voice = v;
       u.lang = v ? v.lang : 'es-MX';
       u.pitch = pitch;
-      u.rate = rate;
+      u.rate = rate * VELOCIDAD;
       u.onend = u.onerror = () => { clearTimeout(fallback); resolve(); };
       synth.speak(u);
     });
   }
+
+  // Todas las voces hablan un 10 % más rápido que su velocidad base.
+  const VELOCIDAD = 1.1;
 
   const ESTILOS = {
     narrador: { pitch: 0.75, rate: 0.92 },
@@ -143,12 +146,13 @@ window.Game = window.Game || {};
 
   Game.voz = {
     // Lee el texto en voz alta con subtítulos. titulo: lo que se muestra encima del subtítulo.
-    async say(text, { titulo = 'VOZ EN OFF', estilo = 'narrador', pitch, rate, profunda = false } = {}) {
+    // subtitulos: false cuando el texto ya está en pantalla (p. ej. escrito a máquina), para no duplicarlo.
+    async say(text, { titulo = 'VOZ EN OFF', estilo = 'narrador', pitch, rate, profunda = false, subtitulos = true } = {}) {
       if (profunda) estilo = 'profunda';
       const base = ESTILOS[estilo] || ESTILOS.narrador;
       Game.musica.duck(true);
       subs.className = `voz-${estilo}`;
-      subs.hidden = false;
+      subs.hidden = !subtitulos;
       if (synth) synth.cancel();
       for (const frase of chunks(text)) {
         subs.innerHTML = `<small>${esc(titulo)}</small>`;
