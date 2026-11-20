@@ -1,8 +1,8 @@
 // Recursos de escena que usa la historia:
 //   Game.jugador   nombre de usuario que el jugador escribe al entrar
 //   Game.score     puntaje acumulado de los minijuegos
-//   Game.musica    las tres canciones en bucle, una tras otra (con fundido); baja durante la voz en off
-//   Game.voz       voz en off (síntesis de voz del navegador) con subtítulos
+//   Game.musica    las tres canciones en bucle, una tras otra (con fundido)
+//   Game.voz       textos en pantalla (subtítulos por frase; ya no hay voces)
 //   Game.atencion  barra de atención = vida del jugador en los minijuegos (solo visible en ellos)
 //   Game.escena    pensamientos de Tomás (nube), botón "siguiente", instrucciones, zoom, sacudidas,
 //                  y la secuencia de perder (GAME OVER → "Perdiste toda tu atención" → score)
@@ -85,96 +85,40 @@ window.Game = window.Game || {};
     },
   };
 
-  // ---------- Voz en off ----------
-  // Estilos:
-  //   'narrador'  voz robótica con glitches (cambios bruscos de tono por fragmento) — la de la intro y el mapa
-  //   'loquendo'  voz sintética clásica en español
-  //   'profunda'  muy grave y lenta (LucIAno)
+  // ---------- Texto en pantalla (antes voz en off) ----------
+  // Ya no hay voces: Game.voz.say muestra el texto como subtítulo, frase por frase, el tiempo
+  // necesario para leerlo. Los estilos solo cambian el aspecto:
+  //   'narrador'  con glitches — la intro y el mapa
+  //   'loquendo'  sintético clásico
+  //   'profunda'  LucIAno
   const subs = document.createElement('div');
   subs.id = 'subtitulos';
   subs.hidden = true;
   document.body.appendChild(subs);
 
-  let voices = [];
-  const synth = window.speechSynthesis;
-  function loadVoices() { voices = synth ? synth.getVoices() : []; }
-  if (synth) { loadVoices(); synth.addEventListener && synth.addEventListener('voiceschanged', loadVoices); }
-  function pickVoice(estilo) {
-    const es = voices.filter((v) => /^es/i.test(v.lang));
-    if (estilo === 'loquendo' || estilo === 'profunda') {
-      const lq = es.find((v) => /jorge|carlos|raul|raúl|pablo|diego|enrique/i.test(v.name));
-      if (lq) return lq;
-    }
-    return es.find((v) => /MX/i.test(v.lang)) || es.find((v) => /419|US/i.test(v.lang)) || es[0] || null;
-  }
-
-  // Frases (algunos navegadores cortan las locuciones largas).
+  // Frases cortas para que cada subtítulo quepa en pantalla.
   function chunks(text) {
     return text.match(/[^.!?…]+[.!?…]*["”»]?\s*/g) || [text];
   }
-  // Para la voz con glitches: cada frase se parte también por comas.
-  function fragmentos(text) {
-    return chunks(text).flatMap((c) => c.match(/[^,;:]+[,;:]?\s*/g) || [c]);
-  }
-
-  function speakChunk(text, { pitch, rate, estilo }) {
-    return new Promise((resolve) => {
-      // Sin voz disponible, el subtítulo se queda el tiempo de lectura; con voz, el tope es generoso.
-      const v = pickVoice(estilo);
-      if (synth && !voices.length) loadVoices();
-      const conVoz = !!(synth && voices.length);
-      const fallback = setTimeout(resolve, conVoz ? 5000 + text.length * 160 : (1200 + text.length * 70) / VELOCIDAD);
-      if (!conVoz) return;
-      const u = new SpeechSynthesisUtterance(text);
-      if (v) u.voice = v;
-      u.lang = v ? v.lang : 'es-MX';
-      u.pitch = pitch;
-      u.rate = rate * VELOCIDAD;
-      u.onend = u.onerror = () => { clearTimeout(fallback); resolve(); };
-      synth.speak(u);
-    });
-  }
-
-  // Todas las voces hablan un 10 % más rápido que su velocidad base.
-  const VELOCIDAD = 1.1;
-
-  const ESTILOS = {
-    narrador: { pitch: 0.75, rate: 0.92 },
-    loquendo: { pitch: 0.85, rate: 1.0 },
-    profunda: { pitch: 0.05, rate: 0.72 },
-  };
+  // Tiempo de lectura de una frase (ms).
+  const tiempoLectura = (t) => 1500 + t.length * 60;
 
   Game.voz = {
-    // Lee el texto en voz alta con subtítulos. titulo: lo que se muestra encima del subtítulo.
-    // subtitulos: false cuando el texto ya está en pantalla (p. ej. escrito a máquina), para no duplicarlo.
-    async say(text, { titulo = 'VOZ EN OFF', estilo = 'narrador', pitch, rate, profunda = false, subtitulos = true } = {}) {
+    // Muestra el texto como subtítulo y espera a que se lea. titulo: lo que va encima del subtítulo.
+    // subtitulos: false cuando el texto ya está en pantalla (p. ej. escrito a máquina): solo espera.
+    async say(text, { titulo = 'VOZ EN OFF', estilo = 'narrador', profunda = false, subtitulos = true } = {}) {
       if (profunda) estilo = 'profunda';
-      const base = ESTILOS[estilo] || ESTILOS.narrador;
-      Game.musica.duck(true);
       subs.className = `voz-${estilo}`;
       subs.hidden = !subtitulos;
-      if (synth) synth.cancel();
       for (const frase of chunks(text)) {
         subs.innerHTML = `<small>${esc(titulo)}</small>`;
         subs.appendChild(document.createTextNode(frase.trim()));
-        if (estilo === 'narrador') {
-          // Voz robótica que se "traba": cada fragmento con un tono distinto y un chasquido entre medio.
-          for (const f of fragmentos(frase)) {
-            const p = pitch != null ? pitch : base.pitch + (Math.random() - 0.5) * 0.7;
-            const r = rate != null ? rate : base.rate + (Math.random() - 0.5) * 0.18;
-            subs.classList.remove('glitch-sub'); void subs.offsetWidth; subs.classList.add('glitch-sub');
-            await speakChunk(f, { pitch: p, rate: r, estilo });
-            if (Math.random() < 0.35) Game.sound.glitch();
-          }
-        } else {
-          await speakChunk(frase, { pitch: pitch != null ? pitch : base.pitch, rate: rate != null ? rate : base.rate, estilo });
-        }
-        await wait(450); // un respiro para terminar de leer el subtítulo
+        if (estilo === 'narrador') { subs.classList.remove('glitch-sub'); void subs.offsetWidth; subs.classList.add('glitch-sub'); }
+        await wait(tiempoLectura(frase));
       }
       subs.hidden = true;
-      Game.musica.duck(false);
     },
-    stop() { if (synth) synth.cancel(); subs.hidden = true; Game.musica.duck(false); },
+    stop() { subs.hidden = true; },
   };
 
   // ---------- Barra de atención (= vida en los minijuegos) ----------
@@ -430,7 +374,7 @@ window.Game = window.Game || {};
     Game.sound.arcade(true);
     go.innerHTML = `<div class="go-titulo">${esc(P.gameOver)}</div>`;
     await wait(3600);
-    // 2. "Perdiste toda tu atención" con voz de loquendo.
+    // 2. "Perdiste toda tu atención" (texto estilo loquendo).
     go.innerHTML = '<div class="go-perdiste"></div>';
     const box = go.querySelector('.go-perdiste');
     box.appendChild(dibujoPerdiste());
