@@ -98,14 +98,29 @@ window.Game = window.Game || {};
   let voices = [];
   const synth = window.speechSynthesis;
   function loadVoices() { voices = synth ? synth.getVoices() : []; }
-  if (synth) { loadVoices(); synth.addEventListener && synth.addEventListener('voiceschanged', loadVoices); }
+  // Los navegadores cargan la lista de voces tarde: se espera (máx. 2 s) antes de la primera locución,
+  // para no hablar con la voz por defecto del sistema (a menudo en inglés).
+  const vocesListas = !synth ? Promise.resolve() : new Promise((resolve) => {
+    loadVoices();
+    if (voices.length) { resolve(); return; }
+    const t = setTimeout(resolve, 2000);
+    if (synth.addEventListener) synth.addEventListener('voiceschanged', () => { loadVoices(); if (voices.length) { clearTimeout(t); resolve(); } });
+  });
+  if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', loadVoices);
+
+  // Solo voces en español. Orden: México, Latinoamérica/EE. UU., cualquier otra en español; dentro de cada
+  // grupo, primero las de mejor calidad ("Natural", "Online", Google). Sin voz en español no se habla:
+  // se deja solo el subtítulo (nunca se lee el texto con una voz en otro idioma).
+  const esEspanol = (v) => /^es([-_]|$)/i.test(v.lang);
+  const region = (v) => (/MX/i.test(v.lang) ? 0 : /419|US/i.test(v.lang) ? 1 : 2);
+  const calidad = (v) => (/natural|online|google|neural/i.test(v.name) ? 0 : 1);
   function pickVoice(estilo) {
-    const es = voices.filter((v) => /^es/i.test(v.lang));
+    const es = voices.filter(esEspanol).sort((a, b) => region(a) - region(b) || calidad(a) - calidad(b));
     if (estilo === 'loquendo' || estilo === 'profunda') {
-      const lq = es.find((v) => /jorge|carlos|raul|raúl|pablo|diego|enrique/i.test(v.name));
+      const lq = es.find((v) => /jorge|carlos|raul|raúl|pablo|diego|enrique|alvaro|álvaro|gerardo/i.test(v.name));
       if (lq) return lq;
     }
-    return es.find((v) => /MX/i.test(v.lang)) || es.find((v) => /419|US/i.test(v.lang)) || es[0] || null;
+    return es[0] || null;
   }
 
   // Frases (algunos navegadores cortan las locuciones largas).
@@ -120,14 +135,14 @@ window.Game = window.Game || {};
   function speakChunk(text, { pitch, rate, estilo }) {
     return new Promise((resolve) => {
       // Sin voz disponible, el subtítulo se queda el tiempo de lectura; con voz, el tope es generoso.
-      const v = pickVoice(estilo);
       if (synth && !voices.length) loadVoices();
-      const conVoz = !!(synth && voices.length);
+      const v = synth ? pickVoice(estilo) : null;
+      const conVoz = !!v;
       const fallback = setTimeout(resolve, conVoz ? 5000 + text.length * 160 : (1200 + text.length * 70) / VELOCIDAD);
       if (!conVoz) return;
       const u = new SpeechSynthesisUtterance(text);
-      if (v) u.voice = v;
-      u.lang = v ? v.lang : 'es-MX';
+      u.voice = v;
+      u.lang = v.lang;
       u.pitch = pitch;
       u.rate = rate * VELOCIDAD;
       u.onend = u.onerror = () => { clearTimeout(fallback); resolve(); };
@@ -149,6 +164,7 @@ window.Game = window.Game || {};
     // subtitulos: false cuando el texto ya está en pantalla (p. ej. escrito a máquina), para no duplicarlo.
     async say(text, { titulo = 'VOZ EN OFF', estilo = 'narrador', pitch, rate, profunda = false, subtitulos = true } = {}) {
       if (profunda) estilo = 'profunda';
+      await vocesListas;
       const base = ESTILOS[estilo] || ESTILOS.narrador;
       Game.musica.duck(true);
       subs.className = `voz-${estilo}`;

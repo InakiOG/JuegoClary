@@ -45,7 +45,7 @@ El monólogo final de LucIAno se escucha en voz profunda y luego en voz de loque
 
 **Apps extra:** **Videos** (canal "DVD" con el logo que rebota, y videos de YouTube a x3 —YouTube llega como máximo a x2— con los archivos de `video/` como respaldo) y **FAINT** (paint con varias brochas).
 
-**Voz en off:** síntesis de voz del navegador en español, con subtítulos (la música baja mientras habla). Estilos: `narrador` (robótica con glitches, para la intro y el mapa), `loquendo` y `profunda` (`Game.voz.say(texto, { estilo })`). El acento yucateco no se puede lograr con la voz del navegador: haría falta grabar los audios.
+**Voz en off:** síntesis de voz del navegador, siempre en español (prefiere voces de México y las de mejor calidad; si el navegador no tiene ninguna voz en español, solo se muestra el subtítulo), con subtítulos (la música baja mientras habla). Estilos: `narrador` (robótica con glitches, para la intro y el mapa), `loquendo` y `profunda` (`Game.voz.say(texto, { estilo })`). El acento yucateco no se puede lograr con la voz del navegador: haría falta grabar los audios.
 **Música:** las tres canciones (`audio/acto1.mp3`, `acto2.mp3`, `acto3.mp3`) suenan en bucle una tras otra; cada acto empieza en la suya.
 **Mapa:** tablero de Fernando Calderón (imágenes en `img/mapa/`, posiciones e hilos del tablero original). Se mueve arrastrando y con la rueda. La sección **CÓDIGO** no estaba en el tablero: es provisional (acróstico P-T-A-L en `guion.js`).
 
