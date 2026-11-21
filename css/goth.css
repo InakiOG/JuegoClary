@@ -546,7 +546,7 @@ body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidd
 /* los botones ocultos de la barra de título (ventanas de minijuego) no se muestran */
 .tb[hidden] { display: none !important; }
 /* el botón de pausa vive arriba a la derecha: las ventanas maximizadas le dejan sitio */
-.win.maximized .tbtns { margin-right: max(5vmin, 34px); }
+.win.maximized .tbtns { margin-right: max(8vmin, 50px); }
 
 /* ---------- Pantalla de título (letra de arcade) ---------- */
 @font-face {
@@ -607,3 +607,18 @@ body:has(#intro:not([hidden])) .clic-seguir, body:has(#final.cursor-on:not([hidd
 .portada-start { margin: 3vmin 0 0; font-size: clamp(11px, 2.4vmin, 26px); color: #fff; text-shadow: 0.3vmin 0.3vmin 0 #e8341c; animation: portada-parpadeo 1s steps(1) infinite; }
 .portada-ayuda { margin: 0; font-size: clamp(8px, 1.3vmin, 14px); color: #8f9bff; }
 @keyframes portada-parpadeo { 50% { opacity: 0; } }
+
+/* Botón "Salir al escritorio" en la barra de título de un minijuego rejugado (app Minijuegos / trucos). */
+.mj-salir {
+  pointer-events: auto;
+  margin-right: 0.6vmin;
+  padding: 0.2vmin 1.2vmin;
+  font: 700 clamp(10px, 1.6vmin, 16px)/1.4 var(--g-chrome-font);
+  color: #000;
+  background: var(--g-acido);
+  border: none;
+  box-shadow: inset -2px -2px 0 #4f9a12, inset 2px 2px 0 #e6ffc8, 0 0 0 1px #000;
+  white-space: nowrap;
+}
+.mj-salir:hover { background: #c4ff7d; }
+.mj-salir:active { box-shadow: inset 2px 2px 0 #4f9a12, 0 0 0 1px #000; }

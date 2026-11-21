@@ -11,7 +11,7 @@ window.Game = window.Game || {};
 
 (function () {
   const G = Game.guion;
-  const { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, perder, elegirDificultad } = Game.escena;
+  const { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, perder, elegirDificultad, botonSalir } = Game.escena;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const waitFor = (pred, every = 200) => new Promise((r) => {
     (function check() { if (pred()) r(); else setTimeout(check, every); })();
@@ -372,7 +372,8 @@ window.Game = window.Game || {};
   // termina en derrota), sale GAME OVER → "Perdiste toda tu atención" → score, y se puede reintentar.
   // Solo para pruebas automáticas (Game.story.forzarVictoria): gana el minijuego en curso.
   let forzarVictoria = null;
-  async function minijuego(nombre, titulo) {
+  // salir: true al rejugar (bucle de trucos): hay botón "Salir al escritorio" y devuelve 'salir' si se pulsa.
+  async function minijuego(nombre, titulo, { salir = false } = {}) {
     for (;;) {
       // Antes de cada intento: pestaña con Fácil / Intermedio / Difícil.
       const dificultad = await elegirDificultad(titulo);
@@ -388,15 +389,18 @@ window.Game = window.Game || {};
       const game = Game.minijuegos[nombre](W.body, { dificultad });
       free({ chat: false });
       const gano = await Promise.race([game.done, Game.atencion.vacia().then(() => false),
-        new Promise((r) => { forzarVictoria = () => r(true); })]);
+        new Promise((r) => { forzarVictoria = () => r(true); }),
+        ...(salir ? [botonSalir(W)] : [])]);
       forzarVictoria = null;
       pilot();
       game.destroy();
       Game.atencion.juego(false);
       Game.os.closeWindow(W);
+      if (gano === 'salir') return 'salir';
       if (gano) return true;
       // En la maquila suenan varias muertes de Roblox a la vez (los empleados).
-      const otra = await perder({ oofs: nombre === 'maquila' ? 9 : 1 });
+      const otra = await perder({ oofs: nombre === 'maquila' ? 9 : 1, salir });
+      if (!otra && salir) return 'salir';
       if (!otra) { reiniciar(); return new Promise(() => {}); }
     }
   }
@@ -859,6 +863,18 @@ window.Game = window.Game || {};
     reiniciar();
   }
 
+  // Escritorio libre (trucos / salir de un minijuego rejugado): sin cinemáticas, el jugador tiene el control,
+  // el mapa está en el escritorio y se puede chatear con LucIAno.
+  function escritorioLibre() {
+    // Si se recarga la página, se vuelve a este escritorio (no al minijuego en bucle).
+    history.replaceState(null, '', `${location.pathname}?${new URLSearchParams({ desde: 'libre', usuario: Game.jugador.nombre || 'Jugador' })}`);
+    document.querySelectorAll('.clic-seguir, .pensamiento').forEach((e) => e.remove());
+    addMapFile();
+    Game.luciano.enableInput(onPlayer);
+    free();
+    Game.musica.play('acto1');
+  }
+
   // Se acaba el juego y vuelve a la pantalla de inicio.
   function reiniciar() {
     location.href = location.pathname;
@@ -874,10 +890,12 @@ window.Game = window.Game || {};
     // ?desde=mj-sopa (pesca, serpiente, maquila, pelea): solo ese minijuego, en bucle.
     if (desde.startsWith('mj-')) {
       for (;;) {
-        await minijuego(desde.slice(3), `${desde.slice(3)}.exe`);
+        const r = await minijuego(desde.slice(3), `${desde.slice(3)}.exe`, { salir: true });
+        if (r === 'salir') return escritorioLibre();
         await pensamiento(`Ganaste el minijuego. Score: ${Game.score.value}`);
       }
     }
+    if (desde === 'libre') return escritorioLibre();
     const orden = ['acto2', 'acto3', 'borrado', 'maquila', 'pelea', 'codigo'];
     const k = orden.indexOf(desde);
     if (k >= 1) Game.mapa.unlock('acatlan');

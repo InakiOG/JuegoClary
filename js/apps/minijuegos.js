@@ -67,18 +67,19 @@ window.Game = window.Game || {};
         // Cerrar la ventana con la X cuenta como abandonar.
         const cerrada = new Promise((r) => { const prev = W.onClose; W.onClose = () => { if (prev) prev(); r('cerrada'); }; });
         const res = await Promise.race([game.done, Game.atencion.vacia().then(() => false), cerrada,
-          new Promise((r) => { forzar = () => r(true); })]);
+          new Promise((r) => { forzar = () => r(true); }),
+          Game.escena.botonSalir(W).then(() => 'cerrada')]);
         forzar = null;
         game.destroy();
         Game.atencion.juego(false);
-        if (res !== 'cerrada') Game.os.closeWindow(W);
-        if (res === 'cerrada') { estado.textContent = `${j.titulo}: abandonado.`; break; }
+        if (W.el.isConnected) Game.os.closeWindow(W);
+        if (res === 'cerrada') { estado.textContent = `${j.titulo}: saliste al escritorio.`; break; }
         if (res) {
           estado.textContent = `${j.titulo} (${NOMBRE_DIF[dificultad]}): ¡ganaste! Score ${Game.score.value}`;
           Game.sound.glitch();
           break;
         }
-        const otra = await Game.escena.perder({ oofs: j.id === 'maquila' ? 9 : 1 });
+        const otra = await Game.escena.perder({ oofs: j.id === 'maquila' ? 9 : 1, salir: true });
         if (!otra) { estado.textContent = `${j.titulo}: perdiste.`; break; }
       }
     } finally {

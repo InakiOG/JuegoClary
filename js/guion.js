@@ -37,6 +37,7 @@ Game.guion = {
     score: 'SCORE',
     reintentar: 'Volver a intentar el minijuego',
     finalizar: 'Finalizar juego',
+    salir: 'Salir al escritorio',   // en lugar de "Finalizar juego" cuando se está rejugando un minijuego
   },
 
   // ---------- INICIO ----------

@@ -477,7 +477,9 @@ window.Game = window.Game || {};
 
   // Devuelve true si el jugador quiere volver a intentar, false si quiere terminar.
   // oofs: cuántas "muertes de Roblox" suenan a la vez al perder.
-  async function perder({ oofs = 1, leyenda = null } = {}) {
+  // salir: true cuando se rejuega un minijuego (app Minijuegos o trucos): el segundo botón dice
+  // "Salir al escritorio" en vez de "Finalizar juego".
+  async function perder({ oofs = 1, leyenda = null, salir = false } = {}) {
     const P = G.perder;
     Game.voz.stop();
     Game.musica.mute(true);
@@ -513,7 +515,7 @@ window.Game = window.Game || {};
       '<div class="go-btns"></div></div>';
     const btns = go.querySelector('.go-btns');
     const otra = botonGO(P.reintentar);
-    const fin = botonGO(P.finalizar);
+    const fin = botonGO(salir ? P.salir : P.finalizar);
     btns.append(otra, fin);
     const r = await new Promise((res) => {
       otra.addEventListener('click', () => res(true));
@@ -553,5 +555,19 @@ window.Game = window.Game || {};
     });
   }
 
-  Game.escena = { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, wait, perder, elegirDificultad };
+  // Botón "Salir al escritorio" en la barra de título de la ventana de un minijuego que se está rejugando.
+  // Devuelve una promesa que se cumple con 'salir' al pulsarlo.
+  function botonSalir(W) {
+    return new Promise((resolve) => {
+      const b = document.createElement('button');
+      b.className = 'mj-salir';
+      b.dataset.cursor = 'hand';
+      b.textContent = `⏏ ${G.perder.salir}`;
+      b.addEventListener('mousedown', (e) => e.stopPropagation());
+      b.addEventListener('click', (e) => { e.stopPropagation(); Game.sound.mouse(true); resolve('salir'); });
+      W.el.querySelector('.tbtns').prepend(b);
+    });
+  }
+
+  Game.escena = { pensamiento, siguiente, instruccion, zoomTo, glitch, shake, wait, perder, elegirDificultad, botonSalir };
 })();

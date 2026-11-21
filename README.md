@@ -18,10 +18,15 @@ servidor y con internet**: YouTube no deja incrustar videos en una página abier
 
 ## Trucos (para probar)
 
-Escribe **PILINES** en cualquier momento (o el código Konami **↑ ↑ ↓ ↓ ← → ← → B A**). Se desbloquea todo al 100 %:
+Escribe **PILINES** en cualquier momento (o el código Konami **↑ ↑ ↓ ↓ ← → ← → B A**). Se saltan todas las
+cinemáticas: el juego pasa al **escritorio libre** (`?desde=libre`) con todo desbloqueado al 100 %:
 el mapa completo y la app **Trucos** en el escritorio, con atención infinita, "Ganar el minijuego en curso",
 Minijuegos, cada minijuego en bucle y saltos a cualquier capítulo. Sigue activo en esa pestaña del navegador
 (también al saltar de capítulo) hasta pulsar "Desactivar trucos". Código en `js/trucos.js`.
+
+Al **rejugar** un minijuego (desde la app Minijuegos o en bucle desde Trucos) hay un botón **Salir al escritorio**
+en la barra de título, y en GAME OVER el segundo botón también dice "Salir al escritorio" (en la historia sigue
+siendo "Finalizar juego").
 
 ## Historia
 

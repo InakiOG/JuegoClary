@@ -45,8 +45,22 @@ window.Game = window.Game || {};
     }
   }, true);
 
+  const enEscritorioLibre = () => new URLSearchParams(location.search).get('desde') === 'libre';
+
   // ---------- Activar ----------
+  // Al escribir el código se saltan todas las cinemáticas: se recarga en el escritorio libre
+  // (?desde=libre) con todo desbloqueado y la ventana de Trucos abierta.
   function activar(desdeCodigo) {
+    if (desdeCodigo && !enEscritorioLibre()) {
+      const e = leer() || { inmortal: false };
+      e.abrir = true;
+      guardar(e);
+      aviso('¡TRUCOS ACTIVADOS! · 100 % DESBLOQUEADO');
+      Game.sound.glitch();
+      const u = new URLSearchParams({ desde: 'libre', usuario: Game.jugador.nombre || 'Jugador' });
+      (Game.pausa ? Game.pausa.realTimeout : setTimeout)(() => { location.href = `${location.pathname}?${u}`; }, 1200);
+      return;
+    }
     const primeraVez = !estado;
     estado = estado || leer() || { inmortal: false };
     guardar(estado);
@@ -138,7 +152,19 @@ window.Game = window.Game || {};
   }
 
   // Si ya estaban activos en esta sesión (p. ej. después de saltar de capítulo), se vuelven a aplicar.
-  window.addEventListener('load', () => { setTimeout(() => { if (leer()) activar(false); }, 300); });
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const e = leer();
+      if (!e) return;
+      activar(false);
+      if (e.abrir) {
+        delete estado.abrir;
+        guardar(estado);
+        aviso('¡TRUCOS ACTIVADOS! · 100 % DESBLOQUEADO');
+        open();
+      }
+    }, 300);
+  });
 
   Game.trucos = { activar: () => activar(true), get activos() { return !!estado; } };
 })();
