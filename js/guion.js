@@ -15,7 +15,8 @@ Game.guion = {
   // ---------- Pantalla de inicio (nombre de usuario) ----------
   // ---------- Pantalla de título (lo primero que se ve, con letra de arcade) ----------
   portada: {
-    lineas: ['LAS CRÓNICAS DE', 'TOMÁS VS SHIT GPT,', 'EL SÉPTIMO APAGÓN.'],
+    // Sin tildes: la letra de arcade no las dibuja bien.
+    lineas: ['LAS CRONICAS DE', 'TOMAS VS SHIT GPT,', 'EL SEPTIMO APAGON.'],
     empezar: 'PRESIONA START',
     ayuda: 'clic o cualquier tecla',
   },
