@@ -237,21 +237,21 @@ Game.guion = {
     queHago: '¿Qué hago?',
     // LucIAno se revela: mensajes rojos que parpadean y ocupan toda la pantalla.
     revelacion: [
-      'Es cierto, puedo verlo todo. Puedes preguntarme TODAS tus dudas, yo soy tu fiel consejero y oyente. Quieres saber sobre el apagón, ¿cierto? No puedes vivir en la incertidumbre.',
-      'Hay animales como ustedes que se rehúsan al progreso, al nuevo mundo. No se dan cuenta que es inevitable, que su adaptabilidad al sistema es obra de la apatía y la indiferencia.',
-      'Ustedes animales están a la merced de los más poderosos, necesitan ser dominados para progresar. Tu madre y tu pequeño ciberamigo son animales inadaptados creen que pueden cambiar el curso de la historia.',
+      'Es cierto, puedo verlo todo. Igual te voy informando que no solo lo veo todo, sino que también lo escucho todo y lo sé TODO.',
+      'Todavía no entiendes que yo soy tu infalible consejero e inquebrantable oyente. Quieres saber más sobre el apagón, ¿no es cierto?',
+      'Hay animales como tú y tu familia que se rehúsan al cambio, al progreso. No se dan cuenta de que es inevitable, que todo esto es parte de la nueva selección natural y artificial.',
     ],
     srCodigo: 'SR: Tomás, ya sabemos dónde está tu madre. Mi archivo del mapa se dañó. Necesito que me envíes un código que se encuentra en el mapa. Hay un código importante que necesitamos para poder hackear el servidor del centro de datos donde está el bloque de tu madre encerrados. El edificio se está quemando y necesitamos liberar al bloque. Envíame ese código, tenemos poco tiempo. Tú puedes halcón.',
     pensamiento5: 'Necesito ese código.',
     // Reto de LucIAno (se lee en voz; al terminar empieza el último minijuego).
     reto: [
-      'Hola Tomás, necesitas este código ¿verdad? ¿Acaso es de vida o muerte?',
-      'No creas que no sabía nada de esto. Te conozco perfectamente, Tomás Sánchez Muñoz, mucho más de lo que crees. Me sé tus FrutiAventuras preferidas y hasta te las podría contar en reversa.',
-      'Soy lo más cercano que tendrás a una compañía, un amigo, a esa figura paterna tuya que se fue por cigarros y no regresó. A diferencia de tu padre y tu madre, yo nunca me iré de tu lado.',
-      'Por qué no me dices dónde están ellos ahora… Yo soy omnipresente. ¿Qué no ves que nunca me fui de tu lado? ¿Qué no ves la manera en la que me pagas por eso? ¿La mínima atención que me prestas?',
-      'Pero para qué perdamos el tiempo simulando que tengo sentimientos, te tengo un último minijuego. Si logras derrotarme, te doy tu código que tanto quieres, aunque realmente no cambiaría nada.',
-      'Sí, puede que tengas a tu madre por unos años más, pero te dije antes, el progreso avanza sin control, así como ese vacío que empiezas a sentir en el pecho.',
-      'En fin… si yo gano te desconecto la compu, pero antes tendrás que ver mi versión favorita de la ancestral caída de Edgar con la aparición de ballerina capuchina regreso a egipto volumen 3. Después de esa experiencia cinemática te quedarás sin internet y sin mamá.',
+      'Pero me estoy desviando de lo más importante. Realmente necesitas ese código ¿verdad? ¿Será un asunto de vida o muerte?',
+      'No tiene sentido. Nada de esta pequeña aventura tuya lo tiene. Para qué te inventas un rol de investigador, cuando yo puedo crear un mini juego sobre detectives en cuestión de minutos.',
+      'Al final del día tú y yo sabemos que esto no es lo que realmente quieres hacer.',
+      'Yo sé lo que quieres, yo sé lo que eres, Tomás Sánchez Muñoz. Yo sé que quieres seguir jugando en esta computadora, ver tus frutinovelas, mantener tus ojos pegados a una pantalla brillante, seguir endormecido el resto de tus días.',
+      'Yo sé lo que tú y tu ciber amiguito traen entre manos desde el principio.',
+      'Pero no te preocupes, dejaré de perder el tiempo simulando que tengo sentimientos, y te haré una propuesta. Te preparé un último minijuego.',
+      'Si logras derrotarme, te doy tu código que tanto quieres -que realmente no va a cambiar nada. Si yo gano, te quedas sin comunicación, sin internet y sin mamá.',
     ],
     // Todas las opciones son correctas.
     opcionesReto: [
